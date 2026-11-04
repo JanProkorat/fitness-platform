@@ -1,4 +1,4 @@
-import { CircleDot, FileUp, Hash, List, SlidersHorizontal, Smile, Star, Type } from 'lucide-react';
+import { CircleDot, FileUp, Hash, List, Rows3, SlidersHorizontal, Smile, Star, Type } from 'lucide-react';
 
 interface Props {
   kind: string;
@@ -20,6 +20,8 @@ export default function KindIcon({ kind, className }: Props) {
       return <Star className={className} aria-hidden="true" />;
     case 'scale':
       return <SlidersHorizontal className={className} aria-hidden="true" />;
+    case 'section':
+      return <Rows3 className={className} aria-hidden="true" />;
     case 'file_upload':
       return <FileUp className={className} aria-hidden="true" />;
     default:

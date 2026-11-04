@@ -1,14 +1,11 @@
 /**
  * Automations is open to both coach roles: the Forms section of the sidebar links to
  * /automations and the page renders for a trainer-only and a nutritionist-only user.
- * The trainer block also drives a schedule rule through create, edit, toggle and delete,
- * and checks that no check-in row names a weekday.
+ * The trainer block also drives a schedule rule through create, edit, toggle and delete.
  */
 import { trainerTest, nutritionistTest, expect } from '../fixtures/auth';
 import type { Page } from '@playwright/test';
-import { ensureCheckInSetting } from '../fixtures/check-in-setting';
-
-const WEEKDAY = /\b(Mon|Tue|Wed|Thu|Fri|Sat|Sun)(day|sday|nesday|rsday|urday)?\b/;
+import { ensureCheckInRule } from '../fixtures/check-in-rule';
 
 async function expectAutomationsPage(page: Page) {
   await page.goto('/clients');
@@ -32,21 +29,6 @@ nutritionistTest.describe('nutritionist automations nav', () => {
 trainerTest.describe('trainer automations', () => {
   trainerTest('sidebar links to /automations and the page renders', async ({ page }) => {
     await expectAutomationsPage(page);
-  });
-
-  trainerTest('linked check-in rows never name a weekday', async ({ page, baseURL }) => {
-    await ensureCheckInSetting(baseURL ?? 'http://localhost:5173');
-    await page.goto('/automations');
-    const table = page.getByRole('table');
-    await expect(table.getByRole('row').nth(1)).toBeVisible();
-    const checkInRows = page.getByRole('row').filter({ hasText: 'Weekly check-in' });
-    await expect(checkInRows.first()).toBeVisible();
-    for (const row of await checkInRows.all()) {
-      await expect(row.getByText('Linked')).toBeVisible();
-      await expect(row.getByRole('switch')).toHaveCount(0);
-      await expect(row.getByRole('link', { name: 'Open' })).toHaveAttribute('href', '/forms?type=CheckIn');
-    }
-    expect(await table.innerText()).not.toMatch(WEEKDAY);
   });
 
   trainerTest('create, edit, toggle and delete a schedule rule', async ({ page }) => {
@@ -88,5 +70,40 @@ trainerTest.describe('trainer automations', () => {
     await page.getByRole('menuitem', { name: 'Delete' }).click();
     await page.getByRole('dialog').getByRole('button', { name: 'Delete rule' }).click();
     await expect(page.getByRole('row').filter({ hasText: renamed })).toHaveCount(0);
+  });
+
+  trainerTest('the weekly check-in is an ordinary rule: it has a switch, no Linked marker, and a changed weekday survives a reload', async ({
+    page,
+    baseURL,
+  }) => {
+    const rule = await ensureCheckInRule(baseURL ?? 'http://localhost:5173');
+    try {
+      await page.goto('/automations');
+      const row = page.getByRole('row').filter({ hasText: rule.name });
+      await expect(row).toBeVisible();
+      await expect(row).toContainText('Every Monday, 18:00');
+      await expect(page.getByText('Linked', { exact: true })).toHaveCount(0);
+
+      // The switch flips off and on again.
+      const toggle = page.getByRole('switch', { name: `Enable rule “${rule.name}”` });
+      await expect(toggle).toBeChecked();
+      await toggle.click();
+      await expect(toggle).not.toBeChecked();
+      await toggle.click();
+      await expect(toggle).toBeChecked();
+
+      // Change the weekday in the drawer; the new day is still there after a reload.
+      await page.getByRole('button', { name: rule.name, exact: true }).click();
+      const drawer = page.getByRole('dialog');
+      await expect(drawer.getByRole('button', { name: 'Mon', exact: true })).toHaveAttribute('aria-pressed', 'true');
+      await drawer.getByRole('button', { name: 'Thu', exact: true }).click();
+      await drawer.getByRole('button', { name: 'Save rule' }).click();
+      await expect(drawer).toBeHidden();
+
+      await page.reload();
+      await expect(row).toContainText('Every Thursday, 18:00');
+    } finally {
+      await rule.restore();
+    }
   });
 });

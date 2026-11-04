@@ -372,358 +372,9 @@ export class ApiClient {
     }
 
     /**
-     * Respond to a weekly check-in
-     * @param id Route parameter — check-in identifier.
-     * @return Success
-     */
-    respondToCheckInEndpoint(id: string, respondToCheckInRequest: RespondToCheckInRequest, signal?: AbortSignal): Promise<RespondToCheckInResponse> {
-        let url_ = this.baseUrl + "/client/weekly-check-ins/{id}/respond";
-        if (id === undefined || id === null)
-            throw new globalThis.Error("The parameter 'id' must be defined.");
-        url_ = url_.replace("{id}", encodeURIComponent("" + id));
-        url_ = url_.replace(/[?&]$/, "");
-
-        const content_ = JSON.stringify(respondToCheckInRequest);
-
-        let options_: AxiosRequestConfig = {
-            data: content_,
-            method: "POST",
-            url: url_,
-            headers: {
-                "Content-Type": "application/json",
-                "Accept": "application/json"
-            },
-            signal
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processRespondToCheckInEndpoint(_response);
-        });
-    }
-
-    protected processRespondToCheckInEndpoint(response: AxiosResponse): Promise<RespondToCheckInResponse> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 200) {
-            const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = JSON.parse(resultData200);
-            return Promise.resolve<RespondToCheckInResponse>(result200);
-
-        } else if (status === 400) {
-            const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = JSON.parse(resultData400);
-            return throwException("Bad Request", status, _responseText, _headers, result400);
-
-        } else if (status === 401) {
-            const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
-
-        } else if (status === 403) {
-            const _responseText = response.data;
-            return throwException("Forbidden", status, _responseText, _headers);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<RespondToCheckInResponse>(null as any);
-    }
-
-    /**
-     * Upsert weekly check-in setting
-     * @return Success
-     */
-    putSettingsEndpoint(putSettingsRequest: PutSettingsRequest, signal?: AbortSignal): Promise<PutSettingsResponse> {
-        let url_ = this.baseUrl + "/trainer/weekly-check-ins/settings";
-        url_ = url_.replace(/[?&]$/, "");
-
-        const content_ = JSON.stringify(putSettingsRequest);
-
-        let options_: AxiosRequestConfig = {
-            data: content_,
-            method: "PUT",
-            url: url_,
-            headers: {
-                "Content-Type": "application/json",
-                "Accept": "application/json"
-            },
-            signal
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processPutSettingsEndpoint(_response);
-        });
-    }
-
-    protected processPutSettingsEndpoint(response: AxiosResponse): Promise<PutSettingsResponse> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 200) {
-            const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = JSON.parse(resultData200);
-            return Promise.resolve<PutSettingsResponse>(result200);
-
-        } else if (status === 400) {
-            const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = JSON.parse(resultData400);
-            return throwException("Bad Request", status, _responseText, _headers, result400);
-
-        } else if (status === 401) {
-            const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
-
-        } else if (status === 403) {
-            const _responseText = response.data;
-            return throwException("Forbidden", status, _responseText, _headers);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<PutSettingsResponse>(null as any);
-    }
-
-    /**
-     * Get weekly check-in settings
-     * @return Success
-     */
-    getSettingsEndpoint(signal?: AbortSignal): Promise<GetSettingsResponse> {
-        let url_ = this.baseUrl + "/trainer/weekly-check-ins/settings";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: AxiosRequestConfig = {
-            method: "GET",
-            url: url_,
-            headers: {
-                "Accept": "application/json"
-            },
-            signal
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processGetSettingsEndpoint(_response);
-        });
-    }
-
-    protected processGetSettingsEndpoint(response: AxiosResponse): Promise<GetSettingsResponse> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 200) {
-            const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = JSON.parse(resultData200);
-            return Promise.resolve<GetSettingsResponse>(result200);
-
-        } else if (status === 401) {
-            const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
-
-        } else if (status === 403) {
-            const _responseText = response.data;
-            return throwException("Forbidden", status, _responseText, _headers);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<GetSettingsResponse>(null as any);
-    }
-
-    /**
-     * Upsert per-client override
-     * @param clientUserId The client's ApplicationUser.Id (route parameter).
-     * @param profession Profession ("Training" or "Nutrition") (route parameter).
-     * @return Success
-     */
-    putOverrideEndpoint(clientUserId: string, profession: string, putOverrideRequest: PutOverrideRequest, signal?: AbortSignal): Promise<PutOverrideResponse> {
-        let url_ = this.baseUrl + "/trainer/weekly-check-ins/overrides/{clientUserId}/{profession}";
-        if (clientUserId === undefined || clientUserId === null)
-            throw new globalThis.Error("The parameter 'clientUserId' must be defined.");
-        url_ = url_.replace("{clientUserId}", encodeURIComponent("" + clientUserId));
-        if (profession === undefined || profession === null)
-            throw new globalThis.Error("The parameter 'profession' must be defined.");
-        url_ = url_.replace("{profession}", encodeURIComponent("" + profession));
-        url_ = url_.replace(/[?&]$/, "");
-
-        const content_ = JSON.stringify(putOverrideRequest);
-
-        let options_: AxiosRequestConfig = {
-            data: content_,
-            method: "PUT",
-            url: url_,
-            headers: {
-                "Content-Type": "application/json",
-                "Accept": "application/json"
-            },
-            signal
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processPutOverrideEndpoint(_response);
-        });
-    }
-
-    protected processPutOverrideEndpoint(response: AxiosResponse): Promise<PutOverrideResponse> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 200) {
-            const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = JSON.parse(resultData200);
-            return Promise.resolve<PutOverrideResponse>(result200);
-
-        } else if (status === 400) {
-            const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = JSON.parse(resultData400);
-            return throwException("Bad Request", status, _responseText, _headers, result400);
-
-        } else if (status === 401) {
-            const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
-
-        } else if (status === 403) {
-            const _responseText = response.data;
-            return throwException("Forbidden", status, _responseText, _headers);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<PutOverrideResponse>(null as any);
-    }
-
-    /**
-     * Delete per-client override
-     * @param clientUserId The client's ApplicationUser.Id (route parameter).
-     * @param profession Profession ("Training" or "Nutrition") (route parameter).
-     * @return No Content
-     */
-    deleteOverrideEndpoint(clientUserId: string, profession: string, signal?: AbortSignal): Promise<void> {
-        let url_ = this.baseUrl + "/trainer/weekly-check-ins/overrides/{clientUserId}/{profession}";
-        if (clientUserId === undefined || clientUserId === null)
-            throw new globalThis.Error("The parameter 'clientUserId' must be defined.");
-        url_ = url_.replace("{clientUserId}", encodeURIComponent("" + clientUserId));
-        if (profession === undefined || profession === null)
-            throw new globalThis.Error("The parameter 'profession' must be defined.");
-        url_ = url_.replace("{profession}", encodeURIComponent("" + profession));
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: AxiosRequestConfig = {
-            method: "DELETE",
-            url: url_,
-            headers: {
-            },
-            signal
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processDeleteOverrideEndpoint(_response);
-        });
-    }
-
-    protected processDeleteOverrideEndpoint(response: AxiosResponse): Promise<void> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 204) {
-            const _responseText = response.data;
-            return Promise.resolve<void>(null as any);
-
-        } else if (status === 401) {
-            const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
-
-        } else if (status === 403) {
-            const _responseText = response.data;
-            return throwException("Forbidden", status, _responseText, _headers);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<void>(null as any);
-    }
-
-    /**
      * Mark a check-in as reviewed (trainer)
      * @param id Check-in identifier (route parameter).
-     * @return Success
+     * @return Reviewed time of the check-in
      */
     markCheckInReviewedEndpoint(id: string, signal?: AbortSignal): Promise<MarkCheckInReviewedResponse> {
         let url_ = this.baseUrl + "/trainer/weekly-check-ins/{id}/mark-reviewed";
@@ -771,7 +422,7 @@ export class ApiClient {
 
         } else if (status === 401) {
             const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
 
         } else if (status === 403) {
             const _responseText = response.data;
@@ -788,7 +439,7 @@ export class ApiClient {
      * List check-ins for the trainer
      * @param weekStartDate (optional) ISO-week Monday to filter by (YYYY-MM-DD). Optional — when omitted, the endpoint
     returns the active (not dismissed, not yet reviewed) set across all weeks.
-     * @return Success
+     * @return Check-ins of the caller's clients
      */
     getTrainerCheckInsEndpoint(weekStartDate?: string | null | undefined, signal?: AbortSignal): Promise<GetTrainerCheckInsResponse> {
         let url_ = this.baseUrl + "/trainer/weekly-check-ins?";
@@ -835,7 +486,7 @@ export class ApiClient {
 
         } else if (status === 401) {
             const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
 
         } else if (status === 403) {
             const _responseText = response.data;
@@ -846,66 +497,6 @@ export class ApiClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<GetTrainerCheckInsResponse>(null as any);
-    }
-
-    /**
-     * Get per-client overrides
-     * @return Success
-     */
-    getOverridesEndpoint(signal?: AbortSignal): Promise<GetOverridesResponse> {
-        let url_ = this.baseUrl + "/trainer/weekly-check-ins/overrides";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: AxiosRequestConfig = {
-            method: "GET",
-            url: url_,
-            headers: {
-                "Accept": "application/json"
-            },
-            signal
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processGetOverridesEndpoint(_response);
-        });
-    }
-
-    protected processGetOverridesEndpoint(response: AxiosResponse): Promise<GetOverridesResponse> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 200) {
-            const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = JSON.parse(resultData200);
-            return Promise.resolve<GetOverridesResponse>(result200);
-
-        } else if (status === 401) {
-            const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
-
-        } else if (status === 403) {
-            const _responseText = response.data;
-            return throwException("Forbidden", status, _responseText, _headers);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<GetOverridesResponse>(null as any);
     }
 
     /**
@@ -983,134 +574,6 @@ export class ApiClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<GetMyCheckInHistoryResponse>(null as any);
-    }
-
-    /**
-     * Get active check-ins (client)
-     * @return Success
-     */
-    getCurrentClientCheckInsEndpoint(signal?: AbortSignal): Promise<GetCurrentClientCheckInsResponse> {
-        let url_ = this.baseUrl + "/client/weekly-check-ins/current";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: AxiosRequestConfig = {
-            method: "GET",
-            url: url_,
-            headers: {
-                "Accept": "application/json"
-            },
-            signal
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processGetCurrentClientCheckInsEndpoint(_response);
-        });
-    }
-
-    protected processGetCurrentClientCheckInsEndpoint(response: AxiosResponse): Promise<GetCurrentClientCheckInsResponse> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 200) {
-            const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = JSON.parse(resultData200);
-            return Promise.resolve<GetCurrentClientCheckInsResponse>(result200);
-
-        } else if (status === 401) {
-            const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
-
-        } else if (status === 403) {
-            const _responseText = response.data;
-            return throwException("Forbidden", status, _responseText, _headers);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<GetCurrentClientCheckInsResponse>(null as any);
-    }
-
-    /**
-     * Get the active check-in for a client (trainer)
-     * @param clientUserId Client's ApplicationUser.Id (route parameter).
-     * @param profession (optional) Profession to filter by ("Training" or "Nutrition"). Optional.
-    When omitted, returns check-ins for all professions.
-     * @return Success
-     */
-    getClientCurrentCheckInEndpoint(clientUserId: string, profession?: string | null | undefined, signal?: AbortSignal): Promise<GetClientCurrentCheckInResponse> {
-        let url_ = this.baseUrl + "/trainer/clients/{clientUserId}/weekly-check-ins/current?";
-        if (clientUserId === undefined || clientUserId === null)
-            throw new globalThis.Error("The parameter 'clientUserId' must be defined.");
-        url_ = url_.replace("{clientUserId}", encodeURIComponent("" + clientUserId));
-        if (profession !== undefined && profession !== null)
-            url_ += "profession=" + encodeURIComponent("" + profession) + "&";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: AxiosRequestConfig = {
-            method: "GET",
-            url: url_,
-            headers: {
-                "Accept": "application/json"
-            },
-            signal
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processGetClientCurrentCheckInEndpoint(_response);
-        });
-    }
-
-    protected processGetClientCurrentCheckInEndpoint(response: AxiosResponse): Promise<GetClientCurrentCheckInResponse> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 200) {
-            const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = JSON.parse(resultData200);
-            return Promise.resolve<GetClientCurrentCheckInResponse>(result200);
-
-        } else if (status === 401) {
-            const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
-
-        } else if (status === 403) {
-            const _responseText = response.data;
-            return throwException("Forbidden", status, _responseText, _headers);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<GetClientCurrentCheckInResponse>(null as any);
     }
 
     /**
@@ -1192,7 +655,7 @@ export class ApiClient {
     /**
      * Get check-in detail (trainer)
      * @param id Check-in identifier (route parameter).
-     * @return Success
+     * @return Check-in detail
      */
     getCheckInDetailEndpoint(id: string, signal?: AbortSignal): Promise<GetCheckInDetailResponse> {
         let url_ = this.baseUrl + "/trainer/weekly-check-ins/{id}";
@@ -1240,7 +703,7 @@ export class ApiClient {
 
         } else if (status === 401) {
             const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
 
         } else if (status === 403) {
             const _responseText = response.data;
@@ -1251,70 +714,6 @@ export class ApiClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<GetCheckInDetailResponse>(null as any);
-    }
-
-    /**
-     * Dismiss a weekly check-in
-     * @param id Route parameter — check-in identifier.
-     * @return Success
-     */
-    dismissCheckInEndpoint(id: string, signal?: AbortSignal): Promise<DismissCheckInResponse> {
-        let url_ = this.baseUrl + "/client/weekly-check-ins/{id}/dismiss";
-        if (id === undefined || id === null)
-            throw new globalThis.Error("The parameter 'id' must be defined.");
-        url_ = url_.replace("{id}", encodeURIComponent("" + id));
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: AxiosRequestConfig = {
-            method: "POST",
-            url: url_,
-            headers: {
-                "Accept": "application/json"
-            },
-            signal
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processDismissCheckInEndpoint(_response);
-        });
-    }
-
-    protected processDismissCheckInEndpoint(response: AxiosResponse): Promise<DismissCheckInResponse> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 200) {
-            const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = JSON.parse(resultData200);
-            return Promise.resolve<DismissCheckInResponse>(result200);
-
-        } else if (status === 401) {
-            const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
-
-        } else if (status === 403) {
-            const _responseText = response.data;
-            return throwException("Forbidden", status, _responseText, _headers);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<DismissCheckInResponse>(null as any);
     }
 
     /**
@@ -8040,6 +7439,70 @@ export class ApiClient {
     }
 
     /**
+     * Mark a client's form as seen
+     * @param clientPublicId Route parameter — public id of the client.
+     * @param responsePublicId Route parameter — public id of the response.
+     * @return Marked as seen, or already seen
+     */
+    markClientFormSeenEndpoint(clientPublicId: string, responsePublicId: string, signal?: AbortSignal): Promise<void> {
+        let url_ = this.baseUrl + "/trainer/clients/{clientPublicId}/forms/{responsePublicId}/seen";
+        if (clientPublicId === undefined || clientPublicId === null)
+            throw new globalThis.Error("The parameter 'clientPublicId' must be defined.");
+        url_ = url_.replace("{clientPublicId}", encodeURIComponent("" + clientPublicId));
+        if (responsePublicId === undefined || responsePublicId === null)
+            throw new globalThis.Error("The parameter 'responsePublicId' must be defined.");
+        url_ = url_.replace("{responsePublicId}", encodeURIComponent("" + responsePublicId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "POST",
+            url: url_,
+            headers: {
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processMarkClientFormSeenEndpoint(_response);
+        });
+    }
+
+    protected processMarkClientFormSeenEndpoint(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
      * List trainer questionnaires
      * @param type (optional) Only forms of this type.
      * @param search (optional) Case-insensitive substring match on the title.
@@ -8608,6 +8071,69 @@ export class ApiClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<GetClientPendingQuestionnairesResponse>(null as any);
+    }
+
+    /**
+     * List a client's forms and answers
+     * @return Forms of the current and previous collaborations
+     */
+    getClientFormsEndpoint(clientPublicId: string, signal?: AbortSignal): Promise<GetClientFormsResponse> {
+        let url_ = this.baseUrl + "/trainer/clients/{clientPublicId}/forms";
+        if (clientPublicId === undefined || clientPublicId === null)
+            throw new globalThis.Error("The parameter 'clientPublicId' must be defined.");
+        url_ = url_.replace("{clientPublicId}", encodeURIComponent("" + clientPublicId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetClientFormsEndpoint(_response);
+        });
+    }
+
+    protected processGetClientFormsEndpoint(response: AxiosResponse): Promise<GetClientFormsResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<GetClientFormsResponse>(result200);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<GetClientFormsResponse>(null as any);
     }
 
     /**
@@ -20911,7 +20437,7 @@ export class ApiClient {
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("Invalid rule, an audience sent for a client-only rule, or the questionnaire is inactive or a check-in form", status, _responseText, _headers, result400);
+            return throwException("Invalid rule, an audience sent for a client-only rule, the questionnaire is inactive, or the check-in fields do not match the form", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
@@ -20919,7 +20445,7 @@ export class ApiClient {
 
         } else if (status === 403) {
             const _responseText = response.data;
-            return throwException("Forbidden", status, _responseText, _headers);
+            return throwException("The rule would be an enabled check-in rule and the subscription does not include weekly check-ins", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -21174,7 +20700,7 @@ export class ApiClient {
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("Invalid trigger or options, or a progress photos message over 500 characters", status, _responseText, _headers, result400);
+            return throwException("Invalid trigger or options, a progress photos message over 500 characters, or check-in fields that do not match the rule\'s form", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
@@ -21182,7 +20708,7 @@ export class ApiClient {
 
         } else if (status === 403) {
             const _responseText = response.data;
-            return throwException("The live link grants no access", status, _responseText, _headers);
+            return throwException("The live link grants no access, or the subscription does not include per-client check-in configuration", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -21257,7 +20783,7 @@ export class ApiClient {
 
         } else if (status === 403) {
             const _responseText = response.data;
-            return throwException("The live link grants no access", status, _responseText, _headers);
+            return throwException("The live link grants no access, or the subscription does not include per-client check-in configuration", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -21388,7 +20914,7 @@ export class ApiClient {
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("Invalid rule, or the questionnaire is inactive or a check-in form", status, _responseText, _headers, result400);
+            return throwException("Invalid rule, the questionnaire is inactive, or the check-in fields do not match the form", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
@@ -21396,7 +20922,7 @@ export class ApiClient {
 
         } else if (status === 403) {
             const _responseText = response.data;
-            return throwException("The live link grants no access", status, _responseText, _headers);
+            return throwException("The live link grants no access, or the subscription does not include weekly check-ins", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -21519,7 +21045,7 @@ export class ApiClient {
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("Invalid rule, or the questionnaire is inactive or a check-in form", status, _responseText, _headers, result400);
+            return throwException("Invalid rule, the questionnaire is inactive, or the check-in fields do not match the form", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
@@ -21527,7 +21053,7 @@ export class ApiClient {
 
         } else if (status === 403) {
             const _responseText = response.data;
-            return throwException("Forbidden", status, _responseText, _headers);
+            return throwException("The coach\'s subscription does not include weekly check-ins", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -22612,110 +22138,6 @@ export interface CreateWorkoutTemplateRequest {
     defaultExercises?: CreateWorkoutTemplateExerciseRequest[];
 }
 
-/** Response for POST /client/weekly-check-ins/{id}/respond. */
-export interface RespondToCheckInResponse {
-    /** Check-in identifier. */
-    id?: string;
-    /** Flags persisted. */
-    flags?: CheckInFlag[];
-    /** Note persisted. */
-    note?: string | undefined;
-    /** When the response was recorded (UTC). */
-    respondedAt?: string;
-}
-
-/** Flags a client can select when responding to a weekly check-in reminder, indicating events or circumstances that may affect the upcoming week's plan. */
-export enum CheckInFlag {
-    Traveling = "Traveling",
-    EventOrCelebration = "EventOrCelebration",
-    SickOrLowEnergy = "SickOrLowEnergy",
-    InjuryOrPain = "InjuryOrPain",
-    MoreTimeAvailable = "MoreTimeAvailable",
-    LessTimeAvailable = "LessTimeAvailable",
-}
-
-/** Request body for POST /client/weekly-check-ins/{id}/respond. */
-export interface RespondToCheckInRequest {
-    /** Zero or more flags selected by the client. */
-    flags?: CheckInFlag[];
-    /** Optional free-text note. ≤ 500 characters. */
-    note?: string | undefined;
-    /** Optional hunger score, 1-5. */
-    hungerScore?: number | undefined;
-}
-
-/** Response for PUT /trainer/weekly-check-ins/settings. */
-export interface PutSettingsResponse {
-    /** The identifier of the created or updated setting. */
-    id?: string;
-    /** Profession this setting applies to. */
-    profession?: string;
-    /** Day of the week (0 = Sunday … 6 = Saturday). */
-    dayOfWeek?: number;
-    /** Time of day for the reminder. Between 00:00:00 and 23:59:59. */
-    timeOfDay?: string;
-    /** Whether the reminder is enabled. */
-    enabled?: boolean;
-    /** Optional addendum. */
-    defaultAddendum?: string | undefined;
-    /** Hours after dispatch before the check-in expires. */
-    deadlineOffsetHours?: number;
-}
-
-/** Request body for PUT /trainer/weekly-check-ins/settings. */
-export interface PutSettingsRequest {
-    /** Profession this setting applies to. Must be one of the trainer's specializations.
-Accepted values: "Training", "Nutrition". */
-    profession: string;
-    /** Day of the week on which the reminder fires (0 = Sunday … 6 = Saturday). */
-    dayOfWeek?: number;
-    /** Local time of day for the reminder. Must be between 00:00:00 and 23:59:59. */
-    timeOfDay?: string;
-    /** Whether the reminder is enabled. */
-    enabled?: boolean;
-    /** Optional addendum appended to the default reminder message. ≤ 200 characters. */
-    defaultAddendum?: string | undefined;
-    /** Number of hours after the check-in is sent before it expires.
-Must be one of: 24, 48, 72, 120, 168.
-Defaults to 72 (3 days) when not specified. */
-    deadlineOffsetHours?: number;
-}
-
-/** Response for PUT /trainer/weekly-check-ins/overrides/{clientUserId}/{profession}. */
-export interface PutOverrideResponse {
-    /** Override identifier. */
-    id?: string;
-    /** The client's ApplicationUser.Id. */
-    clientUserId?: string;
-    /** Profession this override applies to. */
-    profession?: string;
-    /** Override day of week. Null = inherit. */
-    dayOfWeek?: number | undefined;
-    /** Override time of day. Null = inherit. */
-    timeOfDay?: string | undefined;
-    /** Override enabled flag. Null = inherit. */
-    enabled?: boolean | undefined;
-    /** Override addendum. Null = inherit. */
-    addendum?: string | undefined;
-    /** Override deadline offset in hours. Null = inherit. */
-    deadlineOffsetHours?: number | undefined;
-}
-
-/** Request model for PUT /trainer/weekly-check-ins/overrides/{clientUserId}/{profession}. Route params identify the override; body provides the values (null = inherit from setting). */
-export interface PutOverrideRequest {
-    /** Override day of week (0 = Sunday … 6 = Saturday). Null = inherit. */
-    dayOfWeek?: number | undefined;
-    /** Override time of day. Null = inherit. Must be between 00:00:00 and 23:59:59 if set. */
-    timeOfDay?: string | undefined;
-    /** Override enabled flag. Null = inherit. */
-    enabled?: boolean | undefined;
-    /** Override addendum (≤ 200 chars). Null = inherit. */
-    addendum?: string | undefined;
-    /** Override deadline offset in hours. Null = inherit from the professional's setting.
-When set, must be one of 24, 48, 72, 120, or 168. */
-    deadlineOffsetHours?: number | undefined;
-}
-
 /** Response for POST /trainer/weekly-check-ins/{id}/mark-reviewed. */
 export interface MarkCheckInReviewedResponse {
     /** Check-in identifier. */
@@ -22768,62 +22190,18 @@ ClientProfile row (should not happen in practice, but the join is null-safe). */
     dueAt?: string | undefined;
 }
 
+/** Flags a client can select when responding to a weekly check-in reminder, indicating events or circumstances that may affect the upcoming week's plan. */
+export enum CheckInFlag {
+    Traveling = "Traveling",
+    EventOrCelebration = "EventOrCelebration",
+    SickOrLowEnergy = "SickOrLowEnergy",
+    InjuryOrPain = "InjuryOrPain",
+    MoreTimeAvailable = "MoreTimeAvailable",
+    LessTimeAvailable = "LessTimeAvailable",
+}
+
 /** Query parameters for GET /trainer/weekly-check-ins. */
 export interface GetTrainerCheckInsRequest {
-}
-
-/** Response model for GET /trainer/weekly-check-ins/settings. */
-export interface GetSettingsResponse {
-    /** The trainer's current weekly check-in settings (0–2 items). */
-    settings?: CheckInSettingDto[];
-}
-
-/** DTO for a single weekly check-in setting. */
-export interface CheckInSettingDto {
-    /** Setting identifier. */
-    id?: string;
-    /** Profession this setting applies to ("Training" or "Nutrition"). */
-    profession?: string;
-    /** Day of the week (0 = Sunday, 1 = Monday, …, 6 = Saturday). */
-    dayOfWeek?: number;
-    /** Time of day for the reminder in "HH:mm:ss" format. Between 00:00:00 and 23:59:59. */
-    timeOfDay?: string;
-    /** Whether the reminder is enabled. */
-    enabled?: boolean;
-    /** Optional addendum appended to the default reminder message. */
-    defaultAddendum?: string | undefined;
-    /** Hours after dispatch before the check-in expires. */
-    deadlineOffsetHours?: number;
-}
-
-/** Response model for GET /trainer/weekly-check-ins/overrides. */
-export interface GetOverridesResponse {
-    /** All per-client overrides for the authenticated trainer. */
-    overrides?: CheckInOverrideDto[];
-}
-
-/** DTO for a single per-client weekly check-in override. Null values mean "inherit from the professional's default setting". */
-export interface CheckInOverrideDto {
-    /** Override identifier. */
-    id?: string;
-    /** The client's ApplicationUser.Id. */
-    clientUserId?: string;
-    /** Client's first name. */
-    clientFirstName?: string;
-    /** Client's last name. */
-    clientLastName?: string;
-    /** Profession this override applies to ("Training" or "Nutrition"). */
-    profession?: string;
-    /** Override day of week. Null = inherit. */
-    dayOfWeek?: number | undefined;
-    /** Override time of day. Null = inherit. */
-    timeOfDay?: string | undefined;
-    /** Override enabled flag. Null = inherit. */
-    enabled?: boolean | undefined;
-    /** Override addendum. Null = inherit. */
-    addendum?: string | undefined;
-    /** Override deadline offset in hours. Null = inherit. */
-    deadlineOffsetHours?: number | undefined;
 }
 
 /** One page of the caller's own weekly check-in history, newest first. */
@@ -22862,61 +22240,6 @@ export interface MyCheckInHistoryItem {
 
 /** Query parameters for GET /client/weekly-check-ins/history. */
 export interface GetMyCheckInHistoryRequest {
-}
-
-/** Response for GET /client/weekly-check-ins/current. Returns 0–2 active check-ins (not responded, not dismissed, not expired, still within the response deadline) — at most one per profession. If more than one active check-in exists for the same profession, only the one with the newest SentAt is returned. */
-export interface GetCurrentClientCheckInsResponse {
-    /** Active check-ins, at most one per profession, ordered alphabetically by profession. */
-    checkIns?: CheckInSummary[];
-}
-
-/** Summary of a single active check-in. */
-export interface CheckInSummary {
-    /** Check-in identifier. */
-    id?: string;
-    /** Professional who sent the check-in. */
-    professionalUserId?: string;
-    /** Professional's display name. */
-    professionalName?: string;
-    /** Profession type (Training or Nutrition). */
-    profession?: string;
-    /** ISO-week Monday being planned. */
-    weekStartDate?: string;
-    /** When the scheduler sent this check-in. */
-    sentAt?: string;
-}
-
-/** Response for GET /trainer/clients/{clientUserId}/weekly-check-ins/current. */
-export interface GetClientCurrentCheckInResponse {
-    /** Latest check-in(s) for the current ISO week and the given client.
-Typically 0–2 items (one per profession). */
-    checkIns?: ClientCheckInDto[];
-}
-
-/** A single check-in as seen from the plan-editor banner. */
-export interface ClientCheckInDto {
-    /** Check-in identifier. */
-    id?: string;
-    /** Profession context. */
-    profession?: string;
-    /** ISO-week Monday. */
-    weekStartDate?: string;
-    /** Flags selected by the client. */
-    flags?: CheckInFlag[];
-    /** Client's note. */
-    note?: string | undefined;
-    /** When the scheduler sent this. */
-    sentAt?: string;
-    /** When the client responded. Null if pending. */
-    respondedAt?: string | undefined;
-    /** When the client dismissed. Null if not dismissed. */
-    dismissedByClientAt?: string | undefined;
-    /** When the trainer marked this reviewed. */
-    reviewedByTrainerAt?: string | undefined;
-}
-
-/** Request for GET /trainer/clients/{clientUserId}/weekly-check-ins/current. */
-export interface GetClientCurrentCheckInRequest {
 }
 
 /** Weekly check-in history of one client for the authenticated professional. */
@@ -22981,22 +22304,6 @@ export interface GetCheckInDetailResponse {
 
 /** Request for GET /trainer/weekly-check-ins/{id}. */
 export interface GetCheckInDetailRequest {
-}
-
-/** Response for POST /client/weekly-check-ins/{id}/dismiss. */
-export interface DismissCheckInResponse {
-    /** Check-in identifier. */
-    id?: string;
-    /** When the check-in was dismissed (UTC). */
-    dismissedAt?: string;
-}
-
-/** Request for POST /client/weekly-check-ins/{id}/dismiss. */
-export interface DismissCheckInRequest {
-}
-
-/** Request model for DELETE /trainer/weekly-check-ins/overrides/{clientUserId}/{profession}. Route parameters identify the override to remove. */
-export interface DeleteOverrideRequest {
 }
 
 /** Request model for updating the authenticated user's time zone. */
@@ -26102,6 +25409,10 @@ export interface UpdateQuestionDto {
 export interface PreviewQuestionnaireRequest {
 }
 
+/** Request for marking a submitted form as seen by the coach. */
+export interface MarkClientFormSeenRequest {
+}
+
 export interface GetTrainerQuestionnairesResponse {
     questionnaires?: QuestionnaireSummaryDto[];
 }
@@ -26293,6 +25604,84 @@ else link creation time. */
     responseStatus?: string | undefined;
     /** Plan type the response was sent for; null for the link-level fallback item. */
     scope?: LinkCapabilityScope | undefined;
+    /** Onboarding, questionnaire or check-in; onboarding for the link-level fallback item. */
+    kind?: QuestionnaireResponseKind;
+    /** For a check-in: the Monday of the week it covers. */
+    checkInWeekStart?: string | undefined;
+    /** For a check-in: when it is due (UTC); it is no longer listed after that. */
+    checkInDueAtUtc?: string | undefined;
+}
+
+/** Which kind of form a questionnaire response belongs to. Set when the response is created, never inferred afterwards. */
+export enum QuestionnaireResponseKind {
+    Onboarding = "Onboarding",
+    Questionnaire = "Questionnaire",
+    CheckIn = "CheckIn",
+}
+
+/** The forms a coach sent a client, split by collaboration. */
+export interface GetClientFormsResponse {
+    /** Answered forms and forms still waiting, from the current collaboration, newest first. */
+    current?: ClientFormItem[];
+    /** Answered forms from an earlier collaboration with the same client, newest first. */
+    previous?: ClientFormItem[];
+}
+
+/** One form sent to the client, with its answers once submitted. */
+export interface ClientFormItem {
+    /** Public id of the response. */
+    responsePublicId?: string;
+    /** Onboarding, questionnaire or check-in. */
+    kind?: QuestionnaireResponseKind;
+    /** Title of the form. */
+    questionnaireTitle?: string;
+    /** Waiting, answered, or (check-ins only) missed. */
+    state?: FormResponseState;
+    /** The plan type the invite or request behind the form granted, when known. */
+    scope?: LinkCapabilityScope | undefined;
+    /** When the form was sent (UTC). */
+    sentAt?: string;
+    /** When the client submitted it (UTC); null while unanswered. */
+    submittedAt?: string | undefined;
+    /** True when the form is submitted and the coach has not opened it yet. */
+    isNew?: boolean;
+    /** When the coach first opened the submitted form (UTC). */
+    seenAt?: string | undefined;
+    /** For a check-in: the Monday of the week it covers. */
+    checkInWeekStart?: string | undefined;
+    /** For a check-in: when it is due (UTC). */
+    checkInDueAtUtc?: string | undefined;
+    /** The answers; empty until the form is submitted. */
+    answers?: ClientFormAnswer[];
+}
+
+/** How a form shows to the coach: sent but not answered, answered, or a check-in whose deadline passed. */
+export enum FormResponseState {
+    Waiting = "Waiting",
+    Answered = "Answered",
+    Missed = "Missed",
+}
+
+/** One answer: the question's text and type, and the value the client gave. */
+export interface ClientFormAnswer {
+    /** Public id of the question. */
+    questionPublicId?: string;
+    /** The question text. */
+    questionLabel?: string;
+    /** The question type, e.g. short_text or scale. */
+    questionType?: string;
+    /** Text value, for text and choice questions. */
+    valueText?: string | undefined;
+    /** Numeric value, for number and scale questions. */
+    valueNumber?: number | undefined;
+    /** JSON value, for multi-select questions. */
+    valueJson?: string | undefined;
+    /** File URL, for upload questions. */
+    fileUrl?: string | undefined;
+    /** Label of the section the question sits under, or null before the first section. */
+    sectionLabel?: string | undefined;
+    /** 0-based order of the section, or null when SectionLabel is null. */
+    sectionOrder?: number | undefined;
 }
 
 export interface DeleteQuestionnaireRequest {
@@ -31049,6 +30438,14 @@ export interface AutomationRuleDto {
     scheduleUnit?: AutomationScheduleUnit | undefined;
     /** Client-local time of day; required for a schedule, optional for an event (09:00 when absent). */
     localTime?: string | undefined;
+    /** Check-in rule: client-local weekday of the send; null for any other rule. */
+    scheduleWeekday?: DayOfWeek | undefined;
+    /** Check-in rule: hours the client has to answer before the week counts as missed. */
+    answerWindowHours?: number | undefined;
+    /** Check-in rule: hours after the send at which an unanswered check-in is reminded; null means no reminder. */
+    reminderAfterHours?: number | undefined;
+    /** Check-in rule: whether the coach is notified once when a week is missed. */
+    notifyCoachOnMissedWeek?: boolean | undefined;
     /** Event trigger: the event. */
     eventType?: AutomationEventType | undefined;
     /** Event trigger: days between the event and the send. */
@@ -31160,6 +30557,14 @@ export interface AutomationTriggerBody {
     /** Client-local time of day, from 00:00 up to 23:59. Required for a schedule trigger; optional for an
 event trigger, which sends at 09:00 when it is absent. */
     localTime?: string | undefined;
+    /** Check-in rule: client-local weekday of the send. Required for a check-in form, refused otherwise. */
+    scheduleWeekday?: DayOfWeek | undefined;
+    /** Check-in rule: hours the client has to answer before the week counts as missed (48). */
+    answerWindowHours?: number | undefined;
+    /** Check-in rule: hours after the send at which an unanswered check-in is reminded (24); null sends no reminder. */
+    reminderAfterHours?: number | undefined;
+    /** Check-in rule: whether the coach is notified once when a week is missed; null counts as false. */
+    notifyCoachOnMissedWeek?: boolean | undefined;
     /** Event trigger: the event. */
     eventType?: AutomationEventType | undefined;
     /** Event trigger: days between the event and the send; defaults to 0. */
@@ -31221,7 +30626,7 @@ export interface OverrideClientAutomationRequest extends AutomationTriggerBody {
 
 /** A client's effective automation rules with a 30-day summary of what was sent. */
 export interface GetClientAutomationsResponse {
-    /** The linked check-in rows first, then the rules by creation order. */
+    /** The rules by creation order. */
     items?: ClientAutomationItem[];
     /** Totals over the last 30 days across all rules. */
     last30Days?: ClientAutomationSummary;
@@ -31271,6 +30676,14 @@ export interface ClientAutomationItem {
     pausedUntil?: string | undefined;
     /** Note of the pause, while it is in effect. */
     pauseNote?: string | undefined;
+    /** Effective check-in weekday; null for a rule that is not a check-in. */
+    scheduleWeekday?: DayOfWeek | undefined;
+    /** Effective check-in answer window in hours. */
+    answerWindowHours?: number | undefined;
+    /** Effective check-in reminder delay in hours; null means no reminder. */
+    reminderAfterHours?: number | undefined;
+    /** Effective notify-the-coach-on-missed-week flag of a check-in. */
+    notifyCoachOnMissedWeek?: boolean | undefined;
     /** Next send (UTC); null when paused, disabled, or an event other than plan started or ended. */
     nextSendAt?: string | undefined;
     /** The most recent run; null until a run exists. */
@@ -31339,7 +30752,7 @@ export interface GetClientAutomationsRequest {
 export interface GetAutomationRulesResponse {
     /** Global rules, oldest first. */
     rules?: AutomationRuleDto[];
-    /** The weekly check-in per profession, as a linked read-only entry. */
+    /** Always empty: the weekly check-in is an ordinary rule now. Kept so the generated clients keep compiling. */
     linkedCheckIns?: AutomationLinkedCheckInDto[];
 }
 

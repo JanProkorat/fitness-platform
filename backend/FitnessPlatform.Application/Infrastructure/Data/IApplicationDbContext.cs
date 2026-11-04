@@ -139,21 +139,6 @@ public interface IApplicationDbContext
     DbSet<ChatMessage> ChatMessages { get; set; }
 
     /// <summary>
-    /// Per-professional weekly check-in reminder settings.
-    /// </summary>
-    DbSet<WeeklyCheckInSetting> WeeklyCheckInSettings { get; set; }
-
-    /// <summary>
-    /// Per-client overrides for weekly check-in reminder settings.
-    /// </summary>
-    DbSet<WeeklyCheckInClientOverride> WeeklyCheckInClientOverrides { get; set; }
-
-    /// <summary>
-    /// Weekly check-in instances (scheduler → client response → trainer review lifecycle).
-    /// </summary>
-    DbSet<WeeklyCheckIn> WeeklyCheckIns { get; set; }
-
-    /// <summary>
     /// Photo diary requests sent by nutritionists to clients.
     /// </summary>
     DbSet<PhotoDiaryRequest> PhotoDiaryRequests { get; set; }

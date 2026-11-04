@@ -275,6 +275,10 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
+                    b.Property<int?>("AnswerWindowHours")
+                        .HasColumnType("integer")
+                        .HasColumnName("answer_window_hours");
+
                     b.Property<long>("AutomationRuleId")
                         .HasColumnType("bigint")
                         .HasColumnName("automation_rule_id");
@@ -294,6 +298,10 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
                     b.Property<bool>("Enabled")
                         .HasColumnType("boolean")
                         .HasColumnName("enabled");
+
+                    b.Property<DateTime?>("EnabledAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("enabled_at_utc");
 
                     b.Property<int?>("EventOffsetDays")
                         .HasColumnType("integer")
@@ -324,6 +332,10 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
                         .HasColumnType("character varying(1000)")
                         .HasColumnName("message");
 
+                    b.Property<bool?>("NotifyCoachOnMissedWeek")
+                        .HasColumnType("boolean")
+                        .HasColumnName("notify_coach_on_missed_week");
+
                     b.Property<bool>("OncePerPlan")
                         .HasColumnType("boolean")
                         .HasColumnName("once_per_plan");
@@ -337,6 +349,10 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
                         .HasColumnType("date")
                         .HasColumnName("paused_until");
 
+                    b.Property<int?>("ReminderAfterHours")
+                        .HasColumnType("integer")
+                        .HasColumnName("reminder_after_hours");
+
                     b.Property<int?>("ScheduleInterval")
                         .HasColumnType("integer")
                         .HasColumnName("schedule_interval");
@@ -344,6 +360,10 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
                     b.Property<int?>("ScheduleUnit")
                         .HasColumnType("integer")
                         .HasColumnName("schedule_unit");
+
+                    b.Property<int?>("ScheduleWeekday")
+                        .HasColumnType("integer")
+                        .HasColumnName("schedule_weekday");
 
                     b.Property<bool>("SkipWhilePreviousUnanswered")
                         .HasColumnType("boolean")
@@ -383,6 +403,10 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("action_type");
 
+                    b.Property<int?>("AnswerWindowHours")
+                        .HasColumnType("integer")
+                        .HasColumnName("answer_window_hours");
+
                     b.Property<int>("Audience")
                         .HasColumnType("integer")
                         .HasColumnName("audience");
@@ -406,6 +430,10 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
                     b.Property<bool>("Enabled")
                         .HasColumnType("boolean")
                         .HasColumnName("enabled");
+
+                    b.Property<DateTime?>("EnabledAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("enabled_at_utc");
 
                     b.Property<int?>("EventOffsetDays")
                         .HasColumnType("integer")
@@ -434,6 +462,10 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
                         .HasColumnType("character varying(100)")
                         .HasColumnName("name");
 
+                    b.Property<bool?>("NotifyCoachOnMissedWeek")
+                        .HasColumnType("boolean")
+                        .HasColumnName("notify_coach_on_missed_week");
+
                     b.Property<bool>("OncePerPlan")
                         .HasColumnType("boolean")
                         .HasColumnName("once_per_plan");
@@ -450,6 +482,10 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
                         .HasColumnType("bigint")
                         .HasColumnName("questionnaire_id");
 
+                    b.Property<int?>("ReminderAfterHours")
+                        .HasColumnType("integer")
+                        .HasColumnName("reminder_after_hours");
+
                     b.Property<int?>("ScheduleInterval")
                         .HasColumnType("integer")
                         .HasColumnName("schedule_interval");
@@ -457,6 +493,10 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
                     b.Property<int?>("ScheduleUnit")
                         .HasColumnType("integer")
                         .HasColumnName("schedule_unit");
+
+                    b.Property<int?>("ScheduleWeekday")
+                        .HasColumnType("integer")
+                        .HasColumnName("schedule_weekday");
 
                     b.Property<bool>("SkipWhilePreviousUnanswered")
                         .HasColumnType("boolean")
@@ -3088,6 +3128,22 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
+                    b.Property<DateTime?>("CheckInDueAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("check_in_due_at_utc");
+
+                    b.Property<DateTime?>("CheckInMissedNotifiedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("check_in_missed_notified_at_utc");
+
+                    b.Property<DateTime?>("CheckInReminderSentAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("check_in_reminder_sent_at_utc");
+
+                    b.Property<DateOnly?>("CheckInWeekStart")
+                        .HasColumnType("date")
+                        .HasColumnName("check_in_week_start");
+
                     b.Property<Guid>("ClientId")
                         .HasColumnType("uuid")
                         .HasColumnName("client_id");
@@ -3099,6 +3155,10 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
                     b.Property<DateTime?>("DateUpdated")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("date_updated");
+
+                    b.Property<int>("Kind")
+                        .HasColumnType("integer")
+                        .HasColumnName("kind");
 
                     b.Property<long>("LinkId")
                         .HasColumnType("bigint")
@@ -3115,6 +3175,10 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
                     b.Property<long>("QuestionnaireId")
                         .HasColumnType("bigint")
                         .HasColumnName("questionnaire_id");
+
+                    b.Property<DateTime?>("ReviewedByCoachAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("reviewed_by_coach_at_utc");
 
                     b.Property<int?>("Scope")
                         .HasColumnType("integer")
@@ -3374,215 +3438,6 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
                         .HasDatabaseName("ix_user_external_logins_provider_subject");
 
                     b.ToTable("user_external_logins", (string)null);
-                });
-
-            modelBuilder.Entity("FitnessPlatform.Application.Domain.Entities.WeeklyCheckIn", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<Guid>("ClientUserId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("client_user_id");
-
-                    b.Property<DateTime>("DateCreated")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("date_created");
-
-                    b.Property<DateTime>("DateModified")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("date_modified");
-
-                    b.Property<DateTime?>("DismissedByClientAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("dismissed_by_client_at");
-
-                    b.Property<DateTime?>("DueAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("due_at");
-
-                    b.Property<DateTime?>("ExpiredAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("expired_at");
-
-                    b.Property<string>("Flags")
-                        .IsRequired()
-                        .HasColumnType("jsonb")
-                        .HasColumnName("flags");
-
-                    b.Property<int?>("HungerScore")
-                        .HasColumnType("integer")
-                        .HasColumnName("hunger_score");
-
-                    b.Property<string>("Note")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)")
-                        .HasColumnName("note");
-
-                    b.Property<string>("Profession")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("profession");
-
-                    b.Property<Guid>("ProfessionalUserId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("professional_user_id");
-
-                    b.Property<DateTime?>("RespondedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("responded_at");
-
-                    b.Property<DateTime?>("ReviewedByTrainerAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("reviewed_by_trainer_at");
-
-                    b.Property<DateTime>("SentAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("sent_at");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("text")
-                        .HasDefaultValue("Pending")
-                        .HasColumnName("status");
-
-                    b.Property<DateOnly>("WeekStartDate")
-                        .HasColumnType("date")
-                        .HasColumnName("week_start_date");
-
-                    b.HasKey("Id")
-                        .HasName("pk_weekly_check_ins");
-
-                    b.HasIndex("ProfessionalUserId")
-                        .HasDatabaseName("ix_weekly_check_ins_professional_user_id");
-
-                    b.HasIndex("ClientUserId", "ProfessionalUserId", "Profession", "WeekStartDate")
-                        .IsUnique()
-                        .HasDatabaseName("ix_weekly_check_ins_client_user_id_professional_user_id_profes");
-
-                    b.ToTable("weekly_check_ins", (string)null);
-                });
-
-            modelBuilder.Entity("FitnessPlatform.Application.Domain.Entities.WeeklyCheckInClientOverride", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<string>("Addendum")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)")
-                        .HasColumnName("addendum");
-
-                    b.Property<Guid>("ClientUserId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("client_user_id");
-
-                    b.Property<DateTime>("DateCreated")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("date_created");
-
-                    b.Property<DateTime>("DateModified")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("date_modified");
-
-                    b.Property<int?>("DayOfWeek")
-                        .HasColumnType("integer")
-                        .HasColumnName("day_of_week");
-
-                    b.Property<int?>("DeadlineOffsetHours")
-                        .HasColumnType("integer")
-                        .HasColumnName("deadline_offset_hours");
-
-                    b.Property<bool?>("Enabled")
-                        .HasColumnType("boolean")
-                        .HasColumnName("enabled");
-
-                    b.Property<string>("Profession")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("profession");
-
-                    b.Property<Guid>("ProfessionalUserId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("professional_user_id");
-
-                    b.Property<TimeSpan?>("TimeOfDay")
-                        .HasColumnType("interval")
-                        .HasColumnName("time_of_day");
-
-                    b.HasKey("Id")
-                        .HasName("pk_weekly_check_in_client_overrides");
-
-                    b.HasIndex("ProfessionalUserId")
-                        .HasDatabaseName("ix_weekly_check_in_client_overrides_professional_user_id");
-
-                    b.HasIndex("ClientUserId", "ProfessionalUserId", "Profession")
-                        .IsUnique()
-                        .HasDatabaseName("ix_weekly_check_in_client_overrides_client_user_id_professiona");
-
-                    b.ToTable("weekly_check_in_client_overrides", (string)null);
-                });
-
-            modelBuilder.Entity("FitnessPlatform.Application.Domain.Entities.WeeklyCheckInSetting", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<DateTime>("DateCreated")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("date_created");
-
-                    b.Property<DateTime>("DateModified")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("date_modified");
-
-                    b.Property<int>("DayOfWeek")
-                        .HasColumnType("integer")
-                        .HasColumnName("day_of_week");
-
-                    b.Property<int>("DeadlineOffsetHours")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(72)
-                        .HasColumnName("deadline_offset_hours");
-
-                    b.Property<string>("DefaultAddendum")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)")
-                        .HasColumnName("default_addendum");
-
-                    b.Property<bool>("Enabled")
-                        .HasColumnType("boolean")
-                        .HasColumnName("enabled");
-
-                    b.Property<string>("Profession")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("profession");
-
-                    b.Property<TimeSpan>("TimeOfDay")
-                        .HasColumnType("interval")
-                        .HasColumnName("time_of_day");
-
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("user_id");
-
-                    b.HasKey("Id")
-                        .HasName("pk_weekly_check_in_settings");
-
-                    b.HasIndex("UserId", "Profession")
-                        .IsUnique()
-                        .HasDatabaseName("ix_weekly_check_in_settings_user_id_profession");
-
-                    b.ToTable("weekly_check_in_settings", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<System.Guid>", b =>
@@ -4473,60 +4328,6 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_user_external_logins_users_user_id");
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("FitnessPlatform.Application.Domain.Entities.WeeklyCheckIn", b =>
-                {
-                    b.HasOne("FitnessPlatform.Application.Domain.Entities.ApplicationUser", "ClientUser")
-                        .WithMany()
-                        .HasForeignKey("ClientUserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_weekly_check_ins_users_client_user_id");
-
-                    b.HasOne("FitnessPlatform.Application.Domain.Entities.ApplicationUser", "ProfessionalUser")
-                        .WithMany()
-                        .HasForeignKey("ProfessionalUserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_weekly_check_ins_users_professional_user_id");
-
-                    b.Navigation("ClientUser");
-
-                    b.Navigation("ProfessionalUser");
-                });
-
-            modelBuilder.Entity("FitnessPlatform.Application.Domain.Entities.WeeklyCheckInClientOverride", b =>
-                {
-                    b.HasOne("FitnessPlatform.Application.Domain.Entities.ApplicationUser", "ClientUser")
-                        .WithMany()
-                        .HasForeignKey("ClientUserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_weekly_check_in_client_overrides_users_client_user_id");
-
-                    b.HasOne("FitnessPlatform.Application.Domain.Entities.ApplicationUser", "ProfessionalUser")
-                        .WithMany()
-                        .HasForeignKey("ProfessionalUserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_weekly_check_in_client_overrides_users_professional_user_id");
-
-                    b.Navigation("ClientUser");
-
-                    b.Navigation("ProfessionalUser");
-                });
-
-            modelBuilder.Entity("FitnessPlatform.Application.Domain.Entities.WeeklyCheckInSetting", b =>
-                {
-                    b.HasOne("FitnessPlatform.Application.Domain.Entities.ApplicationUser", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_weekly_check_in_settings_users_user_id");
 
                     b.Navigation("User");
                 });

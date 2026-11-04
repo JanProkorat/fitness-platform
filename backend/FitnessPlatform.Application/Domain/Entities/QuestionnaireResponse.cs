@@ -44,6 +44,36 @@ public class QuestionnaireResponse : PublicTimestampableEntity
     public DateTime? SubmittedAt { get; set; }
 
     /// <summary>
+    /// Which kind of form this response is. Set on creation.
+    /// </summary>
+    public QuestionnaireResponseKind Kind { get; set; } = QuestionnaireResponseKind.Onboarding;
+
+    /// <summary>
+    /// For a check-in: the Monday of the week it covers. Null for other kinds.
+    /// </summary>
+    public DateOnly? CheckInWeekStart { get; set; }
+
+    /// <summary>
+    /// For a check-in: when it is due (UTC). Null for other kinds.
+    /// </summary>
+    public DateTime? CheckInDueAtUtc { get; set; }
+
+    /// <summary>
+    /// For a check-in: when the unanswered reminder was sent (UTC); null until it is.
+    /// </summary>
+    public DateTime? CheckInReminderSentAtUtc { get; set; }
+
+    /// <summary>
+    /// For a check-in: when the coach was told the week was missed (UTC); null until then.
+    /// </summary>
+    public DateTime? CheckInMissedNotifiedAtUtc { get; set; }
+
+    /// <summary>
+    /// When the coach first opened the submitted response (UTC); null while it is still new.
+    /// </summary>
+    public DateTime? ReviewedByCoachAtUtc { get; set; }
+
+    /// <summary>
     /// Navigation property to the questionnaire.
     /// </summary>
     public Questionnaire Questionnaire { get; set; } = null!;

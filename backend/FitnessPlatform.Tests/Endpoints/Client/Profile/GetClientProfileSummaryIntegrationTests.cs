@@ -62,7 +62,7 @@ public class GetClientProfileSummaryIntegrationTests(FitnessApiFactory factory)
         var otherSessionId = Guid.NewGuid();
         var visiblePlanId = Guid.NewGuid();
 
-        await SeedRelationalAsync(client, coach.UserId, weights: [82m, 80m, 78.5m]);
+        await SeedRelationalAsync(client, coach, weights: [82m, 80m, 78.5m]);
         await SeedPhotosAsync(client.ProfileId);
 
         using (var scope = factory.Services.CreateScope())
@@ -111,7 +111,7 @@ public class GetClientProfileSummaryIntegrationTests(FitnessApiFactory factory)
     public async Task GetSummary_SingleWeightMeasurement_ChangeIsZero()
     {
         var client = await TestActors.Client(factory).CreateAsync(TestContext.Current.CancellationToken);
-        await SeedRelationalAsync(client, Guid.NewGuid(), weights: [75m], checkIns: 0);
+        await SeedRelationalAsync(client, null, weights: [75m], checkIns: 0);
 
         var response = await client.Http.GetAsync("/client/profile/summary", TestContext.Current.CancellationToken);
 
@@ -131,7 +131,7 @@ public class GetClientProfileSummaryIntegrationTests(FitnessApiFactory factory)
         var sessionId = Guid.NewGuid();
         var otherPlanId = Guid.NewGuid();
 
-        await SeedRelationalAsync(other, coach.UserId, weights: [90m, 70m]);
+        await SeedRelationalAsync(other, coach, weights: [90m, 70m]);
         await SeedPhotosAsync(other.ProfileId);
 
         using (var scope = factory.Services.CreateScope())
@@ -159,7 +159,7 @@ public class GetClientProfileSummaryIntegrationTests(FitnessApiFactory factory)
         body.CheckInCount.Should().Be(0);
     }
 
-    private async Task SeedRelationalAsync(Actor client, Guid coachUserId, decimal[] weights, int checkIns = 2)
+    private async Task SeedRelationalAsync(Actor client, Actor? coach, decimal[] weights, int checkIns = 2)
     {
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -191,21 +191,18 @@ public class GetClientProfileSummaryIntegrationTests(FitnessApiFactory factory)
             WaistCm = 80m,
         });
 
-        for (var index = 0; index < checkIns; index++)
-        {
-            db.WeeklyCheckIns.Add(new WeeklyCheckIn
-            {
-                ClientUserId = client.UserId,
-                ProfessionalUserId = coachUserId,
-                Profession = Profession.Training,
-                WeekStartDate = new DateOnly(2025, 1, 6).AddDays(index * 7),
-                SentAt = start,
-                DateCreated = start,
-                DateModified = start,
-            });
-        }
-
         await db.SaveChangesAsync(ct);
+
+        if (checkIns > 0)
+        {
+            var scenario = await CheckInFixtures.CreateScenarioAsync(factory, coach, client);
+
+            for (var index = 0; index < checkIns; index++)
+            {
+                await CheckInFixtures.AddCheckInAsync(
+                    factory, scenario, new DateOnly(2025, 1, 6).AddDays(index * 7), start.AddDays(2));
+            }
+        }
     }
 
     private async Task SeedPhotosAsync(long clientProfileId)

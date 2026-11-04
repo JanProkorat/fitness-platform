@@ -122,21 +122,6 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public virtual DbSet<ChatMessage> ChatMessages { get; set; } = null!;
 
     /// <summary>
-    /// Per-professional weekly check-in reminder settings.
-    /// </summary>
-    public virtual DbSet<WeeklyCheckInSetting> WeeklyCheckInSettings { get; set; } = null!;
-
-    /// <summary>
-    /// Per-client overrides for weekly check-in reminder settings.
-    /// </summary>
-    public virtual DbSet<WeeklyCheckInClientOverride> WeeklyCheckInClientOverrides { get; set; } = null!;
-
-    /// <summary>
-    /// Weekly check-in instances (scheduler → client response → trainer review lifecycle).
-    /// </summary>
-    public virtual DbSet<WeeklyCheckIn> WeeklyCheckIns { get; set; } = null!;
-
-    /// <summary>
     /// Photo diary requests sent by nutritionists to clients.
     /// </summary>
     public virtual DbSet<PhotoDiaryRequest> PhotoDiaryRequests { get; set; } = null!;
@@ -275,81 +260,6 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             e.HasIndex(m => new { m.ConversationId, m.EventType, m.EventSourceId })
                 .IsUnique()
                 .HasFilter("event_source_id IS NOT NULL");
-        });
-
-        builder.Entity<WeeklyCheckInSetting>(e =>
-        {
-            e.HasKey(s => s.Id);
-            e.Property(s => s.Profession).HasConversion<string>();
-            e.Property(s => s.DeadlineOffsetHours).HasDefaultValue(72);
-            e.HasIndex(s => new { s.UserId, s.Profession }).IsUnique();
-            e.HasOne(s => s.User)
-                .WithMany()
-                .HasForeignKey(s => s.UserId)
-                .OnDelete(DeleteBehavior.Cascade);
-        });
-
-        builder.Entity<WeeklyCheckInClientOverride>(e =>
-        {
-            e.HasKey(o => o.Id);
-            e.Property(o => o.Profession).HasConversion<string>();
-            e.HasIndex(o => new { o.ClientUserId, o.ProfessionalUserId, o.Profession }).IsUnique();
-            e.HasOne(o => o.ClientUser)
-                .WithMany()
-                .HasForeignKey(o => o.ClientUserId)
-                .OnDelete(DeleteBehavior.Cascade);
-            e.HasOne(o => o.ProfessionalUser)
-                .WithMany()
-                .HasForeignKey(o => o.ProfessionalUserId)
-                .OnDelete(DeleteBehavior.Cascade);
-        });
-
-        builder.Entity<WeeklyCheckIn>(e =>
-        {
-            e.HasKey(c => c.Id);
-            e.Property(c => c.Profession).HasConversion<string>();
-            e.Property(c => c.Status).HasConversion<string>().HasDefaultValue(WeeklyCheckInStatus.Pending);
-            e.Property(c => c.WeekStartDate).HasColumnType("date");
-
-            // Flags stored as a jsonb array of flag name strings
-            var flagsConverter = new ValueConverter<List<CheckInFlag>, string>(
-                flags => JsonSerializer.Serialize(flags.Select(f => f.ToString()).ToList(),
-                    (JsonSerializerOptions?)null),
-                json => JsonSerializer.Deserialize<List<string>>(json, (JsonSerializerOptions?)null)!
-                    .Select(s => Enum.Parse<CheckInFlag>(s)).ToList());
-
-            // Flags is a reference-type (List<T>) property. Without an explicit ValueComparer,
-            // EF's default snapshot for reference types stores the SAME live list instance, so
-            // an in-place Add/Remove/Clear mutation is invisible to change detection — the
-            // snapshot and the current value are literally the same object. The snapshot lambda
-            // (v => v.ToList()) forces a real copy at snapshot time; elements are an enum, so
-            // ToList() is a genuine deep copy here.
-            var flagsComparer = new ValueComparer<List<CheckInFlag>>(
-                (a, b) => a == null || b == null ? a == b : a.SequenceEqual(b),
-                v => v.Aggregate(0, (hash, f) => HashCode.Combine(hash, f.GetHashCode())),
-                v => v.ToList());
-
-            e.Property(c => c.Flags)
-                .HasConversion(flagsConverter, flagsComparer)
-                .HasColumnType("jsonb");
-
-            e.HasIndex(c => new
-            {
-                c.ClientUserId,
-                c.ProfessionalUserId,
-                c.Profession,
-                c.WeekStartDate
-            }).IsUnique();
-
-            e.HasOne(c => c.ClientUser)
-                .WithMany()
-                .HasForeignKey(c => c.ClientUserId)
-                .OnDelete(DeleteBehavior.Cascade);
-
-            e.HasOne(c => c.ProfessionalUser)
-                .WithMany()
-                .HasForeignKey(c => c.ProfessionalUserId)
-                .OnDelete(DeleteBehavior.Cascade);
         });
 
         builder.Entity<PlanPhoto>(e =>

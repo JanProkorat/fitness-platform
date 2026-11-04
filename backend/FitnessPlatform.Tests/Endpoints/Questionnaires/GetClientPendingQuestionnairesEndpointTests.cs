@@ -700,4 +700,26 @@ public class GetClientPendingQuestionnairesEndpointTests(FitnessApiFactory facto
     private record BannerResponse(
         List<DiaryItem> PendingDiaryRequests,
         List<QuestionnaireItem> Items);
+
+    [Fact]
+    public async Task Pending_CheckIns_HidesPastDueOneAndKeepsNotYetDueWithItsFields()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var scenario = await CheckInFixtures.CreateScenarioAsync(factory);
+        await CheckInFixtures.AddCheckInAsync(
+            factory, scenario, CheckInFixtures.Monday(1), DateTime.UtcNow.AddHours(-1));
+        var openDue = DateTime.UtcNow.AddDays(1);
+        var openId = await CheckInFixtures.AddCheckInAsync(factory, scenario, CheckInFixtures.Monday(0), openDue);
+
+        var response = await scenario.Client.Http.GetAsync("/client/questionnaires/pending", ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await response.Content.ReadFromJsonAsync<
+            Application.Features.Questionnaires.GetClientPendingQuestionnaires.GetClientPendingQuestionnairesResponse>(JsonOptions, ct);
+        var item = body!.Items.Should().ContainSingle().Subject;
+        item.ResponsePublicId.Should().Be(openId);
+        item.Kind.Should().Be(QuestionnaireResponseKind.CheckIn);
+        item.CheckInWeekStart.Should().Be(CheckInFixtures.Monday(0));
+        item.CheckInDueAtUtc.Should().BeCloseTo(openDue, TimeSpan.FromSeconds(1));
+    }
 }

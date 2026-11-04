@@ -182,8 +182,7 @@ public class GetClientMessageStatsEndpoint(
     }
 
     /// <summary>
-    /// Resolves an IANA time zone id, falling back to UTC for an unknown id — same fallback
-    /// <see cref="Infrastructure.Services.WeeklyCheckInScheduler"/> uses for the same field.
+    /// Resolves an IANA time zone id, falling back to UTC for an unknown id.
     /// </summary>
     private TimeZoneInfo ResolveTimeZone(string? ianaId)
     {

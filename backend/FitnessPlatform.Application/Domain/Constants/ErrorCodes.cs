@@ -505,6 +505,9 @@ public static class ErrorCodes
     /// <summary>A question's config is not valid JSON for its type.</summary>
     public const string QuestionConfigInvalid = "QUESTION_CONFIG_INVALID";
 
+    /// <summary>A section divider cannot be required or mapped to a profile field.</summary>
+    public const string QuestionSectionInvalid = "QUESTION_SECTION_INVALID";
+
     /// <summary>Only Onboarding forms can be the default form.</summary>
     public const string CheckInFormCannotBeDefault = "CHECKIN_FORM_CANNOT_BE_DEFAULT";
 
@@ -569,12 +572,30 @@ public static class ErrorCodes
     /// <summary>A progress-photos rule's message is over the photo request's 500-character limit.</summary>
     public const string AutomationPhotoMessageTooLong = "AUTOMATION_PHOTO_MESSAGE_TOO_LONG";
 
+    /// <summary>A check-in rule is missing a check-in field, carries an invalid one, or is not a weekly schedule.</summary>
+    public const string AutomationCheckInInvalid = "AUTOMATION_CHECK_IN_INVALID";
+
+    /// <summary>Check-in fields were sent for a rule whose form is not a check-in form.</summary>
+    public const string AutomationCheckInFieldsNotAllowed = "AUTOMATION_CHECK_IN_FIELDS_NOT_ALLOWED";
+
+    /// <summary>The coach already has an enabled check-in rule.</summary>
+    public const string CheckInRuleExists = "CHECK_IN_RULE_EXISTS";
+
     /// <summary>The client has not completed onboarding, so there are no answers to read or edit.</summary>
     public const string OnboardingNotCompleted = "ONBOARDING_NOT_COMPLETED";
 
     // ── Coach payment settings (#1577) ──────────────────────────────────
     /// <summary>The coach's subscription does not include the payments feature, or is not in good standing.</summary>
     public const string PaymentsNotEntitled = "PAYMENTS_NOT_ENTITLED";
+
+    /// <summary>The check-in can no longer be answered: its answer window has passed.</summary>
+    public const string CheckInAnswerWindowClosed = "CHECK_IN_ANSWER_WINDOW_CLOSED";
+
+    /// <summary>The coach's subscription does not include weekly check-ins, or is not in good standing.</summary>
+    public const string CheckInsNotEntitled = "CHECK_INS_NOT_ENTITLED";
+
+    /// <summary>The coach's subscription does not include per-client check-in configuration, or is not in good standing.</summary>
+    public const string PerClientCheckInConfigNotEntitled = "PER_CLIENT_CHECK_IN_CONFIG_NOT_ENTITLED";
 
     /// <summary>The IBAN is malformed or fails the mod-97 check.</summary>
     public const string InvalidIban = "INVALID_IBAN";
@@ -658,6 +679,9 @@ public static class ErrorCodes
     // ── Questionnaire answers ───────────────────────────────────────────
     /// <summary>An answer does not fit its question's type or config.</summary>
     public const string QuestionnaireAnswerInvalid = "QUESTIONNAIRE_ANSWER_INVALID";
+
+    /// <summary>The coach tried to mark a response as seen before the client submitted it.</summary>
+    public const string QuestionnaireResponseNotSubmitted = "QUESTIONNAIRE_RESPONSE_NOT_SUBMITTED";
 
     /// <summary>An answered question id is not a visible, answerable question of the response's questionnaire.</summary>
     public const string QuestionnaireQuestionNotInForm = "QUESTIONNAIRE_QUESTION_NOT_IN_FORM";

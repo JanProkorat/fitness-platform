@@ -97,24 +97,26 @@ public sealed class AutomationEventPoller(
         var coachUserId = snapshot.Coach.UserId;
         var lowerBound = EarliestEventTime(pairs, nowUtc);
 
-        var missed = await db.WeeklyCheckIns
+        // A check-in is missed once it is past due and still not submitted; the due time is the event time.
+        var missed = await db.QuestionnaireResponses
             .AsNoTracking()
-            .Where(c => clientUserIds.Contains(c.ClientUserId)
-                        && c.ProfessionalUserId == coachUserId
-                        && c.Status == WeeklyCheckInStatus.Expired
-                        && c.ExpiredAt != null
-                        && c.ExpiredAt >= lowerBound
-                        && c.ExpiredAt <= nowUtc)
-            .Select(c => new { c.Id, c.ClientUserId, ExpiredAt = c.ExpiredAt!.Value })
+            .Where(r => clientUserIds.Contains(r.ClientId)
+                        && r.ProfessionalId == coachUserId
+                        && r.Kind == QuestionnaireResponseKind.CheckIn
+                        && (r.Status == QuestionnaireResponseStatus.Pending || r.Status == QuestionnaireResponseStatus.InProgress)
+                        && r.CheckInDueAtUtc != null
+                        && r.CheckInDueAtUtc >= lowerBound
+                        && r.CheckInDueAtUtc <= nowUtc)
+            .Select(r => new { r.PublicId, r.ClientId, DueAt = r.CheckInDueAtUtc!.Value })
             .ToListAsync(ct);
 
         var found = new List<Candidate>();
 
         foreach (var pair in pairs)
         {
-            foreach (var checkIn in missed.Where(c => c.ClientUserId == pair.Client.ClientUserId))
+            foreach (var checkIn in missed.Where(c => c.ClientId == pair.Client.ClientUserId))
             {
-                AddIfDue(found, pair, $"checkin:{checkIn.Id:N}", checkIn.ExpiredAt, checkIn.ExpiredAt, ShiftOf(pair), nowUtc);
+                AddIfDue(found, pair, $"checkin:{checkIn.PublicId:N}", checkIn.DueAt, checkIn.DueAt, ShiftOf(pair), nowUtc);
             }
         }
 

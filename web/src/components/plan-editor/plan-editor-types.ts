@@ -83,7 +83,7 @@ export type WeekStatus = 'published' | 'draft';
 /** What a week pill shows: the publication state, or `empty` for a week with no meals yet. */
 export type WeekPillStatus = WeekStatus | 'empty';
 
-export type EditorSideTab = 'info' | 'library';
+export type EditorSideTab = 'info' | 'library' | 'forms';
 export type EditorRange = 'week' | 'day';
 export type EditorView = 'meals' | 'nutrition';
 

@@ -2183,6 +2183,7 @@
   },
   "forms": {
     "eyebrow": "Formulare",
+    "defaultBadge": "Einstieg",
     "title": "Formulare",
     "subtitle": "Fragen, die Ihre Klienten beantworten — zu Beginn und jede Woche",
     "newForm": "Neues Formular",
@@ -2202,7 +2203,7 @@
       "type": "Typ"
     },
     "type": {
-      "Onboarding": "Onboarding",
+      "Onboarding": "Formular",
       "CheckIn": "Check-in"
     },
     "table": {
@@ -2269,11 +2270,17 @@
         "star_rating": { "name": "Sternebewertung", "hint": "Zufriedenheit auf einer Skala von 1–5" },
         "scale": { "name": "Skala" },
         "file_upload": { "name": "Datei-Upload" },
+        "section": { "name": "Abschnitt", "hint": "Eine Überschrift, die die folgenden Fragen gruppiert" },
         "other": { "name": "Andere Frage" }
       },
       "info": {
         "onboarding": "Wird automatisch an jeden neuen Klienten gesendet, nachdem er Ihre Einladung angenommen hat",
-        "checkIn": "Wöchentlicher Check-in · Antworten erscheinen im Check-in-Verlauf jedes Klienten",
+        "anyTime": "Kann jederzeit gesendet werden, von Hand oder per Automatisierungsregel",
+        "checkInSent": "Gesendet <strong>{{day}} um {{time}}</strong>",
+        "checkInReminder": "Erinnerung nach {{hours}} h",
+        "checkInEdit": "In Automatisierungen bearbeiten",
+        "checkInNotSent": "Noch nicht gesendet",
+        "checkInSetUp": "In Automatisierungen einrichten",
         "questions_one": "{{count}} Frage",
         "questions_other": "{{count}} Fragen",
         "minutes_one": "etwa {{count}} Minute",
@@ -2287,7 +2294,8 @@
         "question": "Frage ohne Titel",
         "option": "Option {{number}}",
         "low": "Sehr niedrig",
-        "high": "Großartig"
+        "high": "Großartig",
+        "section": "Abschnitt ohne Titel"
       },
       "card": {
         "label": "Frage {{number}}: {{title}}",
@@ -2302,6 +2310,17 @@
         "helperPlaceholder": "Hilfetext (optional)",
         "required": "Pflicht",
         "requiredToggle": "Pflichtfeld"
+      },
+      "section": {
+        "chip": "Abschnitt",
+        "label": "Abschnitt {{number}}: {{title}}",
+        "reorder": "Abschnitt {{number}} verschieben",
+        "duplicate": "Abschnitt {{number}} duplizieren",
+        "delete": "Abschnitt {{number}} löschen",
+        "titleLabel": "Titel von Abschnitt {{number}}",
+        "titlePlaceholder": "Benennen Sie den Abschnitt",
+        "descriptionLabel": "Beschreibung von Abschnitt {{number}}",
+        "descriptionPlaceholder": "Beschreibung (optional)"
       },
       "choice": {
         "reorder": "Option {{number}} verschieben",
@@ -2354,7 +2373,8 @@
         "options": "Fügen Sie mindestens eine Option hinzu und füllen Sie alle Optionen aus.",
         "numberInvalid": "Min und Max müssen Zahlen sein.",
         "numberRange": "Min darf nicht größer als Max sein.",
-        "smileyLabels": "Füllen Sie beide Gesichtsbeschriftungen aus."
+        "smileyLabels": "Füllen Sie beide Gesichtsbeschriftungen aus.",
+        "onlySections": "Fügen Sie neben den Abschnitten mindestens eine Frage hinzu."
       }
     },
     "create": {
@@ -2368,12 +2388,95 @@
       "descriptionInvalid": "Die Beschreibung darf höchstens {{max}} Zeichen lang sein.",
       "type": "Typ",
       "typeHint": {
-        "Onboarding": "Wird einmal an neue Klienten gesendet",
+        "Onboarding": "Kann jederzeit gesendet werden, von Hand oder per Automatisierungsregel",
         "CheckIn": "Wird jede Woche beantwortet"
       },
       "submit": "Formular erstellen",
       "invalid": "Prüfen Sie Name und Typ und versuchen Sie es erneut.",
       "error": "Das Formular konnte nicht erstellt werden. Bitte versuchen Sie es erneut."
+    }
+  },
+  "clientForms": {
+    "tab": "Formulare",
+    "newAnswer": "Neue Antwort",
+    "new": "Neu",
+    "waiting": "Wartet",
+    "missed": "Verpasst",
+    "intro": "Antworten von {{name}} aus dieser Zusammenarbeit. Öffnen Sie eine, um sie neben dem Plan zu lesen.",
+    "empty": "In dieser Zusammenarbeit wurde noch kein Formular gesendet.",
+    "loadError": "Die Formulare konnten nicht geladen werden. Bitte versuchen Sie es erneut.",
+    "retry": "Erneut versuchen",
+    "avoids": "Meidet {{items}}",
+    "allForms": "Alle Formulare im Profil von {{name}}",
+    "kind": {
+      "Onboarding": "Onboarding",
+      "Questionnaire": "Fragebogen",
+      "CheckIn": "Check-in"
+    },
+    "card": {
+      "sent": "Gesendet {{date}} · noch nicht beantwortet",
+      "missed": "Verpasst · fällig am {{date}}",
+      "latestAnswered": "Neueste · beantwortet am {{date}}",
+      "answered_one": "Beantwortet am {{date}} · {{count}} Frage",
+      "answered_other": "Beantwortet am {{date}} · {{count}} Fragen"
+    },
+    "popover": {
+      "meta_one": "{{name}} · beantwortet am {{date}} · {{count}} Frage",
+      "meta_other": "{{name}} · beantwortet am {{date}} · {{count}} Fragen",
+      "openInProfile": "Im Profil von {{name}} öffnen"
+    },
+    "answers": {
+      "noAnswer": "Keine Antwort"
+    },
+    "page": {
+      "title": "Formulare",
+      "counts": "{{answered}} beantwortet · {{waiting}} wartend",
+      "send": "Formular senden",
+      "sendAnother": "Weiteres Formular senden",
+      "filterLabel": "Formulare filtern",
+      "filters": {
+        "all": "Alle",
+        "onboarding": "Onboarding",
+        "questionnaire": "Fragebögen",
+        "checkin": "Check-ins"
+      },
+      "thisCollaboration": "Diese Zusammenarbeit",
+      "previous_one": "Frühere Zusammenarbeit · {{year}} · {{count}} Formular",
+      "previous_other": "Frühere Zusammenarbeit · {{year}} · {{count}} Formulare",
+      "noMatch": "Noch keine Formulare dieser Art.",
+      "selectAForm": "Wählen Sie ein beantwortetes Formular, um es zu lesen.",
+      "noLink": "Die Formulare von {{name}} sind nicht mehr verfügbar, weil die Zusammenarbeit beendet wurde.",
+      "emptyTitle": "Noch keine Antworten von {{name}}",
+      "emptyBody": "Sobald {{name}} ein Formular zurückschickt, erscheinen die Antworten hier. Sie können sie auch im Planeditor lesen, während Sie den Plan erstellen.",
+      "weekTitle": "{{title}} · Woche {{week}}",
+      "weekShort": "KW{{week}}",
+      "stripLabel": "Check-in-Wochen",
+      "strip": {
+        "Answered": "beantwortet",
+        "Missed": "verpasst",
+        "Waiting": "wartend"
+      },
+      "checkInCard_one": "Woche {{week}} beantwortet am {{date}} · {{count}} Frage",
+      "checkInCard_other": "Woche {{week}} beantwortet am {{date}} · {{count}} Fragen",
+      "checkInMeta": "Gesendet {{sent}} · beantwortet {{answered}}",
+      "notReviewed": "noch nicht geprüft",
+      "reviewedOn": "Geprüft am {{date}}",
+      "markReviewed": "Als geprüft markieren",
+      "replyInChat": "Im Chat antworten",
+      "markError": "Der Check-in konnte nicht als geprüft markiert werden. Bitte versuchen Sie es erneut.",
+      "jumpTo": "Zum Abschnitt springen",
+      "changeVsWeek": "{{change}} ggü. Woche {{week}}",
+      "sameAsWeek": "wie in Woche {{week}}"
+    },
+    "send": {
+      "title": "Formular an {{name}} senden",
+      "description": "Wählen Sie eines Ihrer aktiven Formulare. {{name}} erhält es in der App.",
+      "pick": "Formular auswählen",
+      "confirm": "Senden",
+      "empty": "Sie haben keine aktiven Formulare zum Senden. Erstellen Sie zuerst eines unter Formulare.",
+      "loadError": "Ihre Formulare konnten nicht geladen werden. Bitte versuchen Sie es erneut.",
+      "success": "Formular gesendet.",
+      "error": "Das Formular konnte nicht gesendet werden. Bitte versuchen Sie es erneut."
     }
   },
   "clientPlanEditor": {
@@ -2403,7 +2506,7 @@
       "action": "Plan beenden"
     },
     "info": {
-      "tab": "Planinfo",
+      "tab": "Info",
       "name": "Planname",
       "dates": "Zeitraum",
       "starts": "Beginn",
@@ -2958,6 +3061,12 @@
     "AUTOMATION_NO_OVERRIDE_TO_RESET": "Diese Regel hat für diesen Klienten keine Änderungen, die sich zurücksetzen ließen.",
     "AUTOMATION_CLIENT_ONLY_RULE_NOT_OVERRIDABLE": "Eine Regel nur für einen Klienten lässt sich nicht anpassen, pausieren oder zurücksetzen. Bearbeiten Sie sie direkt.",
     "AUTOMATION_AUDIENCE_NOT_ALLOWED_ON_CLIENT_ONLY_RULE": "Eine Regel nur für einen Klienten hat keine Zielgruppe zur Auswahl.",
+    "CHECK_IN_RULE_EXISTS": "Sie haben bereits eine aktive Regel für den wöchentlichen Check-in. Schalten Sie sie zuerst aus oder bearbeiten Sie diese.",
+    "AUTOMATION_CHECK_IN_INVALID": "Ein wöchentlicher Check-in braucht einen Wochentag, eine Uhrzeit, ein Antwortfenster und ein wöchentliches Intervall.",
+    "AUTOMATION_CHECK_IN_FIELDS_NOT_ALLOWED": "Wochentag, Antwortfenster und Erinnerung gehören nur zu Regeln für den wöchentlichen Check-in.",
+    "CHECK_INS_NOT_ENTITLED": "Wöchentliche Check-ins sind in Ihrem Tarif nicht enthalten.",
+    "PER_CLIENT_CHECK_IN_CONFIG_NOT_ENTITLED": "Den wöchentlichen Check-in für einen einzelnen Klienten anzupassen, ist in Ihrem Tarif nicht enthalten.",
+    "CHECK_IN_ANSWER_WINDOW_CLOSED": "Die Zeit zum Beantworten dieses Check-ins ist abgelaufen.",
     "INVALID_CREDENTIALS": "Ungültige E-Mail oder Passwort.",
     "ACCOUNT_DEACTIVATED": "Ihr Konto wurde deaktiviert.",
     "INVALID_REFRESH_TOKEN": "Ihre Sitzung ist abgelaufen. Bitte melden Sie sich erneut an.",
@@ -2999,6 +3108,7 @@
     "REQUIRED": "Dieses Feld ist erforderlich.",
     "OUT_OF_RANGE": "Der Wert liegt außerhalb des zulässigen Bereichs.",
     "INVALID_DEADLINE_OFFSET_HOURS": "Ungültige Frist. Erlaubte Werte: 24, 48, 72, 120 oder 168 Stunden.",
+    "QUESTION_SECTION_INVALID": "Ein Abschnitt kann weder erforderlich sein noch ein zugeordnetes Feld haben.",
     "SESSION_ALREADY_COMPLETED": "Diese Einheit wurde bereits abgeschlossen.",
     "CONVERSATION_LOCKED": "Sie können antworten, sobald der Klient Ihre Einladung annimmt.",
     "SECTION_ALREADY_COMPLETED": "Dieser Abschnitt wurde bereits vom Klienten abgeschlossen und kann nicht bearbeitet werden.",
@@ -3982,8 +4092,7 @@
         "changedFrom": "Geändert gegenüber: {{when}}",
         "paused": "Pausiert",
         "pausedUntil": "Pausiert bis {{date}}",
-        "linkedSubtitle": "{{profession}} · Wird in den Check-in-Einstellungen verwaltet",
-        "linkedSubtitleOnly": "Wird in den Check-in-Einstellungen verwaltet"
+        "changedFromWeekday": "Geändert von: {{day}}"
       },
       "result": {
         "notSent": "Noch nicht gesendet",
@@ -4636,7 +4745,8 @@
         "workouts": "Workouts",
         "storage": "Fotos",
         "payment": "Zahlung",
-        "automations": "Automatisierungen"
+        "automations": "Automatisierungen",
+        "forms": "Formulare"
       },
       "stats": {
         "mealCompliance": {
@@ -5762,7 +5872,6 @@
     }
   },
   "automations": {
-    "eyebrow": "Formulare",
     "title": "Automatisierungen",
     "subtitle": "Regeln, die Formulare und Anfragen von selbst senden. Eine Regel für einen Klienten ändern Sie auf seinem Tab Automatisierungen.",
     "newRule": "Neue Regel",
@@ -5832,21 +5941,31 @@
       "offsetInactive_other": "{{event}} seit {{count}} Tagen",
       "subtitleForm": "Formular · {{name}}",
       "subtitleFormUnknown": "Formular",
+      "subtitleCheckInReminder": "Formular · {{name}} · Erinnerung nach {{hours}} h",
+      "checkInWhen": "{{day}}, {{time}}",
       "subtitlePhotos": "Fortschrittsfotos",
       "subtitleMeasurements": "Körpermaße",
       "toggle": "Regel „{{name}}“ aktivieren"
     },
-    "linked": {
-      "title": "Wöchentlicher Check-in",
-      "subtitle": {
-        "Training": "Training",
-        "Nutrition": "Ernährung"
+    "weekday": {
+      "every": {
+        "Monday": "montags",
+        "Tuesday": "dienstags",
+        "Wednesday": "mittwochs",
+        "Thursday": "donnerstags",
+        "Friday": "freitags",
+        "Saturday": "samstags",
+        "Sunday": "sonntags"
       },
-      "when": "Einmal pro Woche",
-      "action": "Check-in",
-      "badge": "Verknüpft",
-      "off": "Aus",
-      "open": "Öffnen"
+      "short": {
+        "Monday": "Mo",
+        "Tuesday": "Di",
+        "Wednesday": "Mi",
+        "Thursday": "Do",
+        "Friday": "Fr",
+        "Saturday": "Sa",
+        "Sunday": "So"
+      }
     },
     "actions": {
       "SendForm": "Formular senden",
@@ -5903,6 +6022,12 @@
         "clientTime": "Zeit des Klienten",
         "starting": "Beginn",
         "startingFixed": "Ab dem Startdatum jedes Klienten",
+        "startingCheckIn": "Ab der ersten vollen Woche jedes Klienten",
+        "weekdayLabel": "Jede Woche am",
+        "answerWithin": "Antwort innerhalb von",
+        "answerWindowDays_one": "{{count}} Tag",
+        "answerWindowDays_other": "{{count}} Tage",
+        "answerWindowHint": "Danach zählt die Woche als verpasst",
         "eventLabel": "Ereignis",
         "timing": "Zeitpunkt",
         "daysAfter": "Tage danach",
@@ -5918,7 +6043,12 @@
         "formPlaceholder": "Formular wählen",
         "formOption_one": "{{title}} · {{count}} Frage",
         "formOption_other": "{{title}} · {{count}} Fragen",
+        "formOptionCheckIn": "{{title}} · Check-in-Formular",
+        "formHintCheckIn": "Die Fragen ändern Sie unter Formulare › {{title}}",
         "formsError": "Die Formulare konnten nicht geladen werden.",
+        "reminder": "Klienten nach {{hours}} h erinnern, wenn nicht geantwortet wurde",
+        "missedWeek": "Mich benachrichtigen, wenn eine Woche verpasst wird",
+        "missedWeekHint": "Eine Benachrichtigung pro verpasster Woche, nicht pro Erinnerung",
         "message": "Nachricht",
         "counter": "{{current}} / {{max}}"
       },
@@ -5941,6 +6071,7 @@
         "heading": "Optionen",
         "skip": "Klienten überspringen, solange die vorherige Anfrage unbeantwortet ist",
         "skipHint": "Verhindert, dass sich Anfragen stauen.",
+        "skipCheckInHint": "Bei Check-ins aus: Jede Woche steht für sich, und eine unbeantwortete Woche zählt als verpasst.",
         "stopAfter": "Nach einer bestimmten Anzahl Sendungen stoppen",
         "stopAfterCount": "Anzahl Sendungen",
         "oncePerPlan": "Einmal pro Plan",

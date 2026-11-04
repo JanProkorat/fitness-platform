@@ -195,6 +195,8 @@ interface Props {
   infoTabLabel?: string;
   /** Adds a third tab to the library panel. */
   libraryExtraTab?: PlanEditorLibraryTab;
+  /** Adds top-level tabs to the side panel, after Plan info and Library. */
+  extraSideTabs?: EditorSideTabDef<EditorSideTab>[];
   /** Publication state per week: shows a dot on each pill (empty weeks get a dashed ring) and a count legend. */
   weekStatus?: (weekIndex: number) => WeekStatus | undefined;
   /** Rendered last in the header row, e.g. a plan actions menu. */
@@ -369,6 +371,7 @@ export default function PlanEditor({
   renderInfoPanel,
   infoTabLabel,
   libraryExtraTab,
+  extraSideTabs,
   weekStatus,
   renderHeaderActions,
   renderBanner,
@@ -1377,6 +1380,7 @@ export default function PlanEditor({
         />
       ),
     },
+    ...(extraSideTabs ?? []),
   ];
 
   return (

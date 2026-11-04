@@ -185,6 +185,7 @@ public class AcceptInvitationEndpoint(
                 ProfessionalId = invitation.ProfessionalProfile.UserId,
                 LinkId = activation.Link!.Id,
                 Status = QuestionnaireResponseStatus.Pending,
+                Kind = QuestionnaireResponseKind.Onboarding,
                 Scope = activation.GrantedScope,
             });
             await db.SaveChangesAsync(ct);

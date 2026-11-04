@@ -2184,6 +2184,7 @@
   },
   "forms": {
     "eyebrow": "Forms",
+    "defaultBadge": "Onboarding",
     "title": "Forms",
     "subtitle": "Questions your clients answer — at the start and every week",
     "newForm": "New form",
@@ -2203,7 +2204,7 @@
       "type": "Type"
     },
     "type": {
-      "Onboarding": "Onboarding",
+      "Onboarding": "Form",
       "CheckIn": "Check-in"
     },
     "table": {
@@ -2270,11 +2271,17 @@
         "star_rating": { "name": "Star rating", "hint": "Satisfaction on a 1–5 scale" },
         "scale": { "name": "Scale" },
         "file_upload": { "name": "File upload" },
+        "section": { "name": "Section", "hint": "A heading that groups the questions below" },
         "other": { "name": "Other question" }
       },
       "info": {
         "onboarding": "Sent automatically to every new client after they accept your invitation",
-        "checkIn": "Weekly check-in · answers appear in each client's check-in history",
+        "anyTime": "Can be sent any time, by hand or by an Automations rule",
+        "checkInSent": "Sent <strong>{{day}} at {{time}}</strong>",
+        "checkInReminder": "reminder after {{hours}} h",
+        "checkInEdit": "Edit in Automations",
+        "checkInNotSent": "Not sent yet",
+        "checkInSetUp": "Set up in Automations",
         "questions_one": "{{count}} question",
         "questions_other": "{{count}} questions",
         "minutes_one": "about {{count}} minute",
@@ -2288,7 +2295,8 @@
         "question": "Untitled question",
         "option": "Option {{number}}",
         "low": "Very low",
-        "high": "Great"
+        "high": "Great",
+        "section": "Untitled section"
       },
       "card": {
         "label": "Question {{number}}: {{title}}",
@@ -2303,6 +2311,17 @@
         "helperPlaceholder": "Helper text (optional)",
         "required": "Required",
         "requiredToggle": "Required"
+      },
+      "section": {
+        "chip": "Section",
+        "label": "Section {{number}}: {{title}}",
+        "reorder": "Reorder section {{number}}",
+        "duplicate": "Duplicate section {{number}}",
+        "delete": "Delete section {{number}}",
+        "titleLabel": "Section {{number}} title",
+        "titlePlaceholder": "Name the section",
+        "descriptionLabel": "Section {{number}} description",
+        "descriptionPlaceholder": "Description (optional)"
       },
       "choice": {
         "reorder": "Reorder choice {{number}}",
@@ -2355,7 +2374,8 @@
         "options": "Add at least one choice and fill in every choice.",
         "numberInvalid": "Min and max must be numbers.",
         "numberRange": "Min can't be higher than max.",
-        "smileyLabels": "Fill in both face labels."
+        "smileyLabels": "Fill in both face labels.",
+        "onlySections": "Add at least one question besides the sections."
       }
     },
     "create": {
@@ -2369,12 +2389,95 @@
       "descriptionInvalid": "The description can be at most {{max}} characters.",
       "type": "Type",
       "typeHint": {
-        "Onboarding": "Sent once to a new client",
+        "Onboarding": "Can be sent any time, by hand or by an Automations rule",
         "CheckIn": "Answered every week"
       },
       "submit": "Create form",
       "invalid": "Check the name and type, then try again.",
       "error": "Couldn't create the form. Please try again."
+    }
+  },
+  "clientForms": {
+    "tab": "Forms",
+    "newAnswer": "New answer",
+    "new": "New",
+    "waiting": "Waiting",
+    "missed": "Missed",
+    "intro": "{{name}}'s answers from this collaboration. Open one to read it next to the plan.",
+    "empty": "No forms have been sent to {{name}} in this collaboration yet.",
+    "loadError": "Couldn't load the forms. Please try again.",
+    "retry": "Retry",
+    "avoids": "Avoids {{items}}",
+    "allForms": "All forms in {{name}}'s profile",
+    "kind": {
+      "Onboarding": "Onboarding",
+      "Questionnaire": "Questionnaire",
+      "CheckIn": "Check-in"
+    },
+    "card": {
+      "sent": "Sent {{date}} · not answered yet",
+      "missed": "Missed · was due {{date}}",
+      "latestAnswered": "Latest · answered {{date}}",
+      "answered_one": "Answered {{date}} · {{count}} question",
+      "answered_other": "Answered {{date}} · {{count}} questions"
+    },
+    "popover": {
+      "meta_one": "{{name}} · answered {{date}} · {{count}} question",
+      "meta_other": "{{name}} · answered {{date}} · {{count}} questions",
+      "openInProfile": "Open in {{name}}'s profile"
+    },
+    "answers": {
+      "noAnswer": "No answer"
+    },
+    "page": {
+      "title": "Forms",
+      "counts": "{{answered}} answered · {{waiting}} waiting",
+      "send": "Send a form",
+      "sendAnother": "Send another form",
+      "filterLabel": "Filter forms",
+      "filters": {
+        "all": "All",
+        "onboarding": "Onboarding",
+        "questionnaire": "Questionnaires",
+        "checkin": "Check-ins"
+      },
+      "thisCollaboration": "This collaboration",
+      "previous_one": "Previous collaboration · {{year}} · {{count}} form",
+      "previous_other": "Previous collaboration · {{year}} · {{count}} forms",
+      "noMatch": "No forms of this kind yet.",
+      "selectAForm": "Select an answered form to read it.",
+      "noLink": "{{name}}'s forms are no longer available because the collaboration has ended.",
+      "emptyTitle": "No answers from {{name}} yet",
+      "emptyBody": "When {{name}} sends back a form, the answers show up here. You can also read them in the plan editor while you build the plan.",
+      "weekTitle": "{{title}} · week {{week}}",
+      "weekShort": "W{{week}}",
+      "stripLabel": "Check-in weeks",
+      "strip": {
+        "Answered": "answered",
+        "Missed": "missed",
+        "Waiting": "waiting"
+      },
+      "checkInCard_one": "Week {{week}} answered {{date}} · {{count}} question",
+      "checkInCard_other": "Week {{week}} answered {{date}} · {{count}} questions",
+      "checkInMeta": "Sent {{sent}} · answered {{answered}}",
+      "notReviewed": "not reviewed yet",
+      "reviewedOn": "Reviewed {{date}}",
+      "markReviewed": "Mark reviewed",
+      "replyInChat": "Reply in chat",
+      "markError": "Couldn't mark the check-in as reviewed. Please try again.",
+      "jumpTo": "Jump to section",
+      "changeVsWeek": "{{change}} vs week {{week}}",
+      "sameAsWeek": "same as week {{week}}"
+    },
+    "send": {
+      "title": "Send a form to {{name}}",
+      "description": "Pick one of your active forms. {{name}} gets it in the app.",
+      "pick": "Choose a form",
+      "confirm": "Send",
+      "empty": "You have no active forms to send. Create one under Forms first.",
+      "loadError": "Couldn't load your forms. Please try again.",
+      "success": "Form sent.",
+      "error": "Couldn't send the form. Please try again."
     }
   },
   "clientPlanEditor": {
@@ -2959,6 +3062,12 @@
     "AUTOMATION_NO_OVERRIDE_TO_RESET": "This rule has no changes for this client to reset.",
     "AUTOMATION_CLIENT_ONLY_RULE_NOT_OVERRIDABLE": "A rule that belongs to one client can’t be customised, paused or reset. Edit it directly.",
     "AUTOMATION_AUDIENCE_NOT_ALLOWED_ON_CLIENT_ONLY_RULE": "A rule for one client has no audience to choose.",
+    "CHECK_IN_RULE_EXISTS": "You already have a weekly check-in rule switched on. Switch it off first, or edit that one.",
+    "AUTOMATION_CHECK_IN_INVALID": "A weekly check-in needs a weekday, a time, an answer window and a weekly interval.",
+    "AUTOMATION_CHECK_IN_FIELDS_NOT_ALLOWED": "Weekday, answer window and reminder settings belong to weekly check-in rules only.",
+    "CHECK_INS_NOT_ENTITLED": "Weekly check-ins are not included in your plan.",
+    "PER_CLIENT_CHECK_IN_CONFIG_NOT_ENTITLED": "Changing the weekly check-in for one client is not included in your plan.",
+    "CHECK_IN_ANSWER_WINDOW_CLOSED": "The time to answer this check-in has passed.",
     "INVALID_CREDENTIALS": "Invalid email or password.",
     "ACCOUNT_DEACTIVATED": "Your account has been deactivated.",
     "INVALID_REFRESH_TOKEN": "Your session has expired. Please log in again.",
@@ -3000,6 +3109,7 @@
     "REQUIRED": "This field is required.",
     "OUT_OF_RANGE": "Value is out of the allowed range.",
     "INVALID_DEADLINE_OFFSET_HOURS": "Invalid deadline. Allowed values: 24, 48, 72, 120 or 168 hours.",
+    "QUESTION_SECTION_INVALID": "A section can't be required or have a mapped field.",
     "SESSION_ALREADY_COMPLETED": "This session has already been completed.",
     "CONVERSATION_LOCKED": "You can reply once the client accepts your invitation.",
     "SECTION_ALREADY_COMPLETED": "This section has already been completed by the client and cannot be edited.",
@@ -3983,8 +4093,7 @@
         "changedFrom": "Changed from: {{when}}",
         "paused": "Paused",
         "pausedUntil": "Paused until {{date}}",
-        "linkedSubtitle": "{{profession}} · Managed in check-in settings",
-        "linkedSubtitleOnly": "Managed in check-in settings"
+        "changedFromWeekday": "Changed from {{day}}"
       },
       "result": {
         "notSent": "Not sent yet",
@@ -4637,7 +4746,8 @@
         "workouts": "Workouts",
         "storage": "Photos",
         "payment": "Payment",
-        "automations": "Automations"
+        "automations": "Automations",
+        "forms": "Forms"
       },
       "stats": {
         "mealCompliance": {
@@ -5763,7 +5873,6 @@
     }
   },
   "automations": {
-    "eyebrow": "Forms",
     "title": "Automations",
     "subtitle": "Rules that send forms and requests on their own. Change a rule for one client on their Automations tab.",
     "newRule": "New rule",
@@ -5833,21 +5942,31 @@
       "offsetInactive_other": "{{event}} for {{count}} days",
       "subtitleForm": "Form · {{name}}",
       "subtitleFormUnknown": "Form",
+      "subtitleCheckInReminder": "Form · {{name}} · reminder after {{hours}} h",
+      "checkInWhen": "{{day}}, {{time}}",
       "subtitlePhotos": "Progress photos",
       "subtitleMeasurements": "Body measurements",
       "toggle": "Enable rule “{{name}}”"
     },
-    "linked": {
-      "title": "Weekly check-in",
-      "subtitle": {
-        "Training": "Training",
-        "Nutrition": "Nutrition"
+    "weekday": {
+      "every": {
+        "Monday": "every Monday",
+        "Tuesday": "every Tuesday",
+        "Wednesday": "every Wednesday",
+        "Thursday": "every Thursday",
+        "Friday": "every Friday",
+        "Saturday": "every Saturday",
+        "Sunday": "every Sunday"
       },
-      "when": "Once a week",
-      "action": "Check-in",
-      "badge": "Linked",
-      "off": "Off",
-      "open": "Open"
+      "short": {
+        "Monday": "Mon",
+        "Tuesday": "Tue",
+        "Wednesday": "Wed",
+        "Thursday": "Thu",
+        "Friday": "Fri",
+        "Saturday": "Sat",
+        "Sunday": "Sun"
+      }
     },
     "actions": {
       "SendForm": "Send form",
@@ -5904,6 +6023,12 @@
         "clientTime": "Client’s time",
         "starting": "Starting",
         "startingFixed": "From each client’s start date",
+        "startingCheckIn": "From each client’s first full week",
+        "weekdayLabel": "Every week on",
+        "answerWithin": "Answer within",
+        "answerWindowDays_one": "{{count}} day",
+        "answerWindowDays_other": "{{count}} days",
+        "answerWindowHint": "After that, the week counts as missed",
         "eventLabel": "Event",
         "timing": "Timing",
         "daysAfter": "Days after",
@@ -5919,7 +6044,12 @@
         "formPlaceholder": "Choose a form",
         "formOption_one": "{{title}} · {{count}} question",
         "formOption_other": "{{title}} · {{count}} questions",
+        "formOptionCheckIn": "{{title}} · check-in form",
+        "formHintCheckIn": "Change the questions in Forms › {{title}}",
         "formsError": "Could not load your forms.",
+        "reminder": "Remind the client after {{hours}} h if not answered",
+        "missedWeek": "Tell me when a week is missed",
+        "missedWeekHint": "One notification per missed week, not per reminder",
         "message": "Message",
         "counter": "{{current}} / {{max}}"
       },
@@ -5942,6 +6072,7 @@
         "heading": "Options",
         "skip": "Skip a client while the previous one is unanswered",
         "skipHint": "Stops requests piling up.",
+        "skipCheckInHint": "Off for check-ins: each week stands on its own, and an unanswered week counts as missed.",
         "stopAfter": "Stop after a number of sends",
         "stopAfterCount": "Number of sends",
         "oncePerPlan": "Once per plan",

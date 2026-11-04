@@ -90,10 +90,10 @@ public static class NotificationTemplates
             [Key(NotificationType.InvitationCancelled, InvitationCancelledAutoBySibling)] =
                 new("Invitation cancelled", "{clientName} accepted another {role}, so your invitation was cancelled."),
 
-            // Not yet rewired to INotificationService.CreateAsync — WeeklyCheckInScheduler,
-            // PhotoDiaryReminderScheduler, and RespondToCheckInEndpoint still construct
-            // Notification entities directly (#788 follow-up). Templates exist here for
-            // completeness/consistency but are unused until those call sites are migrated.
+            // WeeklyCheckInRequested and WeeklyCheckInResponded have no sender any more; check-in reminders
+            // and missed-week notices go out as ClientCheckInReminder / CoachCheckInMissed from
+            // AutomationCheckInSweeper. PhotoDiaryReminderScheduler still constructs its Notification
+            // entities directly instead of calling INotificationService.CreateAsync (#788 follow-up).
             [Key(NotificationType.WeeklyCheckInRequested)] =
                 new("Planning next week", "{professionalName} is planning next week. Let them know if anything special is coming up."),
             [Key(NotificationType.WeeklyCheckInResponded)] =
@@ -121,6 +121,11 @@ public static class NotificationTemplates
 
             [Key(NotificationType.OfflineSyncConflict)] =
                 new("Offline changes need a look", "{clientName} synced {count} offline action(s) that no longer match the plan \"{planName}\"."),
+
+            [Key(NotificationType.ClientCheckInReminder)] =
+                new("Weekly check-in reminder", "{professionalName} is still waiting for your weekly check-in. It only takes a couple of minutes."),
+            [Key(NotificationType.CoachCheckInMissed)] =
+                new("Check-in missed", "{clientName} did not answer the weekly check-in in time."),
         },
         ["cs"] = new()
         {
@@ -195,6 +200,11 @@ public static class NotificationTemplates
 
             [Key(NotificationType.OfflineSyncConflict)] =
                 new("Offline změny ke kontrole", "{clientName} nahrál(a) offline akce ({count}), které už neodpovídají jídelníčku \"{planName}\". Podívejte se na ně."),
+
+            [Key(NotificationType.ClientCheckInReminder)] =
+                new("Připomenutí týdenního check-inu", "{professionalName} stále čeká na váš týdenní check-in. Zabere jen pár minut."),
+            [Key(NotificationType.CoachCheckInMissed)] =
+                new("Check-in zmeškán", "{clientName} neodpověděl(a) včas na týdenní check-in."),
         },
         ["de"] = new()
         {
@@ -269,6 +279,11 @@ public static class NotificationTemplates
 
             [Key(NotificationType.OfflineSyncConflict)] =
                 new("Offline-Änderungen prüfen", "{clientName} hat {count} Offline-Aktion(en) synchronisiert, die nicht mehr zum Plan \"{planName}\" passen. Bitte prüfen Sie diese."),
+
+            [Key(NotificationType.ClientCheckInReminder)] =
+                new("Erinnerung an Ihren wöchentlichen Check-in", "{professionalName} wartet noch auf Ihren wöchentlichen Check-in. Er dauert nur wenige Minuten."),
+            [Key(NotificationType.CoachCheckInMissed)] =
+                new("Check-in verpasst", "{clientName} hat den wöchentlichen Check-in nicht rechtzeitig beantwortet."),
         },
     };
 

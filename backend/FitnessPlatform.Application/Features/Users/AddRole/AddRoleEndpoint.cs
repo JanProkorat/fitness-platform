@@ -114,6 +114,11 @@ public class AddRoleEndpoint(
 
         await db.SaveChangesAsync(ct);
 
+        if (profile is null)
+        {
+            await DefaultCheckInForm.EnsureAsync(db, userId, user.Language, ct);
+        }
+
         // Audit log
         await audit.LogAsync(
             userId,

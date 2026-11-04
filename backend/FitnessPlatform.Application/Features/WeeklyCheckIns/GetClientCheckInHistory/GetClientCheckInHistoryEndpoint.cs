@@ -3,14 +3,15 @@ using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
+using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Infrastructure.Data;
-using FitnessPlatform.Application.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace FitnessPlatform.Application.Features.WeeklyCheckIns.GetClientCheckInHistory;
 
 /// <summary>
-/// Returns a week-by-week check-in history for a linked client, scoped to the authenticated professional.
+/// Returns a week-by-week check-in history for a linked client, scoped to the authenticated professional
+/// and the current collaboration.
 /// </summary>
 /// <param name="db">Application database context.</param>
 /// <param name="linkAuthorizationService">Resolves the caller's link to the client.</param>
@@ -37,7 +38,7 @@ internal sealed class GetClientCheckInHistoryEndpoint(
             s.Description =
                 "Returns the last N weekly slots (oldest first) ending at the newest check-in week, " +
                 "each marked answered, missed, waiting or none, plus answered/total counts over all " +
-                "of the caller's check-ins for the client.";
+                "of the caller's check-ins for the client in the current collaboration.";
             s.Responses[StatusCodes.Status200OK] = "Check-in history";
             s.Responses[StatusCodes.Status400BadRequest] = "Weeks out of range";
             s.Responses[StatusCodes.Status401Unauthorized] = "Missing or unreadable caller claim";
@@ -75,23 +76,33 @@ internal sealed class GetClientCheckInHistoryEndpoint(
         }
 
         var now = timeProvider.GetUtcNow().UtcDateTime;
-        var anchor = await ResolveAnchorAsync(professionalUserId, now, ct);
 
-        var rows = await db.WeeklyCheckIns
+        var rows = await db.QuestionnaireResponses
             .AsNoTracking()
-            .Where(c => c.ClientUserId == req.ClientUserId && c.ProfessionalUserId == professionalUserId)
-            .Select(c => new { c.WeekStartDate, c.RespondedAt, c.Status, c.DueAt, c.SentAt, c.HungerScore })
+            .CurrentCollaborationCheckIns()
+            .Where(r => r.ClientId == req.ClientUserId && r.ProfessionalId == professionalUserId)
+            .Select(r => new { r.CheckInWeekStart, r.DateCreated, r.Status, r.CheckInDueAtUtc })
             .ToListAsync(ct);
 
-        var winnerByWeek = rows
-            .GroupBy(c => c.WeekStartDate)
+        var weekRows = rows
+            .Select(r => (
+                Week: CheckInResponses.WeekStartOf(r.CheckInWeekStart, r.DateCreated),
+                Status: RowStatus(r.Status, r.CheckInDueAtUtc, now),
+                SentAt: r.DateCreated))
+            .ToList();
+
+        var winnerByWeek = weekRows
+            .GroupBy(r => r.Week)
             .ToDictionary(
                 group => group.Key,
                 group => group
-                    .Select(c => (Status: RowStatus(c.RespondedAt, c.Status, c.DueAt, now), c.SentAt, c.HungerScore))
-                    .OrderBy(c => Rank(c.Status))
-                    .ThenByDescending(c => c.SentAt)
+                    .OrderBy(r => Rank(r.Status))
+                    .ThenByDescending(r => r.SentAt)
                     .First());
+
+        var anchor = winnerByWeek.Count > 0
+            ? winnerByWeek.Keys.Max()
+            : CheckInResponses.WeekStartOf(null, now);
 
         var weeks = Enumerable.Range(0, req.Weeks)
             .Select(offset => anchor.AddDays(-7 * (req.Weeks - 1 - offset)))
@@ -101,7 +112,7 @@ internal sealed class GetClientCheckInHistoryEndpoint(
                     WeekStartDate = monday,
                     Status = winner.Status,
                     SentAt = winner.SentAt,
-                    HungerScore = winner.HungerScore
+                    HungerScore = null
                 }
                 : new CheckInHistoryWeekDto { WeekStartDate = monday, Status = None })
             .ToList();
@@ -117,35 +128,14 @@ internal sealed class GetClientCheckInHistoryEndpoint(
         }, ct);
     }
 
-    private async Task<DateOnly> ResolveAnchorAsync(Guid professionalUserId, DateTime utcNow, CancellationToken ct)
+    private static string RowStatus(QuestionnaireResponseStatus status, DateTime? dueAt, DateTime utcNow)
     {
-        var timeZoneId = await db.Users
-            .AsNoTracking()
-            .Where(u => u.Id == professionalUserId)
-            .Select(u => u.TimeZone)
-            .FirstOrDefaultAsync(ct);
-
-        TimeZoneInfo timeZone;
-        try
-        {
-            timeZone = TimeZoneInfo.FindSystemTimeZoneById(timeZoneId ?? "UTC");
-        }
-        catch (Exception ex) when (ex is TimeZoneNotFoundException or InvalidTimeZoneException)
-        {
-            timeZone = TimeZoneInfo.Utc;
-        }
-
-        return WeeklyCheckInScheduler.NextIsoMonday(TimeZoneInfo.ConvertTimeFromUtc(utcNow, timeZone));
-    }
-
-    private static string RowStatus(DateTime? respondedAt, WeeklyCheckInStatus status, DateTime? dueAt, DateTime utcNow)
-    {
-        if (respondedAt is not null)
+        if (status == QuestionnaireResponseStatus.Submitted)
         {
             return Answered;
         }
 
-        return status == WeeklyCheckInStatus.Pending && (dueAt is null || dueAt > utcNow) ? Waiting : Missed;
+        return dueAt is null || dueAt > utcNow ? Waiting : Missed;
     }
 
     private static int Rank(string status) => status switch

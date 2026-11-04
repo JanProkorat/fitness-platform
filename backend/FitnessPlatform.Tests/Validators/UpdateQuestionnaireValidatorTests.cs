@@ -73,6 +73,41 @@ public class UpdateQuestionnaireValidatorTests
         HasErrorCode(RequestWith(type, config), ErrorCodes.QuestionConfigInvalid).Should().BeTrue();
     }
 
+    [Theory]
+    [InlineData("{}")]
+    [InlineData("{\"options\":[\"A\"]}")]
+    public void Section_WithConfig_FailsWithQuestionConfigInvalid(string config)
+    {
+        HasErrorCode(RequestWith("section", config), ErrorCodes.QuestionConfigInvalid).Should().BeTrue();
+    }
+
+    [Fact]
+    public void Section_Required_FailsWithQuestionSectionInvalid()
+    {
+        var request = RequestWith("section", null);
+        request.Questions[0].IsRequired = true;
+
+        HasErrorCode(request, ErrorCodes.QuestionSectionInvalid).Should().BeTrue();
+    }
+
+    [Fact]
+    public void Section_WithMappedField_FailsWithQuestionSectionInvalid()
+    {
+        var request = RequestWith("section", null);
+        request.Questions[0].MappedField = "weight";
+
+        HasErrorCode(request, ErrorCodes.QuestionSectionInvalid).Should().BeTrue();
+    }
+
+    [Fact]
+    public void Section_WithLabelAndHelperText_Passes()
+    {
+        var request = RequestWith("section", null);
+        request.Questions[0].HelperText = "A short description of this part";
+
+        _validator.TestValidate(request).IsValid.Should().BeTrue();
+    }
+
     [Fact]
     public void Type_UndefinedEnumValue_Fails()
     {

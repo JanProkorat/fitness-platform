@@ -28,6 +28,18 @@ public class AutomationTriggerBody
     /// </summary>
     public TimeSpan? LocalTime { get; set; }
 
+    /// <summary>Check-in rule: client-local weekday of the send. Required for a check-in form, refused otherwise.</summary>
+    public DayOfWeek? ScheduleWeekday { get; set; }
+
+    /// <summary>Check-in rule: hours the client has to answer before the week counts as missed (48).</summary>
+    public int? AnswerWindowHours { get; set; }
+
+    /// <summary>Check-in rule: hours after the send at which an unanswered check-in is reminded (24); null sends no reminder.</summary>
+    public int? ReminderAfterHours { get; set; }
+
+    /// <summary>Check-in rule: whether the coach is notified once when a week is missed; null counts as false.</summary>
+    public bool? NotifyCoachOnMissedWeek { get; set; }
+
     /// <summary>Event trigger: the event.</summary>
     public AutomationEventType? EventType { get; set; }
 

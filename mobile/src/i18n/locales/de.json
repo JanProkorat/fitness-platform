@@ -274,7 +274,14 @@
       "bannerHint_one": "{{count}} Frage, für Ihren nächsten Plan",
       "bannerHint_other": "{{count}} Fragen, für Ihren nächsten Plan",
       "fill": "Ausfüllen",
-      "fillLabel": "Ausfüllen: {{title}}"
+      "fillLabel": "Ausfüllen: {{title}}",
+      "checkInTitle": "{{name}} hat Ihnen einen Check-in geschickt",
+      "checkInTitleFallback": {
+        "Trainer": "Ihr Trainer hat Ihnen einen Check-in geschickt",
+        "Nutritionist": "Ihr Ernährungsberater hat Ihnen einen Check-in geschickt",
+        "other": "Ihr Coach hat Ihnen einen Check-in geschickt"
+      },
+      "checkInDue": "Antworten bis {{when}}"
     },
     "progress": {
       "coachFallback": "Ihr Coach",

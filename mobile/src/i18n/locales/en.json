@@ -274,7 +274,14 @@
       "bannerHint_one": "{{count}} question, for your next plan",
       "bannerHint_other": "{{count}} questions, for your next plan",
       "fill": "Fill in",
-      "fillLabel": "Fill in: {{title}}"
+      "fillLabel": "Fill in: {{title}}",
+      "checkInTitle": "{{name}} sent you a check-in",
+      "checkInTitleFallback": {
+        "Trainer": "Your trainer sent you a check-in",
+        "Nutritionist": "Your nutritionist sent you a check-in",
+        "other": "Your coach sent you a check-in"
+      },
+      "checkInDue": "Answer by {{when}}"
     },
     "progress": {
       "coachFallback": "Your coach",

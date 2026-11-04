@@ -4,6 +4,7 @@ using FitnessPlatform.Application.Domain.Authorization;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Features.Automations.Shared;
 using FitnessPlatform.Application.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -14,8 +15,9 @@ namespace FitnessPlatform.Application.Features.Automations.CreateAutomationRule;
 /// Creates a global automation rule owned by the caller.
 /// </summary>
 /// <param name="db">Application database context.</param>
+/// <param name="entitlementService">Resolves the coach's subscription entitlements.</param>
 [RemovedCoachRole(RemovedCoachRoleMode.Refuse)]
-public class CreateAutomationRuleEndpoint(IApplicationDbContext db)
+public class CreateAutomationRuleEndpoint(IApplicationDbContext db, EntitlementService entitlementService)
     : Endpoint<CreateAutomationRuleRequest, AutomationRuleDto>
 {
     /// <inheritdoc />
@@ -28,10 +30,13 @@ public class CreateAutomationRuleEndpoint(IApplicationDbContext db)
             s.Summary = "Create an automation rule";
             s.Description = "Creates a global rule. A missing audience means all clients.";
             s.Responses[StatusCodes.Status200OK] = "The created rule";
-            s.Responses[StatusCodes.Status400BadRequest] = "Invalid rule, or the questionnaire is inactive or a check-in form";
+            s.Responses[StatusCodes.Status400BadRequest] =
+                "Invalid rule, the questionnaire is inactive, or the check-in fields do not match the form";
             s.Responses[StatusCodes.Status401Unauthorized] = "Missing or invalid credentials";
+            s.Responses[StatusCodes.Status403Forbidden] = "The coach's subscription does not include weekly check-ins";
             s.Responses[StatusCodes.Status404NotFound] =
                 "Caller has no professional profile, or the questionnaire, tag or a chosen client was not found";
+            s.Responses[StatusCodes.Status409Conflict] = "The coach already has an enabled check-in rule";
         });
     }
 
@@ -53,10 +58,15 @@ public class CreateAutomationRuleEndpoint(IApplicationDbContext db)
             return;
         }
 
-        var (questionnaireOk, questionnaireId) =
+        var (questionnaireOk, questionnaireId, isCheckIn) =
             await this.ResolveQuestionnaireOrRespondAsync(db, Guid.Parse(userId), req, ct);
 
         if (!questionnaireOk)
+        {
+            return;
+        }
+
+        if (isCheckIn && req.Enabled && await this.RespondIfCheckInNotEntitledAsync(entitlementService, profile.Id, false, ct))
         {
             return;
         }
@@ -82,10 +92,23 @@ public class CreateAutomationRuleEndpoint(IApplicationDbContext db)
                 .Select(id => new AutomationRuleAudienceClient { ClientProfileId = id })
                 .ToList(),
         };
-        AutomationRuleWriter.Apply(rule, req);
+        AutomationRuleWriter.Apply(rule, req, isCheckIn);
+
+        await using var transaction = await db.BeginTransactionAsync(ct);
+
+        if (isCheckIn && rule.Enabled)
+        {
+            await db.LockProfessionalProfileAsync(profile.Id, ct);
+
+            if (await this.RespondIfCheckInRuleExistsAsync(db, profile.Id, null, ct))
+            {
+                return;
+            }
+        }
 
         db.AutomationRules.Add(rule);
         await db.SaveChangesAsync(ct);
+        await transaction.CommitAsync(ct);
 
         var saved = await db.AutomationRules
             .AsNoTracking()

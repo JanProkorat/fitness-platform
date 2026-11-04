@@ -113,13 +113,12 @@ public class AutomationRuleEndpointTests(FitnessApiFactory factory)
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
-    [Theory]
-    [InlineData(QuestionnaireType.Onboarding, false)]
-    [InlineData(QuestionnaireType.CheckIn, true)]
-    public async Task Create_SendFormWithUnusableOwnQuestionnaire_Returns400(QuestionnaireType type, bool isActive)
+    [Fact]
+    public async Task Create_SendFormWithInactiveOwnQuestionnaire_Returns400()
     {
         var coach = await CreateCoachAsync();
-        var questionnaireId = await AutomationTestData.CreateQuestionnaireAsync(factory, coach, type, isActive);
+        var questionnaireId = await AutomationTestData.CreateQuestionnaireAsync(
+            factory, coach, QuestionnaireType.Onboarding, isActive: false);
         var body = AutomationTestData.ScheduleRule();
         body["actionType"] = "SendForm";
         body["questionnaireId"] = questionnaireId;
@@ -130,10 +129,8 @@ public class AutomationRuleEndpointTests(FitnessApiFactory factory)
         (await response.Content.ReadAsStringAsync(Ct)).Should().Contain(ErrorCodes.AutomationQuestionnaireNotUsable);
     }
 
-    [Theory]
-    [InlineData(QuestionnaireType.Onboarding, false)]
-    [InlineData(QuestionnaireType.CheckIn, true)]
-    public async Task Update_SendFormWithUnusableOwnQuestionnaire_Returns400(QuestionnaireType type, bool isActive)
+    [Fact]
+    public async Task Update_SendFormWithInactiveOwnQuestionnaire_Returns400()
     {
         var coach = await CreateCoachAsync();
         var usableId = await AutomationTestData.CreateQuestionnaireAsync(factory, coach);
@@ -141,7 +138,8 @@ public class AutomationRuleEndpointTests(FitnessApiFactory factory)
         createBody["actionType"] = "SendForm";
         createBody["questionnaireId"] = usableId;
         var created = await ReadRuleAsync(await coach.Http.PostAsJsonAsync("/trainer/automations/rules", createBody, Ct));
-        var questionnaireId = await AutomationTestData.CreateQuestionnaireAsync(factory, coach, type, isActive);
+        var questionnaireId = await AutomationTestData.CreateQuestionnaireAsync(
+            factory, coach, QuestionnaireType.Onboarding, isActive: false);
 
         var update = AutomationTestData.ScheduleRule();
         update["actionType"] = "SendForm";

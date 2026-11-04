@@ -23,6 +23,10 @@ namespace FitnessPlatform.Application.Domain.Services;
 /// <param name="IsPaused">Whether a pause is in effect on the client's local day.</param>
 /// <param name="PausedUntil">Last local day of the pause, while it is in effect.</param>
 /// <param name="PauseNote">Note of the pause, while it is in effect.</param>
+/// <param name="ScheduleWeekday">Effective check-in weekday; null for a rule that is not a check-in.</param>
+/// <param name="AnswerWindowHours">Effective check-in answer window in hours.</param>
+/// <param name="ReminderAfterHours">Effective check-in reminder delay in hours; null means no reminder.</param>
+/// <param name="NotifyCoachOnMissedWeek">Effective notify-the-coach-on-missed-week flag.</param>
 public sealed record AutomationEffectiveRule(
     AutomationRuleSource Source,
     string? Message,
@@ -39,7 +43,11 @@ public sealed record AutomationEffectiveRule(
     bool Enabled,
     bool IsPaused,
     DateOnly? PausedUntil,
-    string? PauseNote)
+    string? PauseNote,
+    DayOfWeek? ScheduleWeekday = null,
+    int? AnswerWindowHours = null,
+    int? ReminderAfterHours = null,
+    bool? NotifyCoachOnMissedWeek = null)
 {
     /// <summary>Whether the effective trigger is a plan-started or plan-ended event.</summary>
     public bool IsPlanEvent =>
@@ -75,13 +83,15 @@ public sealed record AutomationEffectiveRule(
                 source, custom.Message, custom.TriggerKind, custom.ScheduleInterval, custom.ScheduleUnit,
                 custom.LocalTime, custom.EventType, custom.EventOffsetDays, custom.EventOffsetDirection,
                 custom.OncePerPlan, custom.SkipWhilePreviousUnanswered, custom.StopAfterSends, custom.Enabled,
-                isPaused, pausedUntil, pauseNote);
+                isPaused, pausedUntil, pauseNote, custom.ScheduleWeekday, custom.AnswerWindowHours,
+                custom.ReminderAfterHours, custom.NotifyCoachOnMissedWeek);
         }
 
         return new AutomationEffectiveRule(
             source, rule.Message, rule.TriggerKind, rule.ScheduleInterval, rule.ScheduleUnit,
             rule.LocalTime, rule.EventType, rule.EventOffsetDays, rule.EventOffsetDirection,
             rule.OncePerPlan, rule.SkipWhilePreviousUnanswered, rule.StopAfterSends, rule.Enabled,
-            isPaused, pausedUntil, pauseNote);
+            isPaused, pausedUntil, pauseNote, rule.ScheduleWeekday, rule.AnswerWindowHours,
+            rule.ReminderAfterHours, rule.NotifyCoachOnMissedWeek);
     }
 }

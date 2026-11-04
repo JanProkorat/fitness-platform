@@ -173,60 +173,6 @@ public class ClientAutomationEndpointTests(FitnessApiFactory factory)
     }
 
     [Fact]
-    public async Task List_WeeklyCheckInSetting_AppearsAsLinkedRowWithNoWeekday()
-    {
-        var (coach, client, _) = await LinkedPairAsync();
-        using (var scope = factory.Services.CreateScope())
-        {
-            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-            db.WeeklyCheckInSettings.Add(new WeeklyCheckInSetting
-            {
-                UserId = coach.UserId,
-                Profession = Profession.Training,
-                DayOfWeek = DayOfWeek.Thursday,
-                TimeOfDay = TimeSpan.FromHours(18),
-                Enabled = true,
-            });
-            await db.SaveChangesAsync(Ct);
-        }
-
-        var response = await coach.Http.GetAsync($"/trainer/clients/{client.PublicId}/automations", Ct);
-        var raw = await response.Content.ReadAsStringAsync(Ct);
-
-        raw.Should().NotContainEquivalentOf("dayOfWeek");
-        raw.Should().NotContainEquivalentOf("Thursday");
-
-        var list = JsonSerializer.Deserialize<GetClientAutomationsResponse>(raw, AutomationTestData.Json)!;
-        var linked = list.Items.Should().ContainSingle(i => i.Source == AutomationRuleSource.Linked).Subject;
-        linked.RuleId.Should().BeNull();
-        linked.Profession.Should().Be("Training");
-        linked.Enabled.Should().BeTrue();
-    }
-
-    [Fact]
-    public async Task List_LinkedCheckInHonoursThePerClientEnabledOverride()
-    {
-        var (coach, client, _) = await LinkedPairAsync();
-        using (var scope = factory.Services.CreateScope())
-        {
-            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-            db.WeeklyCheckInSettings.Add(new WeeklyCheckInSetting
-            {
-                UserId = coach.UserId, Profession = Profession.Training, Enabled = true,
-            });
-            db.WeeklyCheckInClientOverrides.Add(new WeeklyCheckInClientOverride
-            {
-                ClientUserId = client.UserId, ProfessionalUserId = coach.UserId, Profession = Profession.Training, Enabled = false,
-            });
-            await db.SaveChangesAsync(Ct);
-        }
-
-        var list = await ListAsync(coach, client);
-
-        list.Items.Single(i => i.Source == AutomationRuleSource.Linked).Enabled.Should().BeFalse();
-    }
-
-    [Fact]
     public async Task List_ClientWithNoLiveLink_Returns404()
     {
         var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
@@ -541,5 +487,81 @@ public class ClientAutomationEndpointTests(FitnessApiFactory factory)
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var rule = await response.Content.ReadFromJsonAsync<AutomationRuleDto>(AutomationTestData.Json, Ct);
         rule!.OnlyClientId.Should().Be(client.PublicId);
+    }
+
+    [Fact]
+    public async Task Override_CheckInWindowWithMismatchedReminder_Returns400()
+    {
+        var (coach, client, _) = await LinkedPairAsync();
+        var formId = await AutomationTestData.CreateQuestionnaireAsync(factory, coach, QuestionnaireType.CheckIn);
+        var rule = await CreateRuleAsync(coach, new Dictionary<string, object?>
+        {
+            ["name"] = "Weekly check-in",
+            ["actionType"] = "SendForm",
+            ["questionnaireId"] = formId,
+            ["triggerKind"] = "Schedule",
+            ["scheduleInterval"] = 1,
+            ["scheduleUnit"] = "Weeks",
+            ["localTime"] = "18:00:00",
+            ["scheduleWeekday"] = "Thursday",
+            ["answerWindowHours"] = 48,
+        });
+        var overrideBody = new Dictionary<string, object?>
+        {
+            ["name"] = "Weekly check-in", ["actionType"] = "SendForm", ["questionnaireId"] = formId, ["enabled"] = true,
+            ["triggerKind"] = "Schedule",
+            ["scheduleInterval"] = 1,
+            ["scheduleUnit"] = "Weeks",
+            ["localTime"] = "18:00:00",
+            ["scheduleWeekday"] = "Monday",
+            ["answerWindowHours"] = 48,
+            ["reminderAfterHours"] = 12,
+        };
+
+        var response = await coach.Http.PutAsJsonAsync(RuleRoute(client, rule.RuleId, "override"), overrideBody, Ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await response.Content.ReadAsStringAsync(Ct)).Should().Contain(FitnessPlatform.Application.Domain.Constants.ErrorCodes.AutomationCheckInInvalid);
+    }
+
+    [Fact]
+    public async Task List_CheckInOverrideIgnoredWhenThePlanLacksPerClientConfig()
+    {
+        var (coach, client, _) = await LinkedPairAsync();
+        var formId = await AutomationTestData.CreateQuestionnaireAsync(factory, coach, QuestionnaireType.CheckIn);
+        var rule = await CreateRuleAsync(coach, new Dictionary<string, object?>
+        {
+            ["name"] = "Weekly check-in",
+            ["actionType"] = "SendForm",
+            ["questionnaireId"] = formId,
+            ["triggerKind"] = "Schedule",
+            ["scheduleInterval"] = 1,
+            ["scheduleUnit"] = "Weeks",
+            ["localTime"] = "18:00:00",
+            ["scheduleWeekday"] = "Thursday",
+            ["answerWindowHours"] = 48,
+        });
+        var overrideBody = new Dictionary<string, object?>
+        {
+            ["name"] = "Weekly check-in", ["actionType"] = "SendForm", ["questionnaireId"] = formId, ["reminderAfterHours"] = 24, ["notifyCoachOnMissedWeek"] = true, ["enabled"] = true,
+            ["triggerKind"] = "Schedule",
+            ["scheduleInterval"] = 1,
+            ["scheduleUnit"] = "Weeks",
+            ["localTime"] = "18:00:00",
+            ["scheduleWeekday"] = "Monday",
+            ["answerWindowHours"] = 48,
+        };
+        (await coach.Http.PutAsJsonAsync(RuleRoute(client, rule.RuleId, "override"), overrideBody, Ct))
+            .StatusCode.Should().Be(HttpStatusCode.NoContent);
+        (await ListAsync(coach, client)).Items.Single(i => i.RuleId == rule.RuleId)
+            .ScheduleWeekday.Should().Be(DayOfWeek.Monday, "an entitled coach's override shows");
+
+        await CoachSubscriptionBuilder.SubscribeAsync(
+            factory, coach, canUseWeeklyCheckIns: true, canUsePerClientCheckInConfig: false);
+
+        var item = (await ListAsync(coach, client)).Items.Single(i => i.RuleId == rule.RuleId);
+        item.ScheduleWeekday.Should().Be(DayOfWeek.Thursday);
+        item.AnswerWindowHours.Should().Be(48);
+        item.Source.Should().Be(AutomationRuleSource.Default);
     }
 }

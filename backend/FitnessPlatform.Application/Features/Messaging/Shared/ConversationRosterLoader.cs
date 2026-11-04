@@ -27,8 +27,8 @@ public static class ConversationRosterLoader
 
     /// <summary>
     /// Loads every live-linked client of <paramref name="professionalUserId"/> that has a
-    /// conversation with them (an existing but empty conversation still counts). Four independent
-    /// SQL passes (links, conversations, new-check-ins, missing-check-ins — each keyed by client
+    /// conversation with them (an existing but empty conversation still counts). Independent
+    /// SQL passes (links, conversations, check-in responses — each keyed by link or client
     /// so no per-row round trip, mirroring the correlated-subquery cost shape
     /// <c>GetClientsEndpoint.LoadRosterAsync</c> uses) plus two Mongo plan-window projections.
     /// </summary>
@@ -45,6 +45,8 @@ public static class ConversationRosterLoader
             .Where(l => l.ProfessionalProfileId == professionalProfileId && l.IsActive)
             .Select(l => new LinkRow
             {
+                LinkId = l.Id,
+                ActivatedAtUtc = l.ActivatedAtUtc,
                 ClientPublicId = l.ClientProfile.PublicId,
                 ClientUserId = l.ClientProfile.User.Id,
                 FirstName = l.ClientProfile.User.FirstName,
@@ -93,26 +95,41 @@ public static class ConversationRosterLoader
 
         clientUserIds = links.Select(l => l.ClientUserId).ToList();
 
-        var newCheckInProfessionsByClient = (await db.WeeklyCheckIns
-            .AsNoTracking()
-            .Where(w =>
-                w.ProfessionalUserId == professionalUserId &&
-                clientUserIds.Contains(w.ClientUserId) &&
-                w.RespondedAt != null &&
-                w.ReviewedByTrainerAt == null)
-            .Select(w => new { w.ClientUserId, w.Profession })
-            .ToListAsync(ct))
-            .ToLookup(w => w.ClientUserId, w => w.Profession);
 
-        var missingCheckInProfessionsByClient = (await db.WeeklyCheckIns
+        // Check-ins are form responses; only the link's current collaboration counts, like GetClientsEndpoint.
+        var linkIds = links.Select(l => l.LinkId).ToList();
+        var activatedByLink = links.ToDictionary(l => l.LinkId, l => l.ActivatedAtUtc);
+
+        var openCheckIns = (await db.QuestionnaireResponses
             .AsNoTracking()
-            .Where(w =>
-                w.ProfessionalUserId == professionalUserId &&
-                clientUserIds.Contains(w.ClientUserId) &&
-                (w.Status == WeeklyCheckInStatus.Expired || (w.DueAt != null && w.DueAt < now && w.RespondedAt == null)))
-            .Select(w => new { w.ClientUserId, w.Profession })
+            .Where(r =>
+                r.Kind == QuestionnaireResponseKind.CheckIn &&
+                r.ProfessionalId == professionalUserId &&
+                linkIds.Contains(r.LinkId) &&
+                r.Status != QuestionnaireResponseStatus.Cancelled)
+            .Select(r => new
+            {
+                r.LinkId,
+                r.Status,
+                r.SubmittedAt,
+                r.DateCreated,
+                r.CheckInDueAtUtc,
+                r.ReviewedByCoachAtUtc
+            })
             .ToListAsync(ct))
-            .ToLookup(w => w.ClientUserId, w => w.Profession);
+            .Where(r => activatedByLink[r.LinkId] is not { } activatedAt
+                        || (r.Status == QuestionnaireResponseStatus.Submitted ? r.SubmittedAt >= activatedAt : r.DateCreated >= activatedAt))
+            .ToList();
+
+        var newCheckInLinkIds = openCheckIns
+            .Where(r => r.Status == QuestionnaireResponseStatus.Submitted && r.ReviewedByCoachAtUtc is null)
+            .Select(r => r.LinkId)
+            .ToHashSet();
+
+        var missingCheckInLinkIds = openCheckIns
+            .Where(r => r.Status != QuestionnaireResponseStatus.Submitted && r.CheckInDueAtUtc != null && r.CheckInDueAtUtc < now)
+            .Select(r => r.LinkId)
+            .ToHashSet();
 
         var nutritionClientIds = links.Where(l => l.CanViewNutritionPlans).Select(l => l.ClientUserId).Distinct().ToList();
         var trainingClientIds = links.Where(l => l.CanViewTrainingPlans).Select(l => l.ClientUserId).Distinct().ToList();
@@ -123,10 +140,6 @@ public static class ConversationRosterLoader
         return links.Select(l =>
         {
             var conversation = conversationByClient[l.ClientUserId];
-
-            var visibleProfessions = ProfessionScope(l.CanViewNutritionPlans, l.CanViewTrainingPlans);
-            var hasNewCheckIn = newCheckInProfessionsByClient[l.ClientUserId].Any(visibleProfessions.Contains);
-            var hasMissingCheckIn = missingCheckInProfessionsByClient[l.ClientUserId].Any(visibleProfessions.Contains);
 
             return new ConversationRosterRow
             {
@@ -145,8 +158,8 @@ public static class ConversationRosterLoader
                 IsArchivedByProfessional = conversation.ArchivedByProfessionalAt is not null,
                 ConversationMessageCount = conversation.MessageCount,
                 UnreadMessageCount = conversation.UnreadMessageCount,
-                HasNewCheckIn = hasNewCheckIn,
-                HasMissingCheckIn = hasMissingCheckIn,
+                HasNewCheckIn = newCheckInLinkIds.Contains(l.LinkId),
+                HasMissingCheckIn = missingCheckInLinkIds.Contains(l.LinkId),
                 IsEndingSoon =
                     (l.CanViewNutritionPlans && nutritionByClient.TryGetValue(l.ClientUserId, out var nutritionPlan) &&
                      IsEndingWithinWindow(nutritionPlan, today)) ||
@@ -154,28 +167,6 @@ public static class ConversationRosterLoader
                      IsEndingWithinWindow(trainingPlan, today))
             };
         }).ToList();
-    }
-
-    /// <summary>
-    /// The professions a check-in must belong to for a link to count it — mirrors
-    /// <c>GetClientsEndpoint</c>'s per-domain check-in gating: a link that does not grant a
-    /// domain never counts that domain's check-in, even against the same client.
-    /// </summary>
-    private static HashSet<Profession> ProfessionScope(bool canViewNutritionPlans, bool canViewTrainingPlans)
-    {
-        var scope = new HashSet<Profession>();
-
-        if (canViewNutritionPlans)
-        {
-            scope.Add(Profession.Nutrition);
-        }
-
-        if (canViewTrainingPlans)
-        {
-            scope.Add(Profession.Training);
-        }
-
-        return scope;
     }
 
     private static async Task<Dictionary<Guid, PlanWindowProjection>> LoadCurrentNutritionPlansAsync(
@@ -260,6 +251,8 @@ public static class ConversationRosterLoader
     /// <summary>One row of the caller's link roster, projected once from SQL.</summary>
     private sealed class LinkRow
     {
+        public long LinkId { get; init; }
+        public DateTime? ActivatedAtUtc { get; init; }
         public Guid ClientPublicId { get; init; }
         public Guid ClientUserId { get; init; }
         public string FirstName { get; init; } = string.Empty;

@@ -7,7 +7,7 @@ namespace FitnessPlatform.Application.Features.Automations.GetClientAutomations;
 /// </summary>
 public class GetClientAutomationsResponse
 {
-    /// <summary>The linked check-in rows first, then the rules by creation order.</summary>
+    /// <summary>The rules by creation order.</summary>
     public List<ClientAutomationItem> Items { get; set; } = [];
 
     /// <summary>Totals over the last 30 days across all rules.</summary>
@@ -81,6 +81,18 @@ public class ClientAutomationItem
 
     /// <summary>Note of the pause, while it is in effect.</summary>
     public string? PauseNote { get; set; }
+
+    /// <summary>Effective check-in weekday; null for a rule that is not a check-in.</summary>
+    public DayOfWeek? ScheduleWeekday { get; set; }
+
+    /// <summary>Effective check-in answer window in hours.</summary>
+    public int? AnswerWindowHours { get; set; }
+
+    /// <summary>Effective check-in reminder delay in hours; null means no reminder.</summary>
+    public int? ReminderAfterHours { get; set; }
+
+    /// <summary>Effective notify-the-coach-on-missed-week flag of a check-in.</summary>
+    public bool? NotifyCoachOnMissedWeek { get; set; }
 
     /// <summary>Next send (UTC); null when paused, disabled, or an event other than plan started or ended.</summary>
     public DateTime? NextSendAt { get; set; }

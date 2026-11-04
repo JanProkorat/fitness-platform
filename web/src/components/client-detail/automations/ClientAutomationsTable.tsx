@@ -1,6 +1,5 @@
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link } from 'react-router-dom';
 import { Camera, CheckSquare, FileText, MoreHorizontal, Pause, RotateCcw, Ruler } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -19,7 +18,7 @@ import {
   type ClientAutomationItem,
 } from '@/api/automations';
 import AutomationIconTile from '@/components/automations/AutomationIconTile';
-import { formatNextSend, toneForAction, whenLabel } from '@/components/automations/automationFormat';
+import { formatNextSend, isCheckInRule, toneForAction, whenLabel } from '@/components/automations/automationFormat';
 import { clientItemToRule } from '@/components/automations/automationRuleForm';
 import { lastResultLabel, rowSubtitle } from '@/components/client-detail/automations/clientAutomationModel';
 import { cn } from '@/lib/utils';
@@ -57,8 +56,6 @@ function SourceBadge({ source, name }: { source: AutomationRuleSource | undefine
           {t('clientDetail.automations.source.Paused')}
         </span>
       );
-    case AutomationRuleSource.Linked:
-      return <span className={cn(BADGE_BASE, 'bg-sunken text-ink-2')}>{t('automations.linked.badge')}</span>;
     default:
       return (
         <span className={cn(BADGE_BASE, 'border border-line text-ink-2')}>
@@ -84,7 +81,7 @@ interface Props {
   onDelete: (item: ClientAutomationItem) => void;
 }
 
-/** The client's effective rules: linked check-in rows first, then the rules. */
+/** The client's effective rules; the weekly check-in is an ordinary rule row. */
 export default function ClientAutomationsTable({
   items,
   clientName,
@@ -115,51 +112,11 @@ export default function ClientAutomationsTable({
       </TableHeader>
       <TableBody>
         {items.map((item) => {
-          if (item.source === AutomationRuleSource.Linked) {
-            const profession = item.profession === 'Training' || item.profession === 'Nutrition' ? item.profession : null;
-            return (
-              <TableRow key={`linked-${item.profession ?? ''}`} className="border-line">
-                <TableCell className={CELL_CLASS}>
-                  <div className="flex items-center gap-3">
-                    <AutomationIconTile tone="checkIn">
-                      <CheckSquare className="size-4.5" aria-hidden="true" />
-                    </AutomationIconTile>
-                    <div className="flex min-w-0 flex-col">
-                      <span className="text-copy font-semibold text-ink">{t('automations.linked.title')}</span>
-                      <span className="truncate text-meta text-muted-foreground">
-                        {profession
-                          ? t('clientDetail.automations.row.linkedSubtitle', {
-                              profession: t(`automations.linked.subtitle.${profession}`),
-                            })
-                          : t('clientDetail.automations.row.linkedSubtitleOnly')}
-                      </span>
-                    </div>
-                  </div>
-                </TableCell>
-                <TableCell className={`${CELL_CLASS} text-body text-ink-2`}>{t('automations.linked.when')}</TableCell>
-                <TableCell className={CELL_CLASS}>
-                  <SourceBadge source={item.source} name={clientName} />
-                </TableCell>
-                <TableCell className={`${CELL_CLASS} text-body text-ink-2`}>—</TableCell>
-                <TableCell className={`${CELL_CLASS} text-body text-ink-2`}>—</TableCell>
-                <TableCell className={CELL_CLASS}>
-                  <span className="flex items-center justify-end gap-3 text-body">
-                    {item.enabled === false && (
-                      <span className="text-muted-foreground">{t('automations.linked.off')}</span>
-                    )}
-                    <Link to="/forms?type=CheckIn" className="font-semibold text-ink underline underline-offset-2">
-                      {t('automations.linked.open')}
-                    </Link>
-                  </span>
-                </TableCell>
-              </TableRow>
-            );
-          }
-
           const ruleId = item.ruleId ?? '';
           const name = item.name ?? '';
           const isClientOnly = item.source === AutomationRuleSource.OnlyThisClient;
           const rule = clientItemToRule(item);
+          const checkIn = isCheckInRule(rule);
           const formTitle = item.questionnaireId ? formTitles.get(item.questionnaireId) : undefined;
           const globalDisabled = !isClientOnly && item.enabled === false;
           const checked = isClientOnly ? item.enabled !== false : !item.isPaused && !globalDisabled;
@@ -169,8 +126,12 @@ export default function ClientAutomationsTable({
             <TableRow key={ruleId} className="border-line">
               <TableCell className={CELL_CLASS}>
                 <div className="flex items-center gap-3">
-                  <AutomationIconTile tone={toneForAction(item.actionType)}>
-                    {ACTION_ICON[item.actionType ?? AutomationActionType.SendForm]}
+                  <AutomationIconTile tone={checkIn ? 'checkIn' : toneForAction(item.actionType)}>
+                    {checkIn ? (
+                      <CheckSquare className="size-4.5" aria-hidden="true" />
+                    ) : (
+                      ACTION_ICON[item.actionType ?? AutomationActionType.SendForm]
+                    )}
                   </AutomationIconTile>
                   <div className="flex min-w-0 max-w-80 flex-col">
                     <button

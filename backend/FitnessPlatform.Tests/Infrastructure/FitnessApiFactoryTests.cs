@@ -28,21 +28,6 @@ public class FitnessApiFactoryTests(FitnessApiFactory factory)
     }
 
     /// <summary>
-    /// Verifies that the <see cref="WeeklyCheckInScheduler"/> singleton is still
-    /// resolvable from DI in the test host after the per-candidate-scope refactor (#280).
-    /// Tests that drive the scheduler directly via TickAsync must be able to call
-    /// factory.Services.GetRequiredService&lt;WeeklyCheckInScheduler&gt;().
-    /// </summary>
-    [Fact]
-    public void WeeklyCheckInScheduler_IsStillResolvableAsSingleton()
-    {
-        var scheduler = factory.Services.GetRequiredService<WeeklyCheckInScheduler>();
-
-        scheduler.Should().NotBeNull(
-            "the singleton must remain resolvable so tests can drive TickAsync directly");
-    }
-
-    /// <summary>
     /// Root-cause regression test for #726: the three long-running, DB-touching
     /// background schedulers/reaper must never appear in the resolved
     /// <see cref="IHostedService"/> set for a Testcontainers-backed test host, or
@@ -57,8 +42,6 @@ public class FitnessApiFactoryTests(FitnessApiFactory factory)
             .Select(s => s.GetType())
             .ToList();
 
-        hostedServiceTypes.Should().NotContain(typeof(WeeklyCheckInScheduler),
-            "the scheduler's BackgroundService loop must not auto-start in a test host");
         hostedServiceTypes.Should().NotContain(typeof(PhotoDiaryReminderScheduler),
             "the scheduler's BackgroundService loop must not auto-start in a test host");
         hostedServiceTypes.Should().NotContain(typeof(SocialLoginNonceReaperService),

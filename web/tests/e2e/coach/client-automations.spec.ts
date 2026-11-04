@@ -5,7 +5,7 @@
  */
 import { trainerTest as test, expect } from '../fixtures/auth';
 import type { Locator, Page } from '@playwright/test';
-import { ensureCheckInSetting } from '../fixtures/check-in-setting';
+import { ensureCheckInRule } from '../fixtures/check-in-rule';
 
 const CLIENT_IDS = ['77777777-7777-7777-aaaa-000000000001', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'];
 const WEEKDAY = /\b(Mon|Tue|Wed|Thu|Fri|Sat|Sun)(day|sday|nesday|rsday|urday)?\b/;
@@ -58,23 +58,11 @@ async function deleteGlobalRule(page: Page, name: string) {
 }
 
 test.describe('client automations tab', () => {
-  test('the tab is live, shows the linked check-in without a weekday and the 30-day summary', async ({
-    page,
-    baseURL,
-  }) => {
-    await ensureCheckInSetting(baseURL ?? 'http://localhost:5173');
+  test('the tab is live and shows the 30-day summary', async ({ page }) => {
     await openClientTab(page);
     await expect(page.getByRole('tab', { name: 'Automations' })).toHaveAttribute('aria-selected', 'true');
     await expect(page.getByRole('heading', { name: /^Sent to / })).toBeVisible();
     await expect(page.getByText('Last 30 days')).toBeVisible();
-
-    const table = page.getByRole('table');
-    const linked = page.getByRole('row').filter({ hasText: 'Weekly check-in' }).first();
-    await expect(linked).toBeVisible();
-    await expect(linked.getByText('Linked')).toBeVisible();
-    await expect(linked.getByRole('switch')).toHaveCount(0);
-    await expect(linked.getByRole('link', { name: 'Open' })).toBeVisible();
-    expect(await table.innerText()).not.toMatch(WEEKDAY);
   });
 
   test('pause from the switch and from the drawer, customise and reset, add and delete a client-only rule', async ({
@@ -160,9 +148,41 @@ test.describe('client automations tab', () => {
       await page.getByRole('dialog').getByRole('button', { name: 'Delete rule' }).click();
       await expect(onlyRow).toHaveCount(0);
 
-      expect(await page.getByRole('table').innerText()).not.toMatch(WEEKDAY);
+      // Only the weekly check-in names a weekday; the rules this test made do not.
+      expect(await row.innerText()).not.toMatch(WEEKDAY);
     } finally {
       await deleteGlobalRule(page, globalName);
+    }
+  });
+
+  test('a custom check-in day shows Custom for the client, and Reset brings the default day back', async ({
+    page,
+    baseURL,
+  }) => {
+    const rule = await ensureCheckInRule(baseURL ?? 'http://localhost:5173');
+    try {
+      await openClientTab(page);
+      const row = rowOf(page, rule.name);
+      await expect(row).toContainText('Every Monday, 18:00');
+      await expect(row).toContainText('Default');
+
+      await page.getByRole('button', { name: rule.name, exact: true }).click();
+      const drawer = page.getByRole('dialog');
+      await expect(drawer.getByText(`Customise · ${rule.name}`)).toBeVisible();
+      await expect(drawer.getByRole('button', { name: 'Mon', exact: true })).toHaveAttribute('aria-pressed', 'true');
+      await drawer.getByRole('button', { name: 'Wed', exact: true }).click();
+      await drawer.getByRole('button', { name: 'Save rule' }).click();
+      await expect(drawer).toBeHidden();
+
+      await expect(row).toContainText('Custom for');
+      await expect(row).toContainText('Every Wednesday, 18:00');
+      await expect(row).toContainText('Changed from every Monday');
+
+      await row.getByRole('button', { name: 'Reset' }).click();
+      await expect(row).toContainText('Default');
+      await expect(row).toContainText('Every Monday, 18:00');
+    } finally {
+      await rule.restore();
     }
   });
 });

@@ -1,6 +1,7 @@
 import type { TFunction } from 'i18next';
 import {
   AutomationActionType,
+  type DayOfWeek,
   AutomationEventType,
   AutomationOffsetDirection,
   AutomationScheduleUnit,
@@ -58,9 +59,28 @@ export function summaryFooter(
   return t('automations.drawer.footer.appliesTo', { count });
 }
 
-/** The row's "When" cell. Never names a weekday. */
+/** A rule is a weekly check-in rule exactly when it carries a check-in weekday. */
+export function isCheckInRule(rule: { scheduleWeekday?: DayOfWeek }): boolean {
+  return rule.scheduleWeekday != null;
+}
+
+/** "every Thursday", one phrase per weekday so each language can inflect it. */
+export function weekdayEvery(day: DayOfWeek, t: TFunction): string {
+  return t(`automations.weekday.every.${day}`);
+}
+
+/** "18:00" from a stored time of day. */
+export function shortTime(time: string | undefined): string {
+  return (time ?? '09:00:00').slice(0, 5);
+}
+
+/** The row's "When" cell. Only a check-in rule names a weekday, the one the coach chose. */
 export function whenLabel(rule: AutomationRuleDto, t: TFunction): string {
-  const time = (rule.localTime ?? '09:00:00').slice(0, 5);
+  const time = shortTime(rule.localTime);
+  if (rule.scheduleWeekday != null) {
+    const day = weekdayEvery(rule.scheduleWeekday, t);
+    return t('automations.table.checkInWhen', { day: day.charAt(0).toLocaleUpperCase() + day.slice(1), time });
+  }
   if (rule.triggerKind === AutomationTriggerKind.Schedule) {
     const key = rule.scheduleUnit === AutomationScheduleUnit.Days ? 'everyDays' : 'everyWeeks';
     return t(`automations.table.${key}`, { count: rule.scheduleInterval ?? 1, time });
@@ -96,6 +116,9 @@ export function toneForAction(action: AutomationActionType | undefined): Automat
 export function subtitleFor(rule: AutomationRuleDto, formTitle: string | undefined, t: TFunction): string {
   switch (rule.actionType) {
     case AutomationActionType.SendForm:
+      if (formTitle && isCheckInRule(rule) && rule.reminderAfterHours != null) {
+        return t('automations.table.subtitleCheckInReminder', { name: formTitle, hours: rule.reminderAfterHours });
+      }
       return formTitle ? t('automations.table.subtitleForm', { name: formTitle }) : t('automations.table.subtitleFormUnknown');
     case AutomationActionType.RequestProgressPhotos:
       return t('automations.table.subtitlePhotos');

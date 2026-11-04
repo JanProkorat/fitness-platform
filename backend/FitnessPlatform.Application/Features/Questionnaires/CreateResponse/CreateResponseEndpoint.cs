@@ -104,6 +104,9 @@ public class CreateResponseEndpoint(IApplicationDbContext db, IClientLinkAuthori
             ProfessionalId = questionnaire.ProfessionalId,
             LinkId = linkId.Value,
             Status = QuestionnaireResponseStatus.InProgress,
+            Kind = questionnaire.Type == QuestionnaireType.CheckIn
+                ? QuestionnaireResponseKind.CheckIn
+                : QuestionnaireResponseKind.Onboarding,
         };
 
         db.QuestionnaireResponses.Add(response);

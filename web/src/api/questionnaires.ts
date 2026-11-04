@@ -1,7 +1,16 @@
 import api from '@/lib/api';
-import { QuestionnaireType } from './generated';
+import { apiClient } from './client';
+import {
+  FormResponseState,
+  QuestionnaireResponseKind,
+  QuestionnaireType,
+  type ClientFormAnswer,
+  type ClientFormItem,
+  type GetClientFormsResponse,
+} from './generated';
 
-export { QuestionnaireType };
+export { FormResponseState, QuestionnaireResponseKind, QuestionnaireType };
+export type { ClientFormAnswer, ClientFormItem, GetClientFormsResponse };
 
 export interface QuestionDto {
   publicId: string;
@@ -154,4 +163,17 @@ export async function getClientQuestionnaireResponse(clientId: string): Promise<
 export async function getClientQuestionnaireResponses(clientId: string): Promise<ClientResponsesDto> {
   const { data } = await api.get<ClientResponsesDto>(`/trainer/clients/${clientId}/questionnaire-responses`);
   return data;
+}
+
+/** Cache key of a client's forms; shared by every screen that lists them. */
+export const clientFormsKey = (clientId: string) => ['client-forms', clientId] as const;
+
+/** The forms a coach sent one client, current and previous collaboration. */
+export function getClientForms(clientId: string, signal?: AbortSignal): Promise<GetClientFormsResponse> {
+  return apiClient.getClientFormsEndpoint(clientId, signal);
+}
+
+/** Marks a submitted form as opened by the coach. The server answers 409 for a form that is not submitted. */
+export function markClientFormSeen(clientId: string, responsePublicId: string): Promise<void> {
+  return apiClient.markClientFormSeenEndpoint(clientId, responsePublicId);
 }

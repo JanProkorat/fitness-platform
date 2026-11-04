@@ -7,6 +7,7 @@ const KNOWN_KINDS = new Set([
   'star_rating',
   'scale',
   'file_upload',
+  'section',
 ]);
 
 /** i18n key of a type's display name; an unknown type falls back to a generic name. */

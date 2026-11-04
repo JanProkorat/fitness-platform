@@ -10,40 +10,21 @@ using Microsoft.EntityFrameworkCore;
 namespace FitnessPlatform.Application.Features.WeeklyCheckIns.MarkCheckInReviewed;
 
 /// <summary>
-/// Trainer marks a check-in as reviewed.
-/// Broadcasts <c>weeklycheckinupdated</c> to both the professional and the client
-/// so the client's read-only view can become locked immediately.
+/// Trainer marks a check-in as reviewed. A repeat call keeps the first timestamp.
+/// Broadcasts <c>weeklycheckinupdated</c> to both the professional and the client.
 /// </summary>
 /// <remarks>
-/// <para>
-/// Design decision (#357): this endpoint INTENTIONALLY does NOT guard against
-/// <see cref="WeeklyCheckInStatus.Expired"/> — a trainer can still mark an
-/// expired check-in as Reviewed. This is asymmetric with
-/// <c>RespondToCheckInEndpoint</c> and <c>DismissCheckInEndpoint</c>, which both
-/// return <c>409 CHECK_IN_EXPIRED</c> on terminal rows.
-/// </para>
-/// <para>
-/// Rationale:
-/// <list type="bullet">
-///   <item>Different actor. Respond/Dismiss are client-side actions on a live
-///         check-in; the client engaging with an already-expired prompt is a
-///         workflow error worth rejecting. Review is a coach-side action that
-///         operates on stale data routinely — "clean up the backlog and mark
-///         these as reviewed-for-the-record" is a normal flow.</item>
-///   <item>Audit preservation. The transition sets
-///         <c>Status = Reviewed</c> but does NOT clear <c>ExpiredAt</c>.
-///         The historical timeline ("expired at T1, then reviewed by trainer at T2")
-///         is fully preserved on the row.</item>
-///   <item>Matches #331 AC5 ("Expired records are retained for history and are
-///         never silently deleted") — preserving means the trainer can still
-///         action them, not that the row becomes read-only forever.</item>
-/// </list>
-/// </para>
+/// An expired or still unanswered check-in can be marked reviewed too: clearing a backlog for the
+/// record is a normal coach flow.
 /// </remarks>
+/// <param name="db">Relational database context.</param>
+/// <param name="notifier">Pushes the realtime event.</param>
+/// <param name="timeProvider">Clock.</param>
 [RemovedCoachRole(RemovedCoachRoleMode.Refuse)]
 public class MarkCheckInReviewedEndpoint(
     IApplicationDbContext db,
-    IRealtimeNotifier notifier)
+    IRealtimeNotifier notifier,
+    TimeProvider timeProvider)
     : Endpoint<MarkCheckInReviewedRequest, MarkCheckInReviewedResponse>
 {
     /// <inheritdoc />
@@ -55,9 +36,11 @@ public class MarkCheckInReviewedEndpoint(
         {
             s.Summary = "Mark a check-in as reviewed (trainer)";
             s.Description =
-                "Sets ReviewedByTrainerAt on the check-in. " +
-                "After this the client can no longer edit their response. " +
+                "Sets the reviewed time on the check-in's form response, keeping the first time on a repeat call. " +
                 "Broadcasts weeklycheckinupdated to both sides.";
+            s.Responses[StatusCodes.Status200OK] = "Reviewed time of the check-in";
+            s.Responses[StatusCodes.Status401Unauthorized] = "Missing or unreadable caller claim";
+            s.Responses[StatusCodes.Status404NotFound] = "Not a check-in, or not the caller's";
         });
     }
 
@@ -73,42 +56,39 @@ public class MarkCheckInReviewedEndpoint(
 
         var professionalUserId = Guid.Parse(userId);
 
-        var checkIn = await db.WeeklyCheckIns
-            .FirstOrDefaultAsync(c => c.Id == req.Id, ct);
+        var response = await db.QuestionnaireResponses
+            .FirstOrDefaultAsync(r => r.PublicId == req.Id
+                                      && r.Kind == QuestionnaireResponseKind.CheckIn
+                                      && r.ProfessionalId == professionalUserId, ct);
 
-        if (checkIn is null)
+        if (response is null)
         {
             await Send.NotFoundAsync(ct);
             return;
         }
 
-        if (checkIn.ProfessionalUserId != professionalUserId)
+        if (response.ReviewedByCoachAtUtc is null)
         {
-            await Send.ForbiddenAsync(ct);
-            return;
+            response.ReviewedByCoachAtUtc = timeProvider.GetUtcNow().UtcDateTime;
+            await db.SaveChangesAsync(ct);
         }
 
-        var now = DateTime.UtcNow;
-        checkIn.ReviewedByTrainerAt = now;
-        checkIn.Status = WeeklyCheckInStatus.Reviewed;
-        checkIn.DateModified = now;
-
-        await db.SaveChangesAsync(ct);
+        var reviewedAt = response.ReviewedByCoachAtUtc.Value;
 
         // Broadcast to both sides so each open tab/screen can update immediately.
         var broadcastPayload = new
         {
-            id = checkIn.Id,
-            reviewedAt = checkIn.ReviewedByTrainerAt
+            id = response.PublicId,
+            reviewedAt
         };
 
         await notifier.NotifyAsync(professionalUserId, "weeklycheckinupdated", broadcastPayload, ct);
-        await notifier.NotifyAsync(checkIn.ClientUserId, "weeklycheckinupdated", broadcastPayload, ct);
+        await notifier.NotifyAsync(response.ClientId, "weeklycheckinupdated", broadcastPayload, ct);
 
         await Send.OkAsync(new MarkCheckInReviewedResponse
         {
-            Id = checkIn.Id,
-            ReviewedAt = checkIn.ReviewedByTrainerAt.Value
+            Id = response.PublicId,
+            ReviewedAt = reviewedAt
         }, ct);
     }
 }

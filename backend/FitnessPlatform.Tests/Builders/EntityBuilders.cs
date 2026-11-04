@@ -1,3 +1,7 @@
+using Microsoft.EntityFrameworkCore;
+using FitnessPlatform.Application.Infrastructure.Data;
+using FitnessPlatform.Tests.Infrastructure;
+using Microsoft.Extensions.DependencyInjection;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 
@@ -76,6 +80,7 @@ public class QuestionnaireBuilder
 {
     private Guid _professionalUserId = Guid.NewGuid();
     private string _title = "Onboarding";
+    private readonly List<QuestionnaireQuestion> _questions = [];
 
     /// <summary>
     /// Sets the coach (<c>ApplicationUser.Id</c>) who owns the questionnaire.
@@ -86,6 +91,21 @@ public class QuestionnaireBuilder
     /// Sets the questionnaire title.
     /// </summary>
     public QuestionnaireBuilder WithTitle(string title) { _title = title; return this; }
+
+    /// <summary>
+    /// Adds a question; questions keep the order they are added in.
+    /// </summary>
+    public QuestionnaireBuilder WithQuestion(string type, string label)
+    {
+        _questions.Add(new QuestionnaireQuestion
+        {
+            PublicId = Guid.NewGuid(),
+            OrderIndex = _questions.Count,
+            Type = type,
+            Label = label,
+        });
+        return this;
+    }
 
     /// <summary>
     /// Builds an active, default onboarding questionnaire.
@@ -99,6 +119,7 @@ public class QuestionnaireBuilder
         IsActive = true,
         Type = QuestionnaireType.Onboarding,
         DateCreated = DateTime.UtcNow,
+        Questions = _questions,
     };
 }
 
@@ -113,6 +134,11 @@ public class QuestionnaireResponseBuilder
     private Guid _professionalUserId = Guid.NewGuid();
     private QuestionnaireResponseStatus _status = QuestionnaireResponseStatus.Pending;
     private DateTime? _submittedAt;
+    private QuestionnaireResponseKind _kind = QuestionnaireResponseKind.Onboarding;
+    private DateOnly? _checkInWeekStart;
+    private DateTime? _checkInDueAtUtc;
+    private DateTime? _reviewedAtUtc;
+    private readonly List<QuestionnaireAnswer> _answers = [];
 
     /// <summary>
     /// Sets the questionnaire (internal id) being answered.
@@ -145,6 +171,36 @@ public class QuestionnaireResponseBuilder
     }
 
     /// <summary>
+    /// Sets the response kind (defaults to onboarding).
+    /// </summary>
+    public QuestionnaireResponseBuilder WithKind(QuestionnaireResponseKind kind) { _kind = kind; return this; }
+
+    /// <summary>
+    /// Marks the response as a check-in for the given week with its deadline.
+    /// </summary>
+    public QuestionnaireResponseBuilder AsCheckIn(DateOnly weekStart, DateTime dueAtUtc)
+    {
+        _kind = QuestionnaireResponseKind.CheckIn;
+        _checkInWeekStart = weekStart;
+        _checkInDueAtUtc = dueAtUtc;
+        return this;
+    }
+
+    /// <summary>
+    /// Records that the coach already opened the response.
+    /// </summary>
+    public QuestionnaireResponseBuilder ReviewedAt(DateTime reviewedAtUtc) { _reviewedAtUtc = reviewedAtUtc; return this; }
+
+    /// <summary>
+    /// Adds a text answer to the given question (internal id).
+    /// </summary>
+    public QuestionnaireResponseBuilder WithTextAnswer(long questionId, string text)
+    {
+        _answers.Add(new QuestionnaireAnswer { PublicId = Guid.NewGuid(), QuestionId = questionId, ValueText = text });
+        return this;
+    }
+
+    /// <summary>
     /// Builds the <see cref="QuestionnaireResponse"/> instance. DateCreated is stamped on insert.
     /// </summary>
     public QuestionnaireResponse Build() => new()
@@ -156,6 +212,11 @@ public class QuestionnaireResponseBuilder
         LinkId = _linkId,
         Status = _status,
         SubmittedAt = _submittedAt,
+        Kind = _kind,
+        CheckInWeekStart = _checkInWeekStart,
+        CheckInDueAtUtc = _checkInDueAtUtc,
+        ReviewedByCoachAtUtc = _reviewedAtUtc,
+        Answers = _answers,
     };
 }
 
@@ -730,4 +791,230 @@ public class ClientNutritionTargetsBuilder
     /// Builds the <see cref="ClientNutritionTargets"/> instance.
     /// </summary>
     public ClientNutritionTargets Build() => _entity;
+}
+
+/// <summary>
+/// A coach, a client, the live link between them and the coach's check-in form: what a check-in
+/// response needs to exist.
+/// </summary>
+/// <param name="Coach">The professional who sends the check-in.</param>
+/// <param name="Client">The client who answers it.</param>
+/// <param name="LinkId">Internal id of the link.</param>
+/// <param name="QuestionnaireId">Internal id of the coach's check-in form.</param>
+public record CheckInScenario(Actor Coach, Actor Client, long LinkId, long QuestionnaireId);
+
+/// <summary>
+/// Writes check-in responses (questionnaire responses of kind check-in) straight to the database.
+/// </summary>
+public static class CheckInFixtures
+{
+    /// <summary>
+    /// Creates a coach (or uses the given one), a client, a live link and a check-in form owned by the coach.
+    /// </summary>
+    /// <param name="factory">The test host.</param>
+    /// <param name="coach">An existing coach; a new trainer when null.</param>
+    /// <param name="client">An existing client; a new one when null.</param>
+    /// <param name="activatedAtUtc">When the collaboration began; null is a legacy link.</param>
+    /// <param name="role">The professional role recorded on the link.</param>
+    public static async Task<CheckInScenario> CreateScenarioAsync(
+        FitnessApiFactory factory,
+        Actor? coach = null,
+        Actor? client = null,
+        DateTime? activatedAtUtc = null,
+        UserRole role = UserRole.Trainer)
+    {
+        var ct = TestContext.Current.CancellationToken;
+        coach ??= await TestActors.Trainer(factory).CreateAsync(ct);
+        client ??= await TestActors.Client(factory).CreateAsync(ct);
+
+        var link = TestActors.Link(factory, coach, client).AsRole(role);
+
+        if (activatedAtUtc.HasValue)
+        {
+            link.WithActivatedAtUtc(activatedAtUtc.Value);
+        }
+
+        return await ForLinkAsync(factory, coach, client, await link.CreateAsync(ct));
+    }
+
+    /// <summary>
+    /// Gives an existing link a check-in form owned by the coach.
+    /// </summary>
+    /// <param name="factory">The test host.</param>
+    /// <param name="coach">The professional on the link.</param>
+    /// <param name="client">The client on the link.</param>
+    /// <param name="linkId">Internal id of the link.</param>
+    public static async Task<CheckInScenario> ForLinkAsync(FitnessApiFactory factory, Actor coach, Actor client, long linkId)
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var form = new Questionnaire
+        {
+            PublicId = Guid.NewGuid(),
+            ProfessionalId = coach.UserId,
+            Title = "Weekly check-in",
+            IsActive = true,
+            Type = QuestionnaireType.CheckIn,
+            DateCreated = DateTime.UtcNow,
+        };
+        db.Questionnaires.Add(form);
+        await db.SaveChangesAsync(ct);
+
+        return new CheckInScenario(coach, client, linkId, form.Id);
+    }
+
+    /// <summary>
+    /// Adds one check-in response and returns its public id.
+    /// </summary>
+    /// <param name="factory">The test host.</param>
+    /// <param name="scenario">The coach, client, link and form.</param>
+    /// <param name="weekStart">The Monday the check-in covers.</param>
+    /// <param name="dueAtUtc">When the check-in is due.</param>
+    /// <param name="status">The response status.</param>
+    /// <param name="submittedAt">When it was submitted, for a submitted response.</param>
+    /// <param name="reviewedAt">When the coach opened it, if they did.</param>
+    public static async Task<Guid> AddCheckInAsync(
+        FitnessApiFactory factory,
+        CheckInScenario scenario,
+        DateOnly weekStart,
+        DateTime dueAtUtc,
+        QuestionnaireResponseStatus status = QuestionnaireResponseStatus.Pending,
+        DateTime? submittedAt = null,
+        DateTime? reviewedAt = null)
+    {
+        var builder = EntityBuilder.QuestionnaireResponse
+            .ForQuestionnaire(scenario.QuestionnaireId)
+            .OnLink(scenario.LinkId)
+            .FromClient(scenario.Client.UserId)
+            .FromProfessional(scenario.Coach.UserId)
+            .WithStatus(status, submittedAt)
+            .AsCheckIn(weekStart, dueAtUtc);
+
+        if (reviewedAt.HasValue)
+        {
+            builder.ReviewedAt(reviewedAt.Value);
+        }
+
+        var response = builder.Build();
+
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        db.QuestionnaireResponses.Add(response);
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        return response.PublicId;
+    }
+
+    /// <summary>
+    /// Adds a check-in response, due yesterday, for an existing link given by user ids; the coach gets a
+    /// check-in form on the way. For tests that only hold user ids.
+    /// </summary>
+    /// <param name="factory">The test host.</param>
+    /// <param name="professionalUserId">The coach's user id.</param>
+    /// <param name="clientUserId">The client's user id.</param>
+    /// <param name="submitted">Whether the client submitted it.</param>
+    /// <param name="reviewed">Whether the coach already opened it.</param>
+    public static async Task AddForUsersAsync(
+        FitnessApiFactory factory, Guid professionalUserId, Guid clientUserId, bool submitted, bool reviewed = false)
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        var linkId = await db.ClientProfessionalLinks
+            .Where(l => l.ClientProfile.UserId == clientUserId && l.ProfessionalProfile.UserId == professionalUserId)
+            .Select(l => l.Id)
+            .FirstAsync(ct);
+        var form = new Questionnaire
+        {
+            PublicId = Guid.NewGuid(),
+            ProfessionalId = professionalUserId,
+            Title = "Weekly check-in",
+            IsActive = true,
+            Type = QuestionnaireType.CheckIn,
+            DateCreated = DateTime.UtcNow,
+        };
+        db.Questionnaires.Add(form);
+        await db.SaveChangesAsync(ct);
+
+        var builder = EntityBuilder.QuestionnaireResponse
+            .ForQuestionnaire(form.Id)
+            .OnLink(linkId)
+            .FromClient(clientUserId)
+            .FromProfessional(professionalUserId)
+            .WithStatus(
+                submitted ? QuestionnaireResponseStatus.Submitted : QuestionnaireResponseStatus.Pending,
+                submitted ? DateTime.UtcNow.AddDays(-2) : null)
+            .AsCheckIn(Monday(0), DateTime.UtcNow.AddDays(-1));
+
+        if (reviewed)
+        {
+            builder.ReviewedAt(DateTime.UtcNow.AddDays(-1));
+        }
+
+        db.QuestionnaireResponses.Add(builder.Build());
+        await db.SaveChangesAsync(ct);
+    }
+
+    /// <summary>The Monday of the week that is <paramref name="weeksAgo"/> weeks before today (UTC).</summary>
+    /// <param name="weeksAgo">How many weeks back; 0 is this week.</param>
+    public static DateOnly Monday(int weeksAgo)
+    {
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var daysFromMonday = ((int)today.DayOfWeek - (int)DayOfWeek.Monday + 7) % 7;
+        return today.AddDays(-daysFromMonday - (7 * weeksAgo));
+    }
+}
+
+/// <summary>
+/// Subscribes a coach to a fresh plan with the given check-in flags.
+/// </summary>
+public static class CoachSubscriptionBuilder
+{
+    /// <summary>
+    /// Writes a plan with the given check-in flags and a subscription of the coach to it.
+    /// </summary>
+    /// <param name="factory">The test host.</param>
+    /// <param name="coach">The coach to subscribe.</param>
+    /// <param name="canUseWeeklyCheckIns">The plan's weekly check-in flag.</param>
+    /// <param name="canUsePerClientCheckInConfig">The plan's per-client check-in configuration flag.</param>
+    /// <param name="status">The subscription status.</param>
+    public static async Task SubscribeAsync(
+        FitnessApiFactory factory,
+        Actor coach,
+        bool canUseWeeklyCheckIns,
+        bool canUsePerClientCheckInConfig,
+        SubscriptionStatus status = SubscriptionStatus.Active)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        var plan = new SubscriptionPlan
+        {
+            Code = $"check-ins-{Guid.NewGuid():N}",
+            NameCs = "Plán",
+            NameEn = "Plan",
+            NameDe = "Plan",
+            ApplicableRoles = ApplicableRoles.Both,
+            CanUseWeeklyCheckIns = canUseWeeklyCheckIns,
+            CanUsePerClientCheckInConfig = canUsePerClientCheckInConfig,
+            PriceMinorUnits = 99900,
+            Currency = "CZK",
+            BillingInterval = BillingInterval.Monthly,
+            IsActive = true,
+        };
+        db.SubscriptionPlans.Add(plan);
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        db.CoachSubscriptions.Add(new CoachSubscription
+        {
+            ProfessionalProfileId = coach.ProfileId,
+            SubscriptionPlanId = plan.Id,
+            Status = status,
+        });
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+    }
 }

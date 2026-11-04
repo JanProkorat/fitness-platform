@@ -33,14 +33,15 @@ public static class AutomationRuleGuards
 
     /// <summary>
     /// For a SendForm rule, resolves the questionnaire the caller owns; answers a coded 404 when it is
-    /// not the caller's. Other actions resolve to a null id.
+    /// not the caller's. Other actions resolve to a null id. A check-in form must come with the check-in
+    /// fields and any other rule must not carry them; a mismatch answers a coded 400.
     /// </summary>
-    public static async Task<(bool Ok, long? QuestionnaireId)> ResolveQuestionnaireOrRespondAsync(
+    public static async Task<(bool Ok, long? QuestionnaireId, bool IsCheckIn)> ResolveQuestionnaireOrRespondAsync(
         this IEndpoint endpoint, IApplicationDbContext db, Guid userId, AutomationRuleBody body, CancellationToken ct)
     {
         if (body.ActionType != AutomationActionType.SendForm)
         {
-            return (true, null);
+            return (!await endpoint.RespondIfCheckInBodyInvalidAsync(body, false, ct), null, false);
         }
 
         var questionnaire = await db.Questionnaires
@@ -56,20 +57,125 @@ public static class AutomationRuleGuards
                 ErrorCodes.AutomationQuestionnaireNotFound,
                 "Questionnaire not found.",
                 ct);
-            return (false, null);
+            return (false, null, false);
         }
 
-        if (!AutomationQuestionnaireUsability.IsUsable(questionnaire.IsActive, questionnaire.Type))
+        if (!AutomationQuestionnaireUsability.IsUsable(questionnaire.IsActive))
         {
             await endpoint.SendProblemAsync(
                 StatusCodes.Status400BadRequest,
                 ErrorCodes.AutomationQuestionnaireNotUsable,
-                "The questionnaire is inactive or a check-in form and cannot be sent by a rule.",
+                "The questionnaire is inactive and cannot be sent by a rule.",
                 ct);
-            return (false, null);
+            return (false, null, false);
         }
 
-        return (true, questionnaire.Id);
+        var isCheckIn = AutomationQuestionnaireUsability.IsCheckInForm(questionnaire.Type);
+
+        if (await endpoint.RespondIfCheckInBodyInvalidAsync(body, isCheckIn, ct))
+        {
+            return (false, null, isCheckIn);
+        }
+
+        return (true, questionnaire.Id, isCheckIn);
+    }
+
+    /// <summary>
+    /// A check-in rule needs a weekday, a local time and an answer window on a weekly schedule; any other
+    /// rule carries none of the check-in fields. Answers a coded 400 and returns true when that is not so.
+    /// </summary>
+    public static async Task<bool> RespondIfCheckInBodyInvalidAsync(
+        this IEndpoint endpoint, AutomationTriggerBody body, bool isCheckIn, CancellationToken ct)
+    {
+        if (!isCheckIn)
+        {
+            if (body.ScheduleWeekday is null && body.AnswerWindowHours is null
+                && body.ReminderAfterHours is null && body.NotifyCoachOnMissedWeek is null)
+            {
+                return false;
+            }
+
+            await endpoint.SendProblemAsync(
+                StatusCodes.Status400BadRequest,
+                ErrorCodes.AutomationCheckInFieldsNotAllowed,
+                "Check-in fields belong to a rule that sends a check-in form.",
+                ct);
+            return true;
+        }
+
+        var isWeekly = body.TriggerKind == AutomationTriggerKind.Schedule
+                       && body.ScheduleInterval == 1
+                       && body.ScheduleUnit == AutomationScheduleUnit.Weeks;
+
+        if (body.ScheduleWeekday is not null && body.LocalTime is not null && body.AnswerWindowHours is not null && isWeekly)
+        {
+            return false;
+        }
+
+        await endpoint.SendProblemAsync(
+            StatusCodes.Status400BadRequest,
+            ErrorCodes.AutomationCheckInInvalid,
+            "A check-in rule needs a weekday, a time, an answer window and a weekly schedule every week.",
+            ct);
+        return true;
+    }
+
+    /// <summary>
+    /// Checks the coach's subscription for a check-in rule write: the weekly check-in feature, or, with
+    /// <paramref name="perClient"/>, per-client check-in configuration (an override or a pause). Answers
+    /// a coded 403 and returns true when the plan does not include it. A coach with no subscription is entitled.
+    /// </summary>
+    /// <param name="endpoint">The endpoint instance.</param>
+    /// <param name="entitlementService">Resolves subscription entitlements.</param>
+    /// <param name="profileId">The coach's professional profile id.</param>
+    /// <param name="perClient">True to check the per-client configuration flag instead of the check-in flag.</param>
+    /// <param name="ct">Cancellation token.</param>
+    public static async Task<bool> RespondIfCheckInNotEntitledAsync(
+        this IEndpoint endpoint, EntitlementService entitlementService, long profileId, bool perClient, CancellationToken ct)
+    {
+        var entitlements = await entitlementService.GetEntitlementsAsync(profileId, ct);
+
+        if (perClient ? entitlements.CanUsePerClientCheckInConfig : entitlements.CanUseWeeklyCheckIns)
+        {
+            return false;
+        }
+
+        await endpoint.SendProblemAsync(
+            StatusCodes.Status403Forbidden,
+            perClient ? ErrorCodes.PerClientCheckInConfigNotEntitled : ErrorCodes.CheckInsNotEntitled,
+            perClient
+                ? "The current subscription does not include per-client check-in configuration."
+                : "The current subscription does not include weekly check-ins.",
+            ct);
+        return true;
+    }
+
+    /// <summary>
+    /// A coach can have one enabled check-in rule. Answers 409 and returns true when another enabled
+    /// check-in rule exists. Call it inside the write's transaction, after locking the coach's profile.
+    /// </summary>
+    public static async Task<bool> RespondIfCheckInRuleExistsAsync(
+        this IEndpoint endpoint, IApplicationDbContext db, long profileId, long? exceptRuleId, CancellationToken ct)
+    {
+        var exists = await db.AutomationRules
+            .AsNoTracking()
+            .AnyAsync(r => r.OwnerProfessionalProfileId == profileId
+                           && r.Enabled
+                           && r.Id != exceptRuleId
+                           && r.ActionType == AutomationActionType.SendForm
+                           && r.Questionnaire!.Type == QuestionnaireType.CheckIn, ct);
+
+        if (!exists)
+        {
+            return false;
+        }
+
+        await endpoint.SendProblemAsync(
+            StatusCodes.Status409Conflict,
+            ErrorCodes.CheckInRuleExists,
+            "You already have an enabled check-in rule.",
+            ct);
+        return true;
     }
 
     /// <summary>

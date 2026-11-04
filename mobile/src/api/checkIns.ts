@@ -16,6 +16,13 @@ export const CHECK_IN_QUERY_KEY = ['check-ins'] as const;
 
 export const CHECK_IN_HISTORY_QUERY_KEY = [...CHECK_IN_QUERY_KEY, 'history'] as const;
 
+const CHECK_IN_REMINDER_TYPE = 'clientcheckinreminder';
+
+/** True for the notification type of a check-in reminder (case-insensitive); its payload carries `responseId`. */
+export function isCheckInReminderType(type: unknown): boolean {
+  return typeof type === 'string' && type.toLowerCase() === CHECK_IN_REMINDER_TYPE;
+}
+
 /** One page of GET /client/weekly-check-ins/history. */
 export async function fetchCheckInHistoryPage(
   page: number,

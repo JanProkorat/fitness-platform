@@ -9,14 +9,20 @@ const nonEmptyString = (value: unknown): string | undefined =>
   typeof value === 'string' && value.length > 0 ? value : undefined;
 
 /**
- * Machine-readable code of a ProblemDetails body, read from the first `errors[]` entry.
- * FastEndpoints puts it in `code`; `reason` carries the English message and is a fallback.
+ * Machine-readable code of a ProblemDetails body. Validation failures carry it in the first `errors[]`
+ * entry (`code`; `reason` is the English message and a fallback); `SendProblemAsync` responses carry it
+ * in a top-level `errorCode`.
  */
 export function getProblemCode(error: unknown): string | undefined {
-  if (!isRecord(error) || !Array.isArray(error.errors)) return undefined;
-  const first: unknown = error.errors[0];
-  if (!isRecord(first)) return undefined;
-  return nonEmptyString(first.code) ?? nonEmptyString(first.reason);
+  if (!isRecord(error)) return undefined;
+  if (Array.isArray(error.errors)) {
+    const first: unknown = error.errors[0];
+    if (isRecord(first)) {
+      const fromEntry = nonEmptyString(first.code) ?? nonEmptyString(first.reason);
+      if (fromEntry) return fromEntry;
+    }
+  }
+  return nonEmptyString(error.errorCode);
 }
 
 /** HTTP status of whatever the generated client threw, when there was a response. */

@@ -83,6 +83,7 @@ export default function App() {
                 <Route path="photos" element={null} />
                 <Route path="payment" element={null} />
                 <Route path="automations" element={null} />
+                <Route path="forms" element={null} />
               </Route>
               <Route path="/inbox" element={<InboxPage />} />
               <Route path="/forms" element={<FormsPage />} />
