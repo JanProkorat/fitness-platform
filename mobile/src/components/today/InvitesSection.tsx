@@ -8,23 +8,35 @@ import Animated, {
   ReduceMotion,
 } from 'react-native-reanimated';
 
+import { hasOpenProposal } from '@/api/clientRequests';
 import { Text } from '@/components/Text';
 import { useInvites } from '@/hooks/useInvites';
+import { useMyClientRequests } from '@/hooks/useMyClientRequests';
 import { useTheme } from '@/theme';
 import { inviteMotion } from '@/theme/motion';
 import type { Theme } from '@/theme';
 
 import { InviteCard } from './InviteCard';
+import { ProposalCard } from './ProposalCard';
 
-/** Pending coach invitations on Today; renders nothing when there are none. */
+/** Pending coach invitations and open package proposals on Today; renders nothing when there are none. */
 export function InvitesSection() {
   const { t } = useTranslation();
   const router = useRouter();
   const theme = useTheme();
   const styles = makeStyles(theme);
-  const { data: invites } = useInvites();
+  const { data: invites = [] } = useInvites();
+  const { data: requests = [] } = useMyClientRequests();
+  const proposals = requests.filter((request) => hasOpenProposal(request) && Boolean(request.publicId));
 
-  if (!invites || invites.length === 0) return null;
+  if (invites.length === 0 && proposals.length === 0) return null;
+
+  const title =
+    proposals.length === 0
+      ? t('today.invitesTitle')
+      : invites.length === 0
+        ? t('today.proposalsTitle')
+        : t('today.invitesAndProposalsTitle');
 
   return (
     <Animated.View
@@ -34,7 +46,7 @@ export function InvitesSection() {
       style={styles.section}
     >
       <Text variant="overline" color="muted" style={styles.overline}>
-        {t('today.invitesTitle').toUpperCase()}
+        {title.toUpperCase()}
       </Text>
       <View style={styles.cards}>
         {invites.map((invite, index) => {
@@ -45,6 +57,17 @@ export function InvitesSection() {
               index={index}
               invite={invite}
               onOpen={() => router.push({ pathname: '/invite/[id]', params: { id } })}
+            />
+          );
+        })}
+        {proposals.map((request, index) => {
+          const id = request.publicId ?? '';
+          return (
+            <ProposalCard
+              key={`proposal-${id}`}
+              index={invites.length + index}
+              request={request}
+              onOpen={() => router.push({ pathname: '/request/[id]', params: { id } })}
             />
           );
         })}

@@ -167,6 +167,8 @@
     "notificationsUnread": "Benachrichtigungen, {{count}} ungelesen",
     "profile": "Profil",
     "invitesTitle": "Einladungen",
+    "proposalsTitle": "Paketvorschläge",
+    "invitesAndProposalsTitle": "Einladungen und Vorschläge",
     "runningNutrition": {
       "weekOf": "Woche {{current}} von {{total}}",
       "week": "Woche {{current}}",
@@ -524,6 +526,9 @@
     "acceptInvite": "Einladung annehmen",
     "openHint": "Öffnet die Einladung",
     "viewInvite": "Einladung ansehen",
+    "proposedYou": "{{name}} schlägt Ihnen ein Paket vor",
+    "viewProposal": "Vorschlag ansehen",
+    "openProposalHint": "Öffnet den Paketvorschlag",
     "includesPackage": "Enthält ein Paket",
     "includesPackagePrice": "Enthält ein Paket · {{price}}",
     "roles": { "Trainer": "Trainer", "Nutritionist": "Ernährungsberater" },
@@ -841,6 +846,23 @@
           "Expired": "Niemand hat rechtzeitig geantwortet"
         }
       },
+      "proposal": {
+        "title": "Paketvorschlag",
+        "labels": {
+          "Pending": "Neuer Vorschlag",
+          "Accepted": "Vorschlag angenommen",
+          "Declined": "Vorschlag abgelehnt",
+          "Cancelled": "Vorschlag zurückgezogen",
+          "Expired": "Vorschlag abgelaufen"
+        },
+        "details": {
+          "Pending": "{{name}} schlägt Ihnen ein Paket vor",
+          "Accepted": "Sie haben das Paket angenommen",
+          "Declined": "Sie haben das Paket abgelehnt",
+          "Cancelled": "{{name}} hat den Vorschlag zurückgezogen",
+          "Expired": "Niemand hat rechtzeitig geantwortet"
+        }
+      },
       "scope": {
         "Both": "Training und Ernährung",
         "TrainingOnly": "Training",
@@ -944,7 +966,11 @@
     "messageLabel": "Nachricht (optional)",
     "messagePlaceholder": "Schreib, woran du arbeiten möchtest",
     "historyLabel": "Meinen Verlauf teilen",
-    "historyHint": "Frühere Pläne, Messungen und Fotos aus der Zeit vor {{name}}.",
+    "historyHint": {
+      "Trainer": "Frühere Pläne, Messungen und Fotos aus der Zeit vor der Zusammenarbeit mit diesem Trainer.",
+      "Nutritionist": "Frühere Pläne, Messungen und Fotos aus der Zeit vor der Zusammenarbeit mit diesem Ernährungsberater.",
+      "Any": "Frühere Pläne, Messungen und Fotos aus der Zeit vor dieser Zusammenarbeit."
+    },
     "onboardingCaption": "Deine Antworten aus dem Einstiegsfragebogen sieht {{name}}, um sich vorzubereiten.",
     "submit": "Anfrage senden",
     "packageLabel": "Paket · optional",

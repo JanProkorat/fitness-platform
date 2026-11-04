@@ -3,11 +3,14 @@ import { useTranslation } from 'react-i18next';
 
 import type { ChatMessage, Conversation } from '@/api/conversations';
 import { ChatEventType, CooperationCardStatus, LinkCapabilityScope } from '@/api/generated';
+import { hasOpenProposal } from '@/api/clientRequests';
 import { useInvites } from '@/hooks/useInvites';
+import { useMyClientRequests } from '@/hooks/useMyClientRequests';
+import { usePaymentsEnabled } from '@/hooks/usePaymentsEnabled';
 
 import { EventCard } from './EventCard';
 import type { EventCardDomain } from './EventCard';
-import { cardExpiry, shortDate, sortedRoles } from './format';
+import { cardExpiry, proposalSummary, shortDate, sortedRoles } from './format';
 
 type ChatEventCardProps = {
   conversation: Conversation;
@@ -33,12 +36,19 @@ export function ChatEventCard({ conversation, message, settledAt, own }: ChatEve
   const { t, i18n } = useTranslation();
   const router = useRouter();
   const invites = useInvites();
+  const requests = useMyClientRequests(message.eventType === ChatEventType.ProposalSent);
+  const { enabled: paymentsEnabled } = usePaymentsEnabled();
 
   const sourceId = message.eventSourceId;
   const status = message.eventStatus;
   if (!sourceId || !status) return null;
 
-  const kind = message.eventType === ChatEventType.Requested ? 'request' : 'invite';
+  const kind =
+    message.eventType === ChatEventType.ProposalSent
+      ? 'proposal'
+      : message.eventType === ChatEventType.Requested
+        ? 'request'
+        : 'invite';
   const pending = status === CooperationCardStatus.Pending;
   const cooperation = conversation.cooperation;
   const scope = cooperation?.sourceId === sourceId ? cooperation.requestedScope : undefined;
@@ -48,6 +58,11 @@ export function ChatEventCard({ conversation, message, settledAt, own }: ChatEve
   const expiryText = cardExpiry(t, openInvite?.expiresAt) ?? undefined;
 
   const canView = kind === 'invite' && pending && !own && openInvite !== undefined;
+
+  // Only an open proposal still exposes its package; a settled one shows its outcome alone.
+  const openRequest = requests.data?.find((request) => request.publicId === sourceId);
+  const openProposal = kind === 'proposal' && hasOpenProposal(openRequest) ? openRequest : undefined;
+  const canViewProposal = pending && openProposal !== undefined;
 
   return (
     <EventCard
@@ -61,6 +76,12 @@ export function ChatEventCard({ conversation, message, settledAt, own }: ChatEve
       dateText={settledAt ? shortDate(i18n.language, settledAt) : undefined}
       onViewInvite={
         canView ? () => router.push({ pathname: '/invite/[id]', params: { id: sourceId } }) : undefined
+      }
+      proposalText={
+        pending && openProposal ? proposalSummary(t, i18n.language, openProposal, paymentsEnabled) : undefined
+      }
+      onViewProposal={
+        canViewProposal ? () => router.push({ pathname: '/request/[id]', params: { id: sourceId } }) : undefined
       }
     />
   );

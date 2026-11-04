@@ -167,6 +167,8 @@
     "notificationsUnread": "Upozornění, nepřečtených: {{count}}",
     "profile": "Profil",
     "invitesTitle": "Pozvánky",
+    "proposalsTitle": "Návrhy balíčků",
+    "invitesAndProposalsTitle": "Pozvánky a návrhy",
     "runningNutrition": {
       "weekOf": "{{current}}. týden z {{total}}",
       "week": "{{current}}. týden",
@@ -544,6 +546,9 @@
     "acceptInvite": "Přijmout pozvánku",
     "openHint": "Otevře pozvánku",
     "viewInvite": "Zobrazit pozvánku",
+    "proposedYou": "{{name}} vám navrhuje balíček",
+    "viewProposal": "Zobrazit návrh",
+    "openProposalHint": "Otevře návrh balíčku",
     "includesPackage": "Zahrnuje balíček",
     "includesPackagePrice": "Zahrnuje balíček · {{price}}",
     "roles": { "Trainer": "Trenér", "Nutritionist": "Nutriční poradce" },
@@ -868,6 +873,23 @@
           "Expired": "Nikdo neodpověděl včas"
         }
       },
+      "proposal": {
+        "title": "Návrh balíčku",
+        "labels": {
+          "Pending": "Nový návrh",
+          "Accepted": "Návrh přijat",
+          "Declined": "Návrh odmítnut",
+          "Cancelled": "Návrh stažen",
+          "Expired": "Návrh vypršel"
+        },
+        "details": {
+          "Pending": "{{name}} vám navrhuje balíček",
+          "Accepted": "Balíček jste přijali",
+          "Declined": "Balíček jste odmítli",
+          "Cancelled": "{{name}} návrh stáhl(a)",
+          "Expired": "Nikdo neodpověděl včas"
+        }
+      },
       "scope": {
         "Both": "Trénink a výživa",
         "TrainingOnly": "Trénink",
@@ -975,13 +997,17 @@
     }
   },
   "requestSheet": {
-    "title": "Žádost pro {{name}}",
+    "title": "Žádost: {{name}}",
     "subtitle": "Představte se v pár slovech.",
     "cancel": "Zrušit",
     "messageLabel": "Zpráva (nepovinné)",
     "messagePlaceholder": "Napište, na čem chcete pracovat",
     "historyLabel": "Sdílet mou historii",
-    "historyHint": "Dřívější plány, měření a fotky z doby před spoluprací s poradcem {{name}}.",
+    "historyHint": {
+      "Trainer": "Dřívější plány, měření a fotky z doby před spoluprací s tímto trenérem.",
+      "Nutritionist": "Dřívější plány, měření a fotky z doby před spoluprací s tímto nutričním poradcem.",
+      "Any": "Dřívější plány, měření a fotky z doby před touto spoluprací."
+    },
     "onboardingCaption": "Odpovědi z vašeho úvodního dotazníku uvidí {{name}} a podle nich se připraví.",
     "submit": "Odeslat žádost",
     "packageLabel": "Balíček · nepovinné",

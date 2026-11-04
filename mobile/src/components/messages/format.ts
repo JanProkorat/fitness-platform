@@ -2,6 +2,8 @@ import type { TFunction } from 'i18next';
 
 import { CooperationCardStatus, CooperationDirection, CooperationType } from '@/api/generated';
 import type { ConversationCooperationDto } from '@/api/generated';
+import type { ClientRequest } from '@/api/clientRequests';
+import { billingUnit, formatMoney, priceAfterDiscount } from '@/components/payments/format';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const WEEK_DAYS = 7;
@@ -88,4 +90,22 @@ export function cardExpiry(t: TFunction, iso: string | undefined, now: number = 
   if (Number.isNaN(at)) return null;
   const days = Math.ceil((at - now) / DAY_MS);
   return days <= 1 ? t('chat.card.expiresToday') : t('chat.card.expiresIn', { count: days });
+}
+
+/** "Package name · 1 750 Kč / month" for an open proposal; the price is left out when payments are hidden. */
+export function proposalSummary(
+  t: TFunction,
+  language: string,
+  request: ClientRequest,
+  showPrice: boolean,
+): string | undefined {
+  const pack = request.proposal?.package;
+  if (!pack) return undefined;
+  const parts: string[] = [];
+  if (pack.name) parts.push(pack.name);
+  if (showPrice && pack.price !== undefined) {
+    const final = priceAfterDiscount(pack.price, request.proposal?.discount);
+    parts.push(`${formatMoney(final, pack.currency, language)} ${billingUnit(t, pack.billing, pack.intervalWeeks)}`);
+  }
+  return parts.length > 0 ? parts.join(' · ') : undefined;
 }

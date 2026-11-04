@@ -17,8 +17,10 @@ import type { EdgeInsets } from 'react-native-safe-area-context';
 import { REQUEST_MESSAGE_MAX_LENGTH, classifySendRequestError } from '@/api/clientRequests';
 import type { SendRequestFailure } from '@/api/clientRequests';
 import type { PublicProfilePackageDto } from '@/api/generated';
+import { coachRoles } from '@/api/professionals';
 import { Button } from '@/components/Button';
 import { Text } from '@/components/Text';
+import { useCoachProfile } from '@/hooks/useCoachProfile';
 import { useSendClientRequest } from '@/hooks/useSendClientRequest';
 import { useTheme } from '@/theme';
 import type { Theme } from '@/theme';
@@ -82,6 +84,10 @@ function SheetContent({
   const [packagePublicId, setPackagePublicId] = useState<string | undefined>(undefined);
   const mutation = useSendClientRequest(coach.publicId);
   const name = coach.firstName ?? '';
+  // The profile is already cached behind the sheet; a coach holding both roles gets the neutral hint.
+  const profile = useCoachProfile(coach.publicId);
+  const heldRoles = coachRoles(profile.data?.roles);
+  const historyHintKey = `requestSheet.historyHint.${heldRoles.length === 1 ? heldRoles[0] : 'Any'}`;
   const selectable = packages.filter((pack) => Boolean(pack.publicId));
 
   const failure = mutation.isError ? classifySendRequestError(mutation.error) : null;
@@ -188,7 +194,7 @@ function SheetContent({
               <View style={styles.toggleCopy}>
                 <Text variant="bodyStrong">{t('requestSheet.historyLabel')}</Text>
                 <Text variant="bodySmall" color="muted">
-                  {t('requestSheet.historyHint', { name })}
+                  {t(historyHintKey)}
                 </Text>
               </View>
               <Switch
