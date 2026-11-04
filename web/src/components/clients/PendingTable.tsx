@@ -19,6 +19,8 @@ const SKELETON_ROW_COUNT = 3;
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 /** A request counts as new for this long after it was sent. */
 const NEW_REQUEST_WINDOW_MS = MS_PER_DAY;
+/** Below xl the Type column yields its room to the actions; the buttons already tell a request from an invite. */
+const TYPE_COLUMN_CLASS = 'hidden xl:table-cell';
 /** The message column only fits beside the package and the actions on a wide viewport; the drawer shows it in full. */
 const MESSAGE_COLUMN_CLASS = 'hidden min-[1400px]:table-cell';
 
@@ -71,7 +73,7 @@ export default function PendingTable({ rows, isPending, isError, onRetry }: Prop
         <TableHeader>
           <TableRow>
             <TableHead>{t('clients.pendingTable.columnName')}</TableHead>
-            <TableHead>{t('clients.pendingTable.columnType')}</TableHead>
+            <TableHead className={TYPE_COLUMN_CLASS}>{t('clients.pendingTable.columnType')}</TableHead>
             <TableHead>{t('clients.pendingTable.columnPackage')}</TableHead>
             <TableHead className={MESSAGE_COLUMN_CLASS}>{t('clients.pendingTable.columnMessage')}</TableHead>
             <TableHead>{t('clients.pendingTable.columnSentAt')}</TableHead>
@@ -135,7 +137,7 @@ export default function PendingTable({ rows, isPending, isError, onRetry }: Prop
                   data-proposal={proposal ? '' : undefined}
                   className={cn(isNew && 'bg-marker/5')}
                 >
-                  <TableCell className="max-w-64">
+                  <TableCell className="max-w-48 xl:max-w-64">
                     <div className="flex items-center gap-3">
                       <ClientAvatar firstName={row.firstName || row.email} lastName={row.lastName} />
                       <div className="flex min-w-0 flex-col [&>*]:truncate">
@@ -154,7 +156,7 @@ export default function PendingTable({ rows, isPending, isError, onRetry }: Prop
                       </div>
                     </div>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className={TYPE_COLUMN_CLASS}>
                     <Badge variant="outline" className="gap-1.5">
                       <span
                         aria-hidden="true"
