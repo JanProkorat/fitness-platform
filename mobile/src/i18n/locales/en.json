@@ -167,6 +167,8 @@
     "notificationsUnread": "Notifications, {{count}} unread",
     "profile": "Profile",
     "invitesTitle": "Invites",
+    "proposalsTitle": "Package proposals",
+    "invitesAndProposalsTitle": "Invites and proposals",
     "runningNutrition": {
       "weekOf": "Week {{current}} of {{total}}",
       "week": "Week {{current}}",
@@ -524,6 +526,9 @@
     "acceptInvite": "Accept invite",
     "openHint": "Opens the invite",
     "viewInvite": "View invite",
+    "proposedYou": "{{name}} proposed a package",
+    "viewProposal": "View proposal",
+    "openProposalHint": "Opens the package proposal",
     "includesPackage": "Includes a package",
     "includesPackagePrice": "Includes a package · {{price}}",
     "roles": { "Trainer": "Trainer", "Nutritionist": "Nutritionist" },
@@ -841,6 +846,23 @@
           "Expired": "Nobody answered in time"
         }
       },
+      "proposal": {
+        "title": "Package proposal",
+        "labels": {
+          "Pending": "New proposal",
+          "Accepted": "Proposal accepted",
+          "Declined": "Proposal declined",
+          "Cancelled": "Proposal withdrawn",
+          "Expired": "Proposal expired"
+        },
+        "details": {
+          "Pending": "{{name}} proposed a package",
+          "Accepted": "You accepted the package",
+          "Declined": "You declined the package",
+          "Cancelled": "{{name}} withdrew the proposal",
+          "Expired": "Nobody answered in time"
+        }
+      },
       "scope": {
         "Both": "Training and nutrition coaching",
         "TrainingOnly": "Training coaching",
@@ -944,7 +966,11 @@
     "messageLabel": "Message (optional)",
     "messagePlaceholder": "Tell them what you want to work on",
     "historyLabel": "Share my history",
-    "historyHint": "Past plans, measurements and photos from before {{name}}.",
+    "historyHint": {
+      "Trainer": "Past plans, measurements and photos from before working with this trainer.",
+      "Nutritionist": "Past plans, measurements and photos from before working with this nutritionist.",
+      "Any": "Past plans, measurements and photos from before this collaboration."
+    },
     "onboardingCaption": "Your onboarding answers are shared with {{name}} so they can prepare.",
     "submit": "Send request",
     "packageLabel": "Package · optional",

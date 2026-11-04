@@ -59,6 +59,8 @@ export default function ChatScreen() {
   useRealtimeEvent('clientrequestaccepted', refreshOpenChat);
   useRealtimeEvent('clientrequestrejected', refreshOpenChat);
   useRealtimeEvent('clientrequestcancelled', refreshOpenChat);
+  useRealtimeEvent('clientrequestpackageproposed', refreshOpenChat);
+  useRealtimeEvent('clientrequestproposalwithdrawn', refreshOpenChat);
   useRealtimeReconnected(refreshOpenChat);
 
   // Mark the chat read on open, and again whenever a refetch brings a newer unread incoming message.

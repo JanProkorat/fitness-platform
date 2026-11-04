@@ -9,7 +9,7 @@ import { Text } from '@/components/Text';
 import { useTheme } from '@/theme';
 import type { Theme } from '@/theme';
 
-export type EventCardKind = 'invite' | 'request';
+export type EventCardKind = 'invite' | 'request' | 'proposal';
 export type EventCardDomain = 'training' | 'nutrition' | 'both';
 
 type EventCardProps = {
@@ -28,6 +28,10 @@ type EventCardProps = {
   dateText?: string;
   /** Opens the invite detail; set only for a pending invite the client received. */
   onViewInvite?: () => void;
+  /** "Package name · price" of a proposal that is still open; settled proposals carry no package. */
+  proposalText?: string;
+  /** Opens the proposal; set only while the proposal is open. */
+  onViewProposal?: () => void;
 };
 
 const DOMAIN_SYMBOLS: Record<EventCardDomain, SFSymbol> = {
@@ -47,6 +51,8 @@ export function EventCard({
   expiryText,
   dateText,
   onViewInvite,
+  proposalText,
+  onViewProposal,
 }: EventCardProps) {
   const { t } = useTranslation();
   const theme = useTheme();
@@ -67,7 +73,9 @@ export function EventCard({
   const detail =
     pending && kind === 'invite'
       ? [scopeText, expiryText].filter(Boolean).join(' · ')
-      : [t(detailKey, { name }), dateText].filter(Boolean).join(' · ');
+      : pending && kind === 'proposal' && proposalText
+        ? proposalText
+        : [t(detailKey, { name }), dateText].filter(Boolean).join(' · ');
 
   return (
     <View style={[styles.card, own ? styles.own : styles.other]}>
@@ -89,6 +97,9 @@ export function EventCard({
       </View>
       {onViewInvite ? (
         <Button label={t('invites.viewInvite')} size="small" onPress={onViewInvite} style={styles.view} />
+      ) : null}
+      {onViewProposal ? (
+        <Button label={t('invites.viewProposal')} size="small" onPress={onViewProposal} style={styles.view} />
       ) : null}
     </View>
   );
