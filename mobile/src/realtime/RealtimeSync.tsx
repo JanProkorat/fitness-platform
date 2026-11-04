@@ -38,7 +38,7 @@ const REQUEST_EVENTS: readonly string[] = [
 
 /**
  * Events that link a coach without any action on the phone: the profile, the collaborations Today
- * lists its coaches from and the plans the new coach publishes all change. An invitation links only
+ * lists its coaches from, the plans and the nutrition week plan all change. An invitation links only
  * once the client accepts it, which the accept mutation refreshes itself.
  */
 const LINK_EVENTS: readonly string[] = ['clientrequestaccepted'];
@@ -79,6 +79,8 @@ function EventRefresh({ event }: { event: string }) {
       void queryClient.invalidateQueries({ queryKey: PROFILE_QUERY_KEY });
       void queryClient.invalidateQueries({ queryKey: COLLABORATIONS_QUERY_KEY });
       void queryClient.invalidateQueries({ queryKey: PLANS_QUERY_KEY });
+      // The Nutrition tab's week plan reads the nutrition prefix and was empty before the link.
+      void queryClient.invalidateQueries({ queryKey: NUTRITION_QUERY_KEY });
     }
     if (PAYMENT_EVENTS.includes(event)) {
       void queryClient.invalidateQueries({ queryKey: PAYMENTS_QUERY_KEY });
