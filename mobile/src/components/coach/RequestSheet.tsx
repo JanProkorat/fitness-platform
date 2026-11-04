@@ -10,6 +10,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { SymbolView } from 'expo-symbols';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { EdgeInsets } from 'react-native-safe-area-context';
@@ -113,6 +114,8 @@ function SheetContent({
       style={styles.root}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
+      {/* Sits behind the sheet, so only taps outside it reach it. */}
+      <Pressable accessible={false} onPress={onClose} style={StyleSheet.absoluteFill} />
       <View accessibilityViewIsModal accessibilityLabel={t('requestSheet.title', { name })} style={styles.sheet}>
         <View style={styles.handle} />
         <ScrollView
@@ -132,13 +135,12 @@ function SheetContent({
             </View>
             <Pressable
               accessibilityRole="button"
+              accessibilityLabel={t('requestSheet.cancel')}
               hitSlop={theme.spacing.xs}
               onPress={onClose}
-              style={styles.cancel}
+              style={styles.close}
             >
-              <Text variant="body" color="muted">
-                {t('requestSheet.cancel')}
-              </Text>
+              <SymbolView name="xmark" tintColor={theme.colors.ink} size={theme.sizes.sheetCloseGlyph} />
             </Pressable>
           </View>
 
@@ -261,8 +263,13 @@ const makeStyles = (theme: Theme, insets: EdgeInsets) =>
       flex: 1,
       minWidth: 0,
     },
-    cancel: {
-      paddingHorizontal: theme.spacing.xxs,
+    close: {
+      width: theme.sizes.sheetClose,
+      height: theme.sizes.sheetClose,
+      borderRadius: theme.radii.pill,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: theme.colors.lineStrong,
     },
     field: {
       gap: theme.spacing.snug,

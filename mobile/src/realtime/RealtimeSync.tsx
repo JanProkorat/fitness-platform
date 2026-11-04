@@ -8,7 +8,8 @@ import { INVITES_QUERY_KEY } from '@/api/invites';
 import { NOTIFICATIONS_QUERY_KEY } from '@/api/notifications';
 import { PAYMENTS_QUERY_KEY } from '@/api/payments';
 import { PLANS_QUERY_KEY } from '@/api/plans';
-import { PROFILE_QUERY_KEY } from '@/api/profile';
+import { PROFILE_QUERY_KEY, PROFILE_SUMMARY_QUERY_KEY } from '@/api/profile';
+import { PENDING_QUESTIONNAIRES_QUERY_KEY, SUBMITTED_QUESTIONNAIRES_QUERY_KEY } from '@/api/questionnaires';
 import { useRefetchOnRecovery } from '@/hooks/useRefetchOnRecovery';
 
 import { useRealtimeEvent, useRealtimeReconnected } from './useRealtimeEvent';
@@ -66,6 +67,16 @@ function NutritionRefresh({ event, notifies }: { event: string; notifies: boolea
   return null;
 }
 
+/** A coach assigning a form (accepting a request sends one for the onboarding form) changes the questionnaire lists. */
+function QuestionnaireRefresh() {
+  const queryClient = useQueryClient();
+  useRealtimeEvent('questionnaireassigned', () => {
+    void queryClient.invalidateQueries({ queryKey: PENDING_QUESTIONNAIRES_QUERY_KEY });
+    void queryClient.invalidateQueries({ queryKey: SUBMITTED_QUESTIONNAIRES_QUERY_KEY });
+  });
+  return null;
+}
+
 function EventRefresh({ event }: { event: string }) {
   const queryClient = useQueryClient();
   useRealtimeEvent(event, () => {
@@ -77,6 +88,7 @@ function EventRefresh({ event }: { event: string }) {
     }
     if (LINK_EVENTS.includes(event)) {
       void queryClient.invalidateQueries({ queryKey: PROFILE_QUERY_KEY });
+      void queryClient.invalidateQueries({ queryKey: PROFILE_SUMMARY_QUERY_KEY });
       void queryClient.invalidateQueries({ queryKey: COLLABORATIONS_QUERY_KEY });
       void queryClient.invalidateQueries({ queryKey: PLANS_QUERY_KEY });
       // The Nutrition tab's week plan reads the nutrition prefix and was empty before the link.
@@ -101,6 +113,9 @@ export function RealtimeSync() {
     void queryClient.invalidateQueries({ queryKey: NOTIFICATIONS_QUERY_KEY });
     void queryClient.invalidateQueries({ queryKey: CONVERSATIONS_QUERY_KEY });
     void queryClient.invalidateQueries({ queryKey: PROFILE_QUERY_KEY });
+    void queryClient.invalidateQueries({ queryKey: PROFILE_SUMMARY_QUERY_KEY });
+    void queryClient.invalidateQueries({ queryKey: PENDING_QUESTIONNAIRES_QUERY_KEY });
+    void queryClient.invalidateQueries({ queryKey: SUBMITTED_QUESTIONNAIRES_QUERY_KEY });
     void queryClient.invalidateQueries({ queryKey: PAYMENTS_QUERY_KEY });
     void queryClient.invalidateQueries({ queryKey: COLLABORATIONS_QUERY_KEY });
     void queryClient.invalidateQueries({ queryKey: NUTRITION_QUERY_KEY });
@@ -114,6 +129,7 @@ export function RealtimeSync() {
       {REFRESH_EVENTS.map((event) => (
         <EventRefresh key={event} event={event} />
       ))}
+      <QuestionnaireRefresh />
       {NUTRITION_EVENTS.map(({ event, notifies }) => (
         <NutritionRefresh key={event} event={event} notifies={notifies} />
       ))}
