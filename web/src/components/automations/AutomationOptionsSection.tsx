@@ -42,18 +42,29 @@ export default function AutomationOptionsSection() {
   const stopAfterEnabled = useWatch({ control, name: 'stopAfterEnabled' });
   const triggerKind = useWatch({ control, name: 'triggerKind' });
   const eventType = useWatch({ control, name: 'eventType' });
-  const showOncePerPlan = triggerKind === AutomationTriggerKind.Event && isPlanEvent(eventType);
+  const checkIn = useWatch({ control, name: 'checkIn' });
+  const showOncePerPlan = !checkIn && triggerKind === AutomationTriggerKind.Event && isPlanEvent(eventType);
 
   return (
     <section className="flex flex-col gap-3" aria-label={t('automations.drawer.options.heading')}>
-      <CheckboxOption
-        name="skipWhilePreviousUnanswered"
-        label={t('automations.drawer.options.skip')}
-        hint={t('automations.drawer.options.skipHint')}
-      />
+      {checkIn ? (
+        <label className="flex items-start gap-2.5 opacity-70">
+          <Checkbox className="mt-1" checked={false} disabled />
+          <span className="flex flex-col">
+            <span className="text-copy text-ink">{t('automations.drawer.options.skip')}</span>
+            <span className="text-meta text-muted-foreground">{t('automations.drawer.options.skipCheckInHint')}</span>
+          </span>
+        </label>
+      ) : (
+        <CheckboxOption
+          name="skipWhilePreviousUnanswered"
+          label={t('automations.drawer.options.skip')}
+          hint={t('automations.drawer.options.skipHint')}
+        />
+      )}
       <div className="flex flex-col gap-2">
-        <CheckboxOption name="stopAfterEnabled" label={t('automations.drawer.options.stopAfter')} />
-        {stopAfterEnabled && (
+        {!checkIn && <CheckboxOption name="stopAfterEnabled" label={t('automations.drawer.options.stopAfter')} />}
+        {!checkIn && stopAfterEnabled && (
           <div className="ml-6.5 flex flex-col gap-1.5">
             <Input
               type="number"

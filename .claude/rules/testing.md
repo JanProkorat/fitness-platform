@@ -67,7 +67,7 @@ Test a behaviour at the cheapest layer that can prove it, and once.
   architecture test covers every endpoint's declaration, including that
   allow-listed routes still require a login. The real pipeline is proven once
   by canaries: `DismissRequestEndpointTests.Dismiss_Unauthenticated_Returns401`
-  and `PutSettingsEndpointTests.PutSettings_Unauthenticated_Returns401` for 401,
+  and `GetTrainerCheckInsEndpointTests.GetList_Unauthenticated_Returns401` for 401,
   `SessionTemplateRoleGateIntegrationTests` and
   `SubscriptionPlanRoleGateIntegrationTests` for wrong-role 403.
 - Allow-listed endpoints keep their unit `HandleAsync_NoClaims_Returns401`

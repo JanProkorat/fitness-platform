@@ -1,11 +1,11 @@
 import { useTranslation } from 'react-i18next';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
-export type ClientDetailTab = 'overview' | 'nutrition' | 'photos' | 'payment' | 'automations';
+export type ClientDetailTab = 'overview' | 'nutrition' | 'photos' | 'payment' | 'automations' | 'forms';
 
-const TAB_KEYS = ['overview', 'nutrition', 'workouts', 'storage', 'payment', 'automations'] as const;
+const TAB_KEYS = ['overview', 'nutrition', 'workouts', 'storage', 'payment', 'automations', 'forms'] as const;
 /** The `storage` label key now names the Photos tab; its route value is `photos`. */
-const LIVE_TABS: readonly string[] = ['overview', 'nutrition', 'storage', 'payment', 'automations'];
+const LIVE_TABS: readonly string[] = ['overview', 'nutrition', 'storage', 'payment', 'automations', 'forms'];
 
 function tabValue(key: (typeof TAB_KEYS)[number]): string {
   return key === 'storage' ? 'photos' : key;
@@ -19,12 +19,14 @@ interface Props {
   canViewNutritionPlans: boolean;
   /** The coach's link grants the training domain; false hides the Workouts tab. */
   canViewTrainingPlans: boolean;
+  /** Any form of the current collaboration is submitted and not yet opened; shows a dot on the Forms tab. */
+  hasNewForms?: boolean;
 }
 
 /**
  * The tab row on the client-detail page — ClientsPage's underline Tabs
  * treatment, minus the row hairline (the header draws it). The active tab comes from the
- * URL (`/clients/:clientId`, `.../nutrition`, `.../photos`, `.../payment` or `.../automations`); tabs that are
+ * URL (`/clients/:clientId`, `.../nutrition`, `.../photos`, `.../payment`, `.../automations` or `.../forms`); tabs that are
  * not built yet render disabled with the shell's coming-soon treatment.
  * Nutrition and Workouts show only for a link that grants the matching domain.
  */
@@ -33,6 +35,7 @@ export default function ClientDetailTabs({
   onTabChange,
   canViewNutritionPlans,
   canViewTrainingPlans,
+  hasNewForms = false,
 }: Props) {
   const { t } = useTranslation();
   const tabKeys = TAB_KEYS.filter((key) => {
@@ -52,7 +55,8 @@ export default function ClientDetailTabs({
           value === 'nutrition' ||
           value === 'photos' ||
           value === 'payment' ||
-          value === 'automations'
+          value === 'automations' ||
+          value === 'forms'
         ) {
           onTabChange(value);
         }
@@ -72,6 +76,12 @@ export default function ClientDetailTabs({
                 title={isLive ? undefined : t('shell.comingSoon')}
               >
                 {t(`clientDetail.overview.tabs.${key}`)}
+                {key === 'forms' && hasNewForms && (
+                  <>
+                    <span data-testid="forms-tab-dot" className="ml-1.5 size-1.75 rounded-full bg-error" aria-hidden="true" />
+                    <span className="sr-only">{t('clientForms.newAnswer')}</span>
+                  </>
+                )}
               </TabsTrigger>
             );
           })}

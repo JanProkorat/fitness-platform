@@ -36,6 +36,18 @@ public class AutomationClientOverride : TimestampableEntity
     /// <summary>Customised client-local time of day.</summary>
     public TimeOnly? LocalTime { get; set; }
 
+    /// <summary>Customised check-in weekday.</summary>
+    public DayOfWeek? ScheduleWeekday { get; set; }
+
+    /// <summary>Customised check-in answer window in hours.</summary>
+    public int? AnswerWindowHours { get; set; }
+
+    /// <summary>Customised check-in reminder delay in hours; null means no reminder.</summary>
+    public int? ReminderAfterHours { get; set; }
+
+    /// <summary>Customised notify-the-coach-on-missed-week flag.</summary>
+    public bool? NotifyCoachOnMissedWeek { get; set; }
+
     /// <summary>Customised event.</summary>
     public AutomationEventType? EventType { get; set; }
 
@@ -56,6 +68,12 @@ public class AutomationClientOverride : TimestampableEntity
 
     /// <summary>Customised enabled flag.</summary>
     public bool Enabled { get; set; } = true;
+
+    /// <summary>
+    /// When the rule was last switched on or its schedule or form last changed (UTC); null on rows that predate
+    /// the column. A weekly check-in does not start before the first full week after it.
+    /// </summary>
+    public DateTime? EnabledAtUtc { get; set; }
 
     /// <summary>Whether the rule is paused for the client.</summary>
     public bool IsPaused { get; set; }

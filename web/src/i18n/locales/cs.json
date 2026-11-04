@@ -2344,6 +2344,7 @@
   },
   "forms": {
     "eyebrow": "Formuláře",
+    "defaultBadge": "Úvodní",
     "title": "Formuláře",
     "subtitle": "Otázky, na které klienti odpovídají — na začátku i každý týden",
     "newForm": "Nový formulář",
@@ -2363,7 +2364,7 @@
       "type": "Typ"
     },
     "type": {
-      "Onboarding": "Úvodní",
+      "Onboarding": "Formulář",
       "CheckIn": "Check-in"
     },
     "table": {
@@ -2434,11 +2435,17 @@
         "star_rating": { "name": "Hodnocení hvězdami", "hint": "Spokojenost na stupnici 1–5" },
         "scale": { "name": "Stupnice" },
         "file_upload": { "name": "Nahrání souboru" },
+        "section": { "name": "Sekce", "hint": "Nadpis, který seskupí otázky pod sebou" },
         "other": { "name": "Jiná otázka" }
       },
       "info": {
         "onboarding": "Odešle se automaticky každému novému klientovi po přijetí vaší pozvánky",
-        "checkIn": "Týdenní check-in · odpovědi se zobrazí v historii check-inů každého klienta",
+        "anyTime": "Lze odeslat kdykoli, ručně nebo pravidlem v Automatizacích",
+        "checkInSent": "Odesíláno <strong>{{day}} v {{time}}</strong>",
+        "checkInReminder": "připomenutí po {{hours}} h",
+        "checkInEdit": "Upravit v Automatizacích",
+        "checkInNotSent": "Zatím se neodesílá",
+        "checkInSetUp": "Nastavit v Automatizacích",
         "questions_one": "{{count}} otázka",
         "questions_few": "{{count}} otázky",
         "questions_many": "{{count}} otázky",
@@ -2456,7 +2463,8 @@
         "question": "Otázka bez názvu",
         "option": "Možnost {{number}}",
         "low": "Velmi nízká",
-        "high": "Skvělá"
+        "high": "Skvělá",
+        "section": "Sekce bez názvu"
       },
       "card": {
         "label": "Otázka {{number}}: {{title}}",
@@ -2471,6 +2479,17 @@
         "helperPlaceholder": "Nápověda (volitelná)",
         "required": "Povinná",
         "requiredToggle": "Povinná"
+      },
+      "section": {
+        "chip": "Sekce",
+        "label": "Sekce {{number}}: {{title}}",
+        "reorder": "Přesunout sekci {{number}}",
+        "duplicate": "Duplikovat sekci {{number}}",
+        "delete": "Smazat sekci {{number}}",
+        "titleLabel": "Název sekce {{number}}",
+        "titlePlaceholder": "Pojmenujte sekci",
+        "descriptionLabel": "Popis sekce {{number}}",
+        "descriptionPlaceholder": "Popis (nepovinný)"
       },
       "choice": {
         "reorder": "Změnit pořadí možnosti {{number}}",
@@ -2523,7 +2542,8 @@
         "options": "Přidejte alespoň jednu možnost a vyplňte všechny možnosti.",
         "numberInvalid": "Min a max musí být čísla.",
         "numberRange": "Min nemůže být vyšší než max.",
-        "smileyLabels": "Vyplňte oba popisky obličejů."
+        "smileyLabels": "Vyplňte oba popisky obličejů.",
+        "onlySections": "Kromě sekcí přidejte alespoň jednu otázku."
       }
     },
     "create": {
@@ -2537,12 +2557,103 @@
       "descriptionInvalid": "Popis může mít nejvýše {{max}} znaků.",
       "type": "Typ",
       "typeHint": {
-        "Onboarding": "Posílá se jednou novému klientovi",
+        "Onboarding": "Lze odeslat kdykoli, ručně nebo pravidlem v Automatizacích",
         "CheckIn": "Klient odpovídá každý týden"
       },
       "submit": "Vytvořit formulář",
       "invalid": "Zkontrolujte název a typ a zkuste to znovu.",
       "error": "Formulář se nepodařilo vytvořit. Zkuste to prosím znovu."
+    }
+  },
+  "clientForms": {
+    "tab": "Formuláře",
+    "newAnswer": "Nová odpověď",
+    "new": "Nové",
+    "waiting": "Čeká",
+    "missed": "Zmeškáno",
+    "intro": "Odpovědi klienta z této spolupráce. Otevřete některou a přečtěte si ji vedle plánu.",
+    "empty": "V této spolupráci zatím nebyl odeslán žádný formulář.",
+    "loadError": "Formuláře se nepodařilo načíst. Zkuste to prosím znovu.",
+    "retry": "Zkusit znovu",
+    "avoids": "Vyhýbá se: {{items}}",
+    "allForms": "Všechny formuláře v profilu klienta",
+    "kind": {
+      "Onboarding": "Vstupní dotazník",
+      "Questionnaire": "Dotazník",
+      "CheckIn": "Check-in"
+    },
+    "card": {
+      "sent": "Odesláno {{date}} · zatím bez odpovědi",
+      "missed": "Zmeškáno · termín byl {{date}}",
+      "latestAnswered": "Poslední · odpovězeno {{date}}",
+      "answered_one": "Odpovězeno {{date}} · {{count}} otázka",
+      "answered_few": "Odpovězeno {{date}} · {{count}} otázky",
+      "answered_many": "Odpovězeno {{date}} · {{count}} otázky",
+      "answered_other": "Odpovězeno {{date}} · {{count}} otázek"
+    },
+    "popover": {
+      "meta_one": "{{name}} · odpovězeno {{date}} · {{count}} otázka",
+      "meta_few": "{{name}} · odpovězeno {{date}} · {{count}} otázky",
+      "meta_many": "{{name}} · odpovězeno {{date}} · {{count}} otázky",
+      "meta_other": "{{name}} · odpovězeno {{date}} · {{count}} otázek",
+      "openInProfile": "Otevřít v profilu klienta"
+    },
+    "answers": {
+      "noAnswer": "Bez odpovědi"
+    },
+    "page": {
+      "title": "Formuláře",
+      "counts": "{{answered}} zodpovězeno · {{waiting}} čeká",
+      "send": "Odeslat formulář",
+      "sendAnother": "Odeslat další formulář",
+      "filterLabel": "Filtrovat formuláře",
+      "filters": {
+        "all": "Vše",
+        "onboarding": "Vstupní dotazník",
+        "questionnaire": "Dotazníky",
+        "checkin": "Check-iny"
+      },
+      "thisCollaboration": "Tato spolupráce",
+      "previous_one": "Předchozí spolupráce · {{year}} · {{count}} formulář",
+      "previous_few": "Předchozí spolupráce · {{year}} · {{count}} formuláře",
+      "previous_many": "Předchozí spolupráce · {{year}} · {{count}} formuláře",
+      "previous_other": "Předchozí spolupráce · {{year}} · {{count}} formulářů",
+      "noMatch": "Zatím žádné formuláře tohoto druhu.",
+      "selectAForm": "Vyberte zodpovězený formulář, který chcete číst.",
+      "noLink": "Formuláře klienta {{name}} už nejsou dostupné, protože spolupráce skončila.",
+      "emptyTitle": "Od klienta {{name}} zatím nejsou žádné odpovědi",
+      "emptyBody": "Až klient {{name}} formulář odešle zpět, odpovědi se zobrazí tady. Přečíst si je můžete i v editoru plánu při jeho tvorbě.",
+      "weekTitle": "{{title}} · týden {{week}}",
+      "weekShort": "T{{week}}",
+      "stripLabel": "Týdny check-inu",
+      "strip": {
+        "Answered": "zodpovězeno",
+        "Missed": "zmeškáno",
+        "Waiting": "čeká"
+      },
+      "checkInCard_one": "Týden {{week}} zodpovězen {{date}} · {{count}} otázka",
+      "checkInCard_few": "Týden {{week}} zodpovězen {{date}} · {{count}} otázky",
+      "checkInCard_many": "Týden {{week}} zodpovězen {{date}} · {{count}} otázky",
+      "checkInCard_other": "Týden {{week}} zodpovězen {{date}} · {{count}} otázek",
+      "checkInMeta": "Odesláno {{sent}} · zodpovězeno {{answered}}",
+      "notReviewed": "zatím neposouzeno",
+      "reviewedOn": "Posouzeno {{date}}",
+      "markReviewed": "Označit jako posouzené",
+      "replyInChat": "Odpovědět v chatu",
+      "markError": "Check-in se nepodařilo označit jako posouzený. Zkuste to prosím znovu.",
+      "jumpTo": "Přejít na sekci",
+      "changeVsWeek": "{{change}} oproti týdnu {{week}}",
+      "sameAsWeek": "stejně jako v týdnu {{week}}"
+    },
+    "send": {
+      "title": "Odeslat formulář klientovi {{name}}",
+      "description": "Vyberte jeden ze svých aktivních formulářů. Klient {{name}} ho dostane v aplikaci.",
+      "pick": "Vyberte formulář",
+      "confirm": "Odeslat",
+      "empty": "Nemáte žádné aktivní formuláře k odeslání. Nejdřív nějaký vytvořte v sekci Formuláře.",
+      "loadError": "Vaše formuláře se nepodařilo načíst. Zkuste to prosím znovu.",
+      "success": "Formulář odeslán.",
+      "error": "Formulář se nepodařilo odeslat. Zkuste to prosím znovu."
     }
   },
   "clientPlanEditor": {
@@ -2572,7 +2683,7 @@
       "action": "Ukončit plán"
     },
     "info": {
-      "tab": "Info o plánu",
+      "tab": "Info",
       "name": "Název plánu",
       "dates": "Termín",
       "starts": "Začátek",
@@ -3149,6 +3260,12 @@
     "AUTOMATION_NO_OVERRIDE_TO_RESET": "Toto pravidlo nemá pro tohoto klienta žádné úpravy, které by šlo vrátit.",
     "AUTOMATION_CLIENT_ONLY_RULE_NOT_OVERRIDABLE": "Pravidlo jen pro jednoho klienta nejde upravit pro klienta, pozastavit ani vrátit. Upravte ho přímo.",
     "AUTOMATION_AUDIENCE_NOT_ALLOWED_ON_CLIENT_ONLY_RULE": "Pravidlo jen pro jednoho klienta nemá okruh klientů k výběru.",
+    "CHECK_IN_RULE_EXISTS": "Týdenní check-in už máte zapnutý. Nejprve ho vypněte, nebo upravte ten stávající.",
+    "AUTOMATION_CHECK_IN_INVALID": "Týdenní check-in potřebuje den v týdnu, čas, dobu na odpověď a týdenní interval.",
+    "AUTOMATION_CHECK_IN_FIELDS_NOT_ALLOWED": "Den v týdnu, doba na odpověď a připomenutí patří jen pravidlům týdenního check-inu.",
+    "CHECK_INS_NOT_ENTITLED": "Týdenní check-iny nejsou ve vašem tarifu.",
+    "PER_CLIENT_CHECK_IN_CONFIG_NOT_ENTITLED": "Úprava týdenního check-inu pro jednoho klienta není ve vašem tarifu.",
+    "CHECK_IN_ANSWER_WINDOW_CLOSED": "Čas na odpověď na tento check-in už vypršel.",
     "INVALID_CREDENTIALS": "Neplatný email nebo heslo.",
     "ACCOUNT_DEACTIVATED": "Váš účet byl deaktivován.",
     "INVALID_REFRESH_TOKEN": "Vaše relace vypršela. Přihlaste se znovu.",
@@ -3192,6 +3309,7 @@
     "REQUIRED": "Toto pole je povinné.",
     "OUT_OF_RANGE": "Hodnota je mimo povolený rozsah.",
     "INVALID_DEADLINE_OFFSET_HOURS": "Neplatná lhůta. Povolené hodnoty: 24, 48, 72, 120 nebo 168 hodin.",
+    "QUESTION_SECTION_INVALID": "Sekce nemůže být povinná ani mít napojené pole.",
     "SESSION_ALREADY_COMPLETED": "Tento trénink byl již dokončen.",
     "CONVERSATION_LOCKED": "Odpovědět můžete, jakmile klient vaši pozvánku přijme.",
     "SECTION_ALREADY_COMPLETED": "Tato část tréninku byla již dokončena klientem — úpravy nejsou možné.",
@@ -4187,8 +4305,7 @@
         "changedFrom": "Změněno oproti: {{when}}",
         "paused": "Pozastaveno",
         "pausedUntil": "Pozastaveno do {{date}}",
-        "linkedSubtitle": "{{profession}} · Spravuje se v nastavení check-inu",
-        "linkedSubtitleOnly": "Spravuje se v nastavení check-inu"
+        "changedFromWeekday": "Změněno z: {{day}}"
       },
       "result": {
         "notSent": "Zatím neodesláno",
@@ -4873,7 +4990,8 @@
         "workouts": "Tréninky",
         "storage": "Fotky",
         "payment": "Platby",
-        "automations": "Automatizace"
+        "automations": "Automatizace",
+        "forms": "Formuláře"
       },
       "stats": {
         "mealCompliance": {
@@ -6061,7 +6179,6 @@
     }
   },
   "automations": {
-    "eyebrow": "Formuláře",
     "title": "Automatizace",
     "subtitle": "Pravidla, která posílají formuláře a požadavky sama. Pravidlo pro jednoho klienta změníte na jeho záložce Automatizace.",
     "newRule": "Nové pravidlo",
@@ -6145,21 +6262,31 @@
       "offsetInactive_other": "{{event}} {{count}} dní",
       "subtitleForm": "Formulář · {{name}}",
       "subtitleFormUnknown": "Formulář",
+      "subtitleCheckInReminder": "Formulář · {{name}} · připomenutí po {{hours}} h",
+      "checkInWhen": "{{day}}, {{time}}",
       "subtitlePhotos": "Fotky pokroku",
       "subtitleMeasurements": "Tělesná měření",
       "toggle": "Zapnout pravidlo „{{name}}“"
     },
-    "linked": {
-      "title": "Týdenní check-in",
-      "subtitle": {
-        "Training": "Trénink",
-        "Nutrition": "Výživa"
+    "weekday": {
+      "every": {
+        "Monday": "každé pondělí",
+        "Tuesday": "každé úterý",
+        "Wednesday": "každou středu",
+        "Thursday": "každý čtvrtek",
+        "Friday": "každý pátek",
+        "Saturday": "každou sobotu",
+        "Sunday": "každou neděli"
       },
-      "when": "Jednou týdně",
-      "action": "Check-in",
-      "badge": "Propojeno",
-      "off": "Vypnuto",
-      "open": "Otevřít"
+      "short": {
+        "Monday": "Po",
+        "Tuesday": "Út",
+        "Wednesday": "St",
+        "Thursday": "Čt",
+        "Friday": "Pá",
+        "Saturday": "So",
+        "Sunday": "Ne"
+      }
     },
     "actions": {
       "SendForm": "Poslat formulář",
@@ -6220,6 +6347,13 @@
         "clientTime": "Čas klienta",
         "starting": "Začátek",
         "startingFixed": "Od data zahájení každého klienta",
+        "startingCheckIn": "Od prvního celého týdne každého klienta",
+        "weekdayLabel": "Každý týden v",
+        "answerWithin": "Odpovědět do",
+        "answerWindowDays_one": "{{count}} den",
+        "answerWindowDays_few": "{{count}} dny",
+        "answerWindowDays_other": "{{count}} dní",
+        "answerWindowHint": "Poté se týden počítá jako zmeškaný",
         "eventLabel": "Událost",
         "timing": "Načasování",
         "daysAfter": "Dní po",
@@ -6237,7 +6371,12 @@
         "formOption_few": "{{title}} · {{count}} otázky",
         "formOption_many": "{{title}} · {{count}} otázky",
         "formOption_other": "{{title}} · {{count}} otázek",
+        "formOptionCheckIn": "{{title}} · formulář check-inu",
+        "formHintCheckIn": "Otázky změníte ve Formulářích › {{title}}",
         "formsError": "Formuláře se nepodařilo načíst.",
+        "reminder": "Připomenout klientovi po {{hours}} h, pokud neodpoví",
+        "missedWeek": "Upozornit mě na zmeškaný týden",
+        "missedWeekHint": "Jedno upozornění za zmeškaný týden, ne za každé připomenutí",
         "message": "Zpráva",
         "counter": "{{current}} / {{max}}"
       },
@@ -6260,6 +6399,7 @@
         "heading": "Možnosti",
         "skip": "Přeskočit klienta, dokud předchozí požadavek nemá odpověď",
         "skipHint": "Požadavky se nehromadí.",
+        "skipCheckInHint": "U check-inů vypnuto: každý týden stojí sám za sebe a nezodpovězený týden se počítá jako zmeškaný.",
         "stopAfter": "Skončit po určitém počtu odeslání",
         "stopAfterCount": "Počet odeslání",
         "oncePerPlan": "Jednou za plán",

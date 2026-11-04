@@ -1,86 +1,37 @@
 using System.Net;
 using System.Net.Http.Json;
 using FluentAssertions;
-using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
-using FitnessPlatform.Application.Infrastructure.Data;
-using FitnessPlatform.Application.Infrastructure.Services;
 using FitnessPlatform.Tests.Builders;
 using FitnessPlatform.Tests.Infrastructure;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace FitnessPlatform.Tests.Endpoints.WeeklyCheckIns;
 
 /// <summary>
-/// Integration tests for GET /trainer/clients/{clientUserId}/weekly-check-ins/history.
-/// Trainers are created with the default Europe/Prague time zone.
+/// Integration tests for GET /trainer/clients/{clientUserId}/weekly-check-ins/history, read from the
+/// coach's check-in form responses of the current collaboration.
 /// </summary>
 [Collection(TestCollection.Name)]
 public class GetClientCheckInHistoryEndpointTests(FitnessApiFactory factory)
 {
-    private static DateOnly Anchor() =>
-        WeeklyCheckInScheduler.NextIsoMonday(
-            TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeZoneInfo.FindSystemTimeZoneById("Europe/Prague")));
-
-    private async Task<(Actor Trainer, Actor Client)> LinkedPairAsync()
-    {
-        var trainer = await TestActors.Trainer(factory).CreateAsync(TestContext.Current.CancellationToken);
-        var client = await TestActors.Client(factory).CreateAsync(TestContext.Current.CancellationToken);
-        await TestActors.Link(factory, trainer, client).CreateAsync(TestContext.Current.CancellationToken);
-        return (trainer, client);
-    }
-
-    private async Task InsertAsync(
-        Guid clientUserId,
-        Guid professionalUserId,
-        DateOnly week,
-        WeeklyCheckInStatus status,
-        DateTime? respondedAt = null,
-        DateTime? dueAt = null,
-        Profession profession = Profession.Training,
-        DateTime? sentAt = null)
-    {
-        using var scope = factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-
-        db.WeeklyCheckIns.Add(new WeeklyCheckIn
-        {
-            ClientUserId = clientUserId,
-            ProfessionalUserId = professionalUserId,
-            Profession = profession,
-            WeekStartDate = week,
-            SentAt = sentAt ?? DateTime.UtcNow.AddDays(-1),
-            RespondedAt = respondedAt,
-            DueAt = dueAt,
-            Status = status,
-            DateCreated = DateTime.UtcNow,
-            DateModified = DateTime.UtcNow
-        });
-
-        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
-    }
+    private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
     private static async Task<HistoryBody> GetAsync(Actor trainer, Guid clientUserId, string query = "")
     {
         var response = await trainer.Http.GetAsync(
-            $"/trainer/clients/{clientUserId}/weekly-check-ins/history{query}",
-            TestContext.Current.CancellationToken);
+            $"/trainer/clients/{clientUserId}/weekly-check-ins/history{query}", Ct);
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var body = await response.Content.ReadFromJsonAsync<HistoryBody>(
-            cancellationToken: TestContext.Current.CancellationToken);
-        return body!;
+        return (await response.Content.ReadFromJsonAsync<HistoryBody>(cancellationToken: Ct))!;
     }
 
     [Fact]
     public async Task GetHistory_NoLink_Returns404()
     {
-        var trainer = await TestActors.Trainer(factory).CreateAsync(TestContext.Current.CancellationToken);
-        var client = await TestActors.Client(factory).CreateAsync(TestContext.Current.CancellationToken);
+        var trainer = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var client = await TestActors.Client(factory).CreateAsync(Ct);
 
-        var response = await trainer.Http.GetAsync(
-            $"/trainer/clients/{client.UserId}/weekly-check-ins/history",
-            TestContext.Current.CancellationToken);
+        var response = await trainer.Http.GetAsync($"/trainer/clients/{client.UserId}/weekly-check-ins/history", Ct);
 
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
@@ -88,16 +39,14 @@ public class GetClientCheckInHistoryEndpointTests(FitnessApiFactory factory)
     [Fact]
     public async Task GetHistory_LinkGrantsNothing_Returns403()
     {
-        var trainer = await TestActors.Trainer(factory).CreateAsync(TestContext.Current.CancellationToken);
-        var client = await TestActors.Client(factory).CreateAsync(TestContext.Current.CancellationToken);
+        var trainer = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var client = await TestActors.Client(factory).CreateAsync(Ct);
         await TestActors.Link(factory, trainer, client)
             .CanViewNutritionPlans(false)
             .CanViewTrainingPlans(false)
-            .CreateAsync(TestContext.Current.CancellationToken);
+            .CreateAsync(Ct);
 
-        var response = await trainer.Http.GetAsync(
-            $"/trainer/clients/{client.UserId}/weekly-check-ins/history",
-            TestContext.Current.CancellationToken);
+        var response = await trainer.Http.GetAsync($"/trainer/clients/{client.UserId}/weekly-check-ins/history", Ct);
 
         response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
     }
@@ -105,23 +54,22 @@ public class GetClientCheckInHistoryEndpointTests(FitnessApiFactory factory)
     [Fact]
     public async Task GetHistory_WeeksOutOfRange_Returns400()
     {
-        var (trainer, client) = await LinkedPairAsync();
+        var scenario = await CheckInFixtures.CreateScenarioAsync(factory);
 
-        var response = await trainer.Http.GetAsync(
-            $"/trainer/clients/{client.UserId}/weekly-check-ins/history?weeks=27",
-            TestContext.Current.CancellationToken);
+        var response = await scenario.Coach.Http.GetAsync(
+            $"/trainer/clients/{scenario.Client.UserId}/weekly-check-ins/history?weeks=27", Ct);
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 
     [Fact]
-    public async Task GetHistory_NoRows_ReturnsEightNoneWeeksOldestFirstEndingAtAnchor()
+    public async Task GetHistory_NoRows_ReturnsEightNoneWeeksOldestFirstEndingThisWeek()
     {
-        var (trainer, client) = await LinkedPairAsync();
+        var scenario = await CheckInFixtures.CreateScenarioAsync(factory);
 
-        var body = await GetAsync(trainer, client.UserId);
+        var body = await GetAsync(scenario.Coach, scenario.Client.UserId);
 
-        var anchor = Anchor();
+        var anchor = CheckInFixtures.Monday(0);
         body.Weeks.Should().HaveCount(8);
         body.Weeks.Select(w => w.Status).Should().OnlyContain(status => status == "none");
         body.Weeks.Select(w => w.WeekStartDate).Should().BeInAscendingOrder();
@@ -132,69 +80,39 @@ public class GetClientCheckInHistoryEndpointTests(FitnessApiFactory factory)
     }
 
     [Fact]
-    public async Task GetHistory_MixedWeeks_ReturnsStatusesAndCounts()
+    public async Task GetHistory_MixedWeeks_ReturnsStatusesCountsAndSentAt()
     {
-        var (trainer, client) = await LinkedPairAsync();
-        var anchor = Anchor();
+        var scenario = await CheckInFixtures.CreateScenarioAsync(factory);
 
-        await InsertAsync(client.UserId, trainer.UserId, anchor, WeeklyCheckInStatus.Pending,
-            dueAt: DateTime.UtcNow.AddDays(2));
-        await InsertAsync(client.UserId, trainer.UserId, anchor.AddDays(-7), WeeklyCheckInStatus.Responded,
-            respondedAt: DateTime.UtcNow.AddDays(-6));
-        await InsertAsync(client.UserId, trainer.UserId, anchor.AddDays(-14), WeeklyCheckInStatus.Expired,
-            dueAt: DateTime.UtcNow.AddDays(-12));
+        await CheckInFixtures.AddCheckInAsync(
+            factory, scenario, CheckInFixtures.Monday(0), DateTime.UtcNow.AddDays(2));
+        await CheckInFixtures.AddCheckInAsync(
+            factory, scenario, CheckInFixtures.Monday(1), DateTime.UtcNow.AddDays(-5),
+            QuestionnaireResponseStatus.Submitted, DateTime.UtcNow.AddDays(-6));
+        await CheckInFixtures.AddCheckInAsync(
+            factory, scenario, CheckInFixtures.Monday(2), DateTime.UtcNow.AddHours(-1));
 
-        var body = await GetAsync(trainer, client.UserId, "?weeks=4");
+        var body = await GetAsync(scenario.Coach, scenario.Client.UserId, "?weeks=4");
 
         body.Weeks.Select(w => w.Status).Should().Equal("none", "missed", "answered", "waiting");
+        body.Weeks[0].SentAt.Should().BeNull();
+        body.Weeks[1..].Should().OnlyContain(w => w.SentAt != null && w.HungerScore == null);
         body.AnsweredCount.Should().Be(1);
         body.TotalCount.Should().Be(2);
     }
 
     [Fact]
-    public async Task GetHistory_PendingPastDueAt_CountsAsMissed()
+    public async Task GetHistory_SameWeekAnsweredAndMissed_AnsweredWinsAndCountsOnce()
     {
-        var (trainer, client) = await LinkedPairAsync();
-        var anchor = Anchor();
+        var scenario = await CheckInFixtures.CreateScenarioAsync(factory);
+        var week = CheckInFixtures.Monday(0);
 
-        await InsertAsync(client.UserId, trainer.UserId, anchor, WeeklyCheckInStatus.Pending,
-            dueAt: DateTime.UtcNow.AddHours(-1));
+        await CheckInFixtures.AddCheckInAsync(factory, scenario, week, DateTime.UtcNow.AddHours(-3));
+        await CheckInFixtures.AddCheckInAsync(
+            factory, scenario, week, DateTime.UtcNow.AddHours(5),
+            QuestionnaireResponseStatus.Submitted, DateTime.UtcNow.AddHours(-1));
 
-        var body = await GetAsync(trainer, client.UserId, "?weeks=1");
-
-        body.Weeks.Should().ContainSingle().Which.Status.Should().Be("missed");
-        body.TotalCount.Should().Be(1);
-    }
-
-    [Fact]
-    public async Task GetHistory_CountsCoverRowsOutsideWindow()
-    {
-        var (trainer, client) = await LinkedPairAsync();
-        var anchor = Anchor();
-
-        await InsertAsync(client.UserId, trainer.UserId, anchor.AddDays(-70), WeeklyCheckInStatus.Responded,
-            respondedAt: DateTime.UtcNow.AddDays(-69));
-        await InsertAsync(client.UserId, trainer.UserId, anchor.AddDays(-63), WeeklyCheckInStatus.Expired);
-
-        var body = await GetAsync(trainer, client.UserId, "?weeks=1");
-
-        body.Weeks.Should().ContainSingle().Which.Status.Should().Be("none");
-        body.AnsweredCount.Should().Be(1);
-        body.TotalCount.Should().Be(2);
-    }
-
-    [Fact]
-    public async Task GetHistory_SameWeekTwoProfessions_AnsweredWinsAndCountsOnce()
-    {
-        var (trainer, client) = await LinkedPairAsync();
-        var anchor = Anchor();
-
-        await InsertAsync(client.UserId, trainer.UserId, anchor, WeeklyCheckInStatus.Expired,
-            profession: Profession.Training);
-        await InsertAsync(client.UserId, trainer.UserId, anchor, WeeklyCheckInStatus.Responded,
-            respondedAt: DateTime.UtcNow.AddHours(-3), profession: Profession.Nutrition);
-
-        var body = await GetAsync(trainer, client.UserId, "?weeks=1");
+        var body = await GetAsync(scenario.Coach, scenario.Client.UserId, "?weeks=1");
 
         body.Weeks.Should().ContainSingle().Which.Status.Should().Be("answered");
         body.AnsweredCount.Should().Be(1);
@@ -202,124 +120,42 @@ public class GetClientCheckInHistoryEndpointTests(FitnessApiFactory factory)
     }
 
     [Fact]
-    public async Task GetHistory_OtherProfessionalsRows_AreIgnored()
+    public async Task GetHistory_CountsCoverRowsOutsideWindow()
     {
-        var (trainer, client) = await LinkedPairAsync();
-        var otherTrainer = await TestActors.Trainer(factory).CreateAsync(TestContext.Current.CancellationToken);
-        var anchor = Anchor();
+        var scenario = await CheckInFixtures.CreateScenarioAsync(factory);
 
-        await InsertAsync(client.UserId, otherTrainer.UserId, anchor, WeeklyCheckInStatus.Responded,
-            respondedAt: DateTime.UtcNow.AddHours(-2));
+        await CheckInFixtures.AddCheckInAsync(
+            factory, scenario, CheckInFixtures.Monday(10), DateTime.UtcNow.AddDays(-69),
+            QuestionnaireResponseStatus.Submitted, DateTime.UtcNow.AddDays(-69));
+        await CheckInFixtures.AddCheckInAsync(
+            factory, scenario, CheckInFixtures.Monday(9), DateTime.UtcNow.AddDays(-62));
+        await CheckInFixtures.AddCheckInAsync(
+            factory, scenario, CheckInFixtures.Monday(0), DateTime.UtcNow.AddDays(2));
 
-        var body = await GetAsync(trainer, client.UserId, "?weeks=1");
+        var body = await GetAsync(scenario.Coach, scenario.Client.UserId, "?weeks=1");
+
+        body.Weeks.Should().ContainSingle().Which.Status.Should().Be("waiting");
+        body.AnsweredCount.Should().Be(1);
+        body.TotalCount.Should().Be(2);
+    }
+
+    [Fact]
+    public async Task GetHistory_OtherCoachsRowsAndEarlierCollaboration_AreIgnored()
+    {
+        var scenario = await CheckInFixtures.CreateScenarioAsync(factory, activatedAtUtc: DateTime.UtcNow.AddDays(-3));
+        var otherCoach = await CheckInFixtures.CreateScenarioAsync(factory, client: scenario.Client);
+        await CheckInFixtures.AddCheckInAsync(
+            factory, otherCoach, CheckInFixtures.Monday(0), DateTime.UtcNow.AddDays(2),
+            QuestionnaireResponseStatus.Submitted, DateTime.UtcNow.AddHours(-2));
+        await CheckInFixtures.AddCheckInAsync(
+            factory, scenario, CheckInFixtures.Monday(2), DateTime.UtcNow.AddDays(-10),
+            QuestionnaireResponseStatus.Submitted, DateTime.UtcNow.AddDays(-12));
+
+        var body = await GetAsync(scenario.Coach, scenario.Client.UserId, "?weeks=1");
 
         body.Weeks.Should().ContainSingle().Which.Status.Should().Be("none");
         body.AnsweredCount.Should().Be(0);
         body.TotalCount.Should().Be(0);
-    }
-
-    [Fact]
-    public async Task GetHistory_MixedWeeks_SentAtComesFromRowAndIsNullForNone()
-    {
-        var (trainer, client) = await LinkedPairAsync();
-        var anchor = Anchor();
-        var waitingSent = new DateTime(2030, 1, 1, 8, 0, 0, DateTimeKind.Utc);
-        var answeredSent = new DateTime(2030, 1, 2, 8, 0, 0, DateTimeKind.Utc);
-        var missedSent = new DateTime(2030, 1, 3, 8, 0, 0, DateTimeKind.Utc);
-
-        await InsertAsync(client.UserId, trainer.UserId, anchor, WeeklyCheckInStatus.Pending,
-            dueAt: DateTime.UtcNow.AddDays(2), sentAt: waitingSent);
-        await InsertAsync(client.UserId, trainer.UserId, anchor.AddDays(-7), WeeklyCheckInStatus.Responded,
-            respondedAt: DateTime.UtcNow.AddDays(-6), sentAt: answeredSent);
-        await InsertAsync(client.UserId, trainer.UserId, anchor.AddDays(-14), WeeklyCheckInStatus.Expired,
-            sentAt: missedSent);
-
-        var body = await GetAsync(trainer, client.UserId, "?weeks=4");
-
-        body.Weeks.Select(w => w.SentAt).Should().Equal(null, missedSent, answeredSent, waitingSent);
-    }
-
-    [Fact]
-    public async Task GetHistory_SameWeekTwoProfessions_SentAtBelongsToWinningRow()
-    {
-        var (trainer, client) = await LinkedPairAsync();
-        var anchor = Anchor();
-        var losingSent = new DateTime(2030, 2, 1, 8, 0, 0, DateTimeKind.Utc);
-        var winningSent = new DateTime(2030, 2, 2, 8, 0, 0, DateTimeKind.Utc);
-
-        await InsertAsync(client.UserId, trainer.UserId, anchor, WeeklyCheckInStatus.Expired,
-            profession: Profession.Training, sentAt: losingSent);
-        await InsertAsync(client.UserId, trainer.UserId, anchor, WeeklyCheckInStatus.Responded,
-            respondedAt: DateTime.UtcNow.AddHours(-3), profession: Profession.Nutrition, sentAt: winningSent);
-
-        var body = await GetAsync(trainer, client.UserId, "?weeks=1");
-
-        body.Weeks.Should().ContainSingle().Which.SentAt.Should().Be(winningSent);
-    }
-
-    [Fact]
-    public async Task GetHistory_SameWeekTwoProfessionsBothMissed_SentAtIsTheLaterOne()
-    {
-        var (trainer, client) = await LinkedPairAsync();
-        var anchor = Anchor();
-        var earlierSent = new DateTime(2030, 3, 1, 8, 0, 0, DateTimeKind.Utc);
-        var laterSent = new DateTime(2030, 3, 2, 8, 0, 0, DateTimeKind.Utc);
-
-        await InsertAsync(client.UserId, trainer.UserId, anchor, WeeklyCheckInStatus.Expired,
-            profession: Profession.Nutrition, sentAt: laterSent);
-        await InsertAsync(client.UserId, trainer.UserId, anchor, WeeklyCheckInStatus.Expired,
-            profession: Profession.Training, sentAt: earlierSent);
-
-        var body = await GetAsync(trainer, client.UserId, "?weeks=1");
-
-        var week = body.Weeks.Should().ContainSingle().Subject;
-        week.Status.Should().Be("missed");
-        week.SentAt.Should().Be(laterSent);
-        body.TotalCount.Should().Be(1);
-    }
-
-    [Fact]
-    public async Task GetHistory_AnsweredWeekWithHungerScore_ExposesScoreOnThatWeek()
-    {
-        var (trainer, client) = await LinkedPairAsync();
-        var anchor = Anchor();
-
-        using (var scope = factory.Services.CreateScope())
-        {
-            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-            db.WeeklyCheckIns.Add(new WeeklyCheckIn
-            {
-                ClientUserId = client.UserId,
-                ProfessionalUserId = trainer.UserId,
-                Profession = Profession.Nutrition,
-                WeekStartDate = anchor,
-                SentAt = DateTime.UtcNow.AddDays(-1),
-                RespondedAt = DateTime.UtcNow,
-                Status = WeeklyCheckInStatus.Responded,
-                HungerScore = 4,
-                DateCreated = DateTime.UtcNow,
-                DateModified = DateTime.UtcNow
-            });
-            await db.SaveChangesAsync(TestContext.Current.CancellationToken);
-        }
-
-        var body = await GetAsync(trainer, client.UserId, "?weeks=1");
-
-        var week = body.Weeks.Should().ContainSingle().Subject;
-        week.Status.Should().Be("answered");
-        week.HungerScore.Should().Be(4);
-    }
-
-    [Fact]
-    public async Task GetHistory_AnsweredWeekWithoutHungerScore_ReturnsNullScore()
-    {
-        var (trainer, client) = await LinkedPairAsync();
-        await InsertAsync(client.UserId, trainer.UserId, Anchor(), WeeklyCheckInStatus.Responded,
-            respondedAt: DateTime.UtcNow);
-
-        var body = await GetAsync(trainer, client.UserId, "?weeks=1");
-
-        body.Weeks.Should().ContainSingle().Which.HungerScore.Should().BeNull();
     }
 
     private sealed record HistoryBody(List<WeekBody> Weeks, int AnsweredCount, int TotalCount);

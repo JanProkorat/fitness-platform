@@ -32,6 +32,7 @@ export const clientQuestionnaireQueryKey = (linkPublicId: string, responsePublic
   ['questionnaires', 'client', linkPublicId, responsePublicId] as const;
 
 const REQUIRED_ANSWER_MISSING = 'QUESTIONNAIRE_REQUIRED_ANSWER_MISSING';
+const CHECK_IN_ANSWER_WINDOW_CLOSED = 'CHECK_IN_ANSWER_WINDOW_CLOSED';
 
 export type QuestionnaireFailure =
   | 'network'
@@ -58,7 +59,8 @@ export function classifyQuestionnaireError(error: unknown): QuestionnaireFailure
   if (isNetworkError(error)) return 'network';
   const status = getErrorStatus(error);
   if (status === 404) return 'unavailable';
-  if (status === 409) return 'alreadySent';
+  // A check-in past its answer window is gone for good; any other conflict means it was already sent.
+  if (status === 409) return readCode(error) === CHECK_IN_ANSWER_WINDOW_CLOSED ? 'unavailable' : 'alreadySent';
   if (status === 400) return readCode(error) === REQUIRED_ANSWER_MISSING ? 'requiredMissing' : 'saveFailed';
   return 'generic';
 }

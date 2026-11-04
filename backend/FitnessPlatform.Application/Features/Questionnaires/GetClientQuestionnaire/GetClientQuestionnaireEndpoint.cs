@@ -2,12 +2,13 @@ using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
 namespace FitnessPlatform.Application.Features.Questionnaires.GetClientQuestionnaire;
 
-public class GetClientQuestionnaireEndpoint(IApplicationDbContext db)
+public class GetClientQuestionnaireEndpoint(IApplicationDbContext db, TimeProvider timeProvider)
     : Endpoint<GetClientQuestionnaireRequest, GetClientQuestionnaireResponse>
 {
     public override void Configure()
@@ -24,6 +25,7 @@ public class GetClientQuestionnaireEndpoint(IApplicationDbContext db)
                             "an unknown, foreign, closed or inactive-link response is a 404.";
             s.Responses[StatusCodes.Status200OK] = "The questionnaire with any existing answers";
             s.Responses[StatusCodes.Status404NotFound] = "No matching questionnaire, response or active link";
+            s.Responses[StatusCodes.Status409Conflict] = "The response is a check-in past its answer window (CHECK_IN_ANSWER_WINDOW_CLOSED)";
         });
     }
 
@@ -64,6 +66,12 @@ public class GetClientQuestionnaireEndpoint(IApplicationDbContext db)
                     && (r.Status == QuestionnaireResponseStatus.Pending || r.Status == QuestionnaireResponseStatus.InProgress), ct);
 
             link = requestedResponse?.Link;
+
+            if (requestedResponse is not null
+                && await this.RespondIfCheckInWindowClosedAsync(requestedResponse, timeProvider.GetUtcNow().UtcDateTime, ct))
+            {
+                return;
+            }
         }
         else if (linkPublicIdParam.HasValue)
         {

@@ -286,7 +286,14 @@
       "bannerHint_many": "{{count}} otázky, pro váš příští plán",
       "bannerHint_other": "{{count}} otázek, pro váš příští plán",
       "fill": "Vyplnit",
-      "fillLabel": "Vyplnit: {{title}}"
+      "fillLabel": "Vyplnit: {{title}}",
+      "checkInTitle": "{{name}} vám poslal(a) check-in",
+      "checkInTitleFallback": {
+        "Trainer": "Váš trenér vám poslal check-in",
+        "Nutritionist": "Váš nutriční poradce vám poslal check-in",
+        "other": "Váš poradce vám poslal check-in"
+      },
+      "checkInDue": "Odpovězte do {{when}}"
     },
     "progress": {
       "coachFallback": "Váš poradce",

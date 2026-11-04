@@ -376,7 +376,7 @@ public class QaSeedRunnerTests(QaSeedRunnerFactory factory)
             QaSeedRunner.QaWeeklyCheckInRespondedUnreviewedId,
             QaSeedRunner.QaWeeklyCheckInExpiredId,
         };
-        var checkInCount = await db.WeeklyCheckIns.CountAsync(w => checkInIds.Contains(w.Id), ct);
+        var checkInCount = await db.QuestionnaireResponses.CountAsync(r => checkInIds.Contains(r.PublicId), ct);
         checkInCount.Should().Be(2, "both QA weekly check-in fixtures must be present with no duplicates");
 
         // #1101 — former client (ended link) + its conversation, created exactly once.
@@ -415,7 +415,7 @@ public class QaSeedRunnerTests(QaSeedRunnerFactory factory)
         (await db.BodyMeasurements.CountAsync(m => m.ClientProfileId == qaClientProfile.Id, ct)).Should().Be(8);
         (await db.ClientOnboardingData.CountAsync(o => o.ClientProfileId == qaClientProfile.Id, ct)).Should().Be(1);
         (await db.ClientNutritionTargets.CountAsync(t => t.ClientOnboardingData.ClientProfileId == qaClientProfile.Id, ct)).Should().Be(1);
-        (await db.WeeklyCheckIns.CountAsync(w => w.ClientUserId == QaSeedRunner.ClientUserId, ct)).Should().Be(7);
+        (await db.QuestionnaireResponses.CountAsync(r => r.Kind == QuestionnaireResponseKind.CheckIn && r.ClientId == QaSeedRunner.ClientUserId, ct)).Should().Be(7);
         (await mongo.MealLogs.CountDocumentsAsync(l => l.ClientId == QaSeedRunner.ClientUserId, cancellationToken: ct)).Should().Be(14);
         (await mongo.PersonalRecords.CountDocumentsAsync(r => r.ClientId == QaSeedRunner.ClientUserId, cancellationToken: ct)).Should().Be(1);
         (await FindMondayExecutionsAsync(mongo, ct)).Should().HaveCount(1);
@@ -428,7 +428,7 @@ public class QaSeedRunnerTests(QaSeedRunnerFactory factory)
         var duoProfile = await db.ClientProfiles.FirstAsync(p => p.UserId == QaSeedRunner.ClientDuoUserId, ct);
         (await db.BodyMeasurements.CountAsync(m => m.ClientProfileId == duoProfile.Id, ct)).Should().Be(8);
         (await db.ClientOnboardingData.CountAsync(o => o.ClientProfileId == duoProfile.Id, ct)).Should().Be(1);
-        (await db.WeeklyCheckIns.CountAsync(w => w.ClientUserId == QaSeedRunner.ClientDuoUserId, ct)).Should().Be(5);
+        (await db.QuestionnaireResponses.CountAsync(r => r.Kind == QuestionnaireResponseKind.CheckIn && r.ClientId == QaSeedRunner.ClientDuoUserId, ct)).Should().Be(5);
 
         (await mongo.NutritionPlans.CountDocumentsAsync(p => p.ClientId == QaSeedRunner.ClientDuoUserId, cancellationToken: ct)).Should().Be(1);
         (await mongo.TrainingPlans.CountDocumentsAsync(p => p.ClientId == QaSeedRunner.ClientDuoUserId, cancellationToken: ct)).Should().Be(1);
@@ -576,7 +576,7 @@ public class QaSeedRunnerTests(QaSeedRunnerFactory factory)
         // client's link are all part of the Rich-only fixture set.
         (await db.Conversations.CountAsync(c => c.PublicId == QaSeedRunner.QaInboxConversationId, ct))
             .Should().Be(0, "minimal seed skips the QA inbox conversation");
-        (await db.WeeklyCheckIns.CountAsync(ct))
+        (await db.QuestionnaireResponses.CountAsync(r => r.Kind == QuestionnaireResponseKind.CheckIn, ct))
             .Should().Be(0, "minimal seed skips all weekly check-ins");
         (await db.Users.CountAsync(u => u.Email == QaSeedRunner.Client3Email, ct))
             .Should().Be(0, "minimal seed skips the third client");
@@ -1004,43 +1004,62 @@ public class QaSeedRunnerTests(QaSeedRunnerFactory factory)
         using var scope = _factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
-        var rows = await db.WeeklyCheckIns
-            .Where(w => w.ClientUserId == QaSeedRunner.ClientUserId && w.ProfessionalUserId == QaSeedRunner.TrainerUserId)
-            .OrderBy(w => w.WeekStartDate)
+        var rows = await db.QuestionnaireResponses
+            .Where(r => r.Kind == QuestionnaireResponseKind.CheckIn
+                        && r.ClientId == QaSeedRunner.ClientUserId
+                        && r.ProfessionalId == QaSeedRunner.TrainerUserId)
+            .OrderBy(r => r.CheckInWeekStart)
             .ToListAsync(ct);
 
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
         var anchor = today.AddDays(-((int)today.DayOfWeek == 0 ? 6 : (int)today.DayOfWeek - 1) + 7);
 
         rows.Should().HaveCount(7, "two #1095 rows plus waiting, three answered and one missed");
-        rows.Should().AllSatisfy(r => r.WeekStartDate.DayOfWeek.Should().Be(DayOfWeek.Monday));
-        rows.Select(r => r.WeekStartDate).Should().OnlyHaveUniqueItems();
+        rows.Should().AllSatisfy(r => r.CheckInWeekStart!.Value.DayOfWeek.Should().Be(DayOfWeek.Monday));
+        rows.Select(r => r.CheckInWeekStart).Should().OnlyHaveUniqueItems();
 
-        var waiting = rows.Single(r => r.Id == QaSeedRunner.QaCheckInWaitingId);
-        waiting.WeekStartDate.Should().Be(anchor);
-        waiting.Status.Should().Be(WeeklyCheckInStatus.Pending);
-        waiting.RespondedAt.Should().BeNull();
-        waiting.DueAt.Should().BeAfter(DateTime.UtcNow);
+        var waiting = rows.Single(r => r.PublicId == QaSeedRunner.QaCheckInWaitingId);
+        waiting.CheckInWeekStart.Should().Be(anchor);
+        waiting.Status.Should().Be(QuestionnaireResponseStatus.Pending);
+        waiting.CheckInDueAtUtc.Should().BeAfter(DateTime.UtcNow);
 
         var answeredIds = new[]
         {
             QaSeedRunner.QaCheckInAnsweredLastWeekId, QaSeedRunner.QaCheckInAnsweredWeek4Id, QaSeedRunner.QaCheckInAnsweredWeek6Id,
         };
-        rows.Where(r => answeredIds.Contains(r.Id)).Should().HaveCount(3).And.AllSatisfy(r =>
+        rows.Where(r => answeredIds.Contains(r.PublicId)).Should().HaveCount(3).And.AllSatisfy(r =>
         {
-            r.RespondedAt.Should().NotBeNull();
-            r.ReviewedByTrainerAt.Should().NotBeNull("new answered rows must not feed the inbox NewCheckIns chip");
+            r.Status.Should().Be(QuestionnaireResponseStatus.Submitted);
+            r.ReviewedByCoachAtUtc.Should().NotBeNull("new answered rows must not feed the inbox NewCheckIns chip");
         });
 
-        var missed = rows.Single(r => r.Id == QaSeedRunner.QaCheckInMissedWeek5Id);
-        missed.Status.Should().Be(WeeklyCheckInStatus.Expired);
-        missed.RespondedAt.Should().BeNull();
-        missed.WeekStartDate.Should().Be(anchor.AddDays(-35));
+        var missed = rows.Single(r => r.PublicId == QaSeedRunner.QaCheckInMissedWeek5Id);
+        missed.Status.Should().Be(QuestionnaireResponseStatus.Pending);
+        missed.CheckInDueAtUtc.Should().BeBefore(DateTime.UtcNow);
+        missed.CheckInWeekStart.Should().Be(anchor.AddDays(-35));
 
-        rows.Where(r => r.RespondedAt != null && r.ReviewedByTrainerAt == null)
-            .Select(r => r.Id).Should().Equal(QaSeedRunner.QaWeeklyCheckInRespondedUnreviewedId);
-        rows.Count(r => r.RespondedAt != null).Should().Be(4, "answered of total reads 4 of 6");
-        rows.Count(r => r.Status == WeeklyCheckInStatus.Expired).Should().Be(2);
+        rows.Where(r => r.Status == QuestionnaireResponseStatus.Submitted && r.ReviewedByCoachAtUtc == null)
+            .Select(r => r.PublicId).Should().Equal(QaSeedRunner.QaWeeklyCheckInRespondedUnreviewedId);
+        rows.Count(r => r.Status == QuestionnaireResponseStatus.Submitted).Should().Be(4, "answered of total reads 4 of 6");
+        rows.Count(r => r.Status == QuestionnaireResponseStatus.Pending && r.CheckInDueAtUtc < DateTime.UtcNow).Should().Be(2);
+    }
+
+    [Fact]
+    public async Task SeedAsync_CoachProfiles_EachGetTheDefaultWeeklyCheckInForm()
+    {
+        await _factory.EnsureDefaultSeedAsync();
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var coachIds = new[] { QaSeedRunner.TrainerUserId, QaSeedRunner.NutriUserId };
+
+        var forms = await db.Questionnaires
+            .Include(q => q.Questions)
+            .Where(q => q.Type == QuestionnaireType.CheckIn && coachIds.Contains(q.ProfessionalId))
+            .ToListAsync(TestContext.Current.CancellationToken);
+
+        forms.Select(f => f.ProfessionalId).Should().BeEquivalentTo(coachIds, "one form per coach, never a duplicate");
+        forms.Should().AllSatisfy(f => f.Questions.Should().HaveCount(2));
     }
 
     private static DateTime ThisMonday()
@@ -1178,7 +1197,7 @@ public class QaSeedRunnerTests(QaSeedRunnerFactory factory)
         profile.DateOfBirth.Should().BeNull();
         (await db.BodyMeasurements.CountAsync(ct)).Should().Be(0);
         (await db.ClientOnboardingData.CountAsync(ct)).Should().Be(0);
-        (await db.WeeklyCheckIns.CountAsync(ct)).Should().Be(0);
+        (await db.QuestionnaireResponses.CountAsync(r => r.Kind == QuestionnaireResponseKind.CheckIn, ct)).Should().Be(0);
         (await mongo.MealLogs.CountDocumentsAsync(Builders<MealLog>.Filter.Empty, cancellationToken: ct)).Should().Be(0);
         (await mongo.PersonalRecords.CountDocumentsAsync(Builders<PersonalRecord>.Filter.Empty, cancellationToken: ct)).Should().Be(0);
         (await mongo.SessionExecutions.CountDocumentsAsync(Builders<SessionExecution>.Filter.Empty, cancellationToken: ct)).Should().Be(0);
@@ -1395,20 +1414,16 @@ public class QaSeedRunnerTests(QaSeedRunnerFactory factory)
         logs.Select(l => l.MealId).Should().OnlyContain(id =>
             plan.Weeks.SelectMany(w => w.Days).SelectMany(d => d.Meals).Any(m => m.MealId == id));
 
-        var checkIns = await db.WeeklyCheckIns
-            .Where(w => w.ClientUserId == QaSeedRunner.ClientDuoUserId)
+        var checkIns = await db.QuestionnaireResponses
+            .Where(r => r.Kind == QuestionnaireResponseKind.CheckIn && r.ClientId == QaSeedRunner.ClientDuoUserId)
             .ToListAsync(ct);
         checkIns.Should().HaveCount(5);
-        checkIns.Should().AllSatisfy(w =>
-        {
-            w.ProfessionalUserId.Should().Be(QaSeedRunner.CoachUserId);
-            w.Profession.Should().Be(Profession.Training);
-        });
-        checkIns.Select(w => w.Id).Should().BeEquivalentTo(QaSeedRunner.QaDuoCheckInIds);
-        checkIns.Where(w => w.RespondedAt != null).Should().HaveCount(3)
-            .And.AllSatisfy(w => w.ReviewedByTrainerAt.Should().NotBeNull());
-        checkIns.Count(w => w.Status == WeeklyCheckInStatus.Expired).Should().Be(1);
-        checkIns.Count(w => w.Status == WeeklyCheckInStatus.Pending).Should().Be(1);
+        checkIns.Should().AllSatisfy(r => r.ProfessionalId.Should().Be(QaSeedRunner.CoachUserId));
+        checkIns.Select(r => r.PublicId).Should().BeEquivalentTo(QaSeedRunner.QaDuoCheckInIds);
+        checkIns.Where(r => r.Status == QuestionnaireResponseStatus.Submitted).Should().HaveCount(3)
+            .And.AllSatisfy(r => r.ReviewedByCoachAtUtc.Should().NotBeNull());
+        checkIns.Count(r => r.Status == QuestionnaireResponseStatus.Pending && r.CheckInDueAtUtc < DateTime.UtcNow).Should().Be(1);
+        checkIns.Count(r => r.Status == QuestionnaireResponseStatus.Pending && r.CheckInDueAtUtc > DateTime.UtcNow).Should().Be(1);
     }
 
     /// <summary>

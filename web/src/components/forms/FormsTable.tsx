@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { QuestionnaireType, type QuestionnaireSummaryDto } from '@/api/questionnaires';
 import DeleteFormDialog from '@/components/forms/DeleteFormDialog';
+import FormDefaultBadge from '@/components/forms/FormDefaultBadge';
 import FormTypeBadge from '@/components/forms/FormTypeBadge';
 import { useDuplicateForm } from '@/hooks/useQuestionnaireQueries';
 import { formatRelativeTime } from '@/lib/client-metrics';
@@ -53,7 +54,7 @@ export default function FormsTable({ forms, isPending, isError, onRetry, hasActi
         <TableHeader className="sticky top-0 z-10 bg-card">
           <TableRow>
             <TableHead className={HEAD_CLASS}>{t('forms.table.columnForm')}</TableHead>
-            <TableHead className={`w-40 ${HEAD_CLASS}`}>{t('forms.table.columnType')}</TableHead>
+            <TableHead className={`w-56 ${HEAD_CLASS}`}>{t('forms.table.columnType')}</TableHead>
             <TableHead className={`w-32 ${HEAD_CLASS}`}>{t('forms.table.columnQuestions')}</TableHead>
             <TableHead className={`w-36 ${HEAD_CLASS}`}>{t('forms.table.columnUsedFor')}</TableHead>
             <TableHead className={`w-32 ${HEAD_CLASS}`}>{t('forms.table.columnEdited')}</TableHead>
@@ -136,7 +137,10 @@ export default function FormsTable({ forms, isPending, isError, onRetry, hasActi
                     </div>
                   </TableCell>
                   <TableCell className={CELL_CLASS}>
-                    <FormTypeBadge type={form.type} />
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <FormTypeBadge type={form.type} />
+                      {isOnboarding && form.isDefault && <FormDefaultBadge />}
+                    </div>
                   </TableCell>
                   <TableCell className={`${CELL_CLASS} text-body text-ink-2`}>
                     {t('forms.table.questions', { count: form.questionCount })}

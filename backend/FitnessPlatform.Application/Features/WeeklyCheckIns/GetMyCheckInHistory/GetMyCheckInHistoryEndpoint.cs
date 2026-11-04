@@ -1,17 +1,20 @@
 using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
+using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
 namespace FitnessPlatform.Application.Features.WeeklyCheckIns.GetMyCheckInHistory;
 
 /// <summary>
-/// Returns the authenticated client's own weekly check-in history across all professionals,
+/// Returns the authenticated client's own check-in history across all professionals,
 /// newest week first. Total count is in the <c>X-Total-Count</c> response header.
 /// </summary>
 /// <param name="db">Relational database context (PostgreSQL via EF Core).</param>
-public class GetMyCheckInHistoryEndpoint(IApplicationDbContext db)
+/// <param name="timeProvider">Clock, used to tell an expired check-in from a pending one.</param>
+public class GetMyCheckInHistoryEndpoint(IApplicationDbContext db, TimeProvider timeProvider)
     : Endpoint<GetMyCheckInHistoryRequest, GetMyCheckInHistoryResponse>
 {
     /// <inheritdoc />
@@ -23,9 +26,9 @@ public class GetMyCheckInHistoryEndpoint(IApplicationDbContext db)
         {
             s.Summary = "List my check-in history (client)";
             s.Description =
-                "Returns a paginated list of the authenticated client's weekly check-ins of every " +
-                "status, ordered by WeekStartDate, SentAt, then Id (all descending). Client answers " +
-                "(flags, note, hunger score) are not included. Total count is in X-Total-Count.";
+                "Returns a paginated list of the authenticated client's check-in forms of every " +
+                "status, ordered by week, sent time, then id (all descending). Client answers " +
+                "are not included. Total count is in X-Total-Count.";
             s.Responses[StatusCodes.Status200OK] = "Page of check-in history";
             s.Responses[StatusCodes.Status400BadRequest] = "Invalid page or pageSize";
             s.Responses[StatusCodes.Status401Unauthorized] = "Missing or unreadable caller claim";
@@ -45,34 +48,57 @@ public class GetMyCheckInHistoryEndpoint(IApplicationDbContext db)
 
         var clientUserId = Guid.Parse(userId);
 
-        var query = db.WeeklyCheckIns
+        var query = db.QuestionnaireResponses
             .AsNoTracking()
-            .Where(c => c.ClientUserId == clientUserId);
+            .AllCheckIns()
+            .Where(r => r.ClientId == clientUserId);
 
         var totalCount = await query.CountAsync(ct);
 
-        var items = await query
-            .OrderByDescending(c => c.WeekStartDate)
-            .ThenByDescending(c => c.SentAt)
-            .ThenByDescending(c => c.Id)
+        var rows = await query
+            .OrderBy(r => r.CheckInWeekStart == null)
+            .ThenByDescending(r => r.CheckInWeekStart)
+            .ThenByDescending(r => r.DateCreated)
+            .ThenByDescending(r => r.Id)
             .Skip((req.Page - 1) * req.PageSize)
             .Take(req.PageSize)
-            .Select(c => new MyCheckInHistoryItem
+            .Select(r => new
             {
-                Id = c.Id,
-                ProfessionalUserId = c.ProfessionalUserId,
-                ProfessionalName = c.ProfessionalUser.FirstName + " " + c.ProfessionalUser.LastName,
-                Profession = c.Profession.ToString(),
-                WeekStartDate = c.WeekStartDate,
-                SentAt = c.SentAt,
-                Status = c.Status.ToString(),
-                RespondedAt = c.RespondedAt,
-                DismissedAt = c.DismissedByClientAt,
-                ExpiredAt = c.ExpiredAt,
-                DueAt = c.DueAt,
-                ReviewedAt = c.ReviewedByTrainerAt,
+                r.PublicId,
+                r.ProfessionalId,
+                ProfessionalName = r.Link.ProfessionalProfile.User.FirstName + " " + r.Link.ProfessionalProfile.User.LastName,
+                r.Link.ProfessionalRole,
+                r.CheckInWeekStart,
+                r.DateCreated,
+                r.Status,
+                r.SubmittedAt,
+                r.CheckInDueAtUtc,
+                r.ReviewedByCoachAtUtc,
             })
             .ToListAsync(ct);
+
+        var nowUtc = timeProvider.GetUtcNow().UtcDateTime;
+
+        var items = rows.Select(r =>
+        {
+            var status = CheckInResponses.ResolveStatus(r.Status, r.ReviewedByCoachAtUtc, r.CheckInDueAtUtc, nowUtc);
+
+            return new MyCheckInHistoryItem
+            {
+                Id = r.PublicId,
+                ProfessionalUserId = r.ProfessionalId,
+                ProfessionalName = r.ProfessionalName,
+                Profession = CheckInResponses.ProfessionOf(r.ProfessionalRole).ToString(),
+                WeekStartDate = CheckInResponses.WeekStartOf(r.CheckInWeekStart, r.DateCreated),
+                SentAt = r.DateCreated,
+                Status = status.ToString(),
+                RespondedAt = r.SubmittedAt,
+                DismissedAt = null,
+                ExpiredAt = status == WeeklyCheckInStatus.Expired ? r.CheckInDueAtUtc : null,
+                DueAt = r.CheckInDueAtUtc,
+                ReviewedAt = r.ReviewedByCoachAtUtc,
+            };
+        }).ToList();
 
         HttpContext.Response.Headers["X-Total-Count"] = totalCount.ToString();
 

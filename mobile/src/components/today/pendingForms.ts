@@ -1,6 +1,8 @@
 import type { TFunction } from 'i18next';
 
+import { QuestionnaireResponseKind } from '@/api/generated';
 import type { PendingQuestionnaire } from '@/api/questionnaires';
+import { dueMoment } from '@/components/checkIns/model';
 import { firstName } from '@/components/invites/format';
 
 export type FillRoute = {
@@ -17,6 +19,25 @@ export function fillRoute(item: PendingQuestionnaire): FillRoute | null {
       ? { linkPublicId: item.linkPublicId, responsePublicId: item.responsePublicId }
       : { linkPublicId: item.linkPublicId },
   };
+}
+
+/** True for a weekly check-in answered through the questionnaire flow. */
+export const isCheckInForm = (item: PendingQuestionnaire): boolean => item.kind === QuestionnaireResponseKind.CheckIn;
+
+/** The fill-flow route of the pending form with this response id, or null when it is not pending. */
+export function fillRouteForResponse(
+  items: readonly PendingQuestionnaire[] | undefined,
+  responsePublicId: string,
+): FillRoute | null {
+  const match = (items ?? []).find((item) => item.responsePublicId === responsePublicId);
+  return match ? fillRoute(match) : null;
+}
+
+/** "Answer by Saturday 18:00" for a check-in banner; empty when the form is no check-in or has no due time. */
+export function checkInDueHint(t: TFunction, language: string, item: PendingQuestionnaire): string | undefined {
+  if (!isCheckInForm(item)) return undefined;
+  const when = dueMoment(language, item.checkInDueAtUtc);
+  return when ? t('today.questionnaire.checkInDue', { when }) : undefined;
 }
 
 /** Pending forms the client can open, in the order the server sent them (oldest first). */
@@ -46,6 +67,12 @@ export function questionnaireStepTitle(t: TFunction, item: PendingQuestionnaire)
 /** "Questions from Jana"; without a name, the coach is named by role. */
 export function formTitle(t: TFunction, item: PendingQuestionnaire): string {
   const name = firstName(item.professionalName?.trim() ?? '');
+  if (isCheckInForm(item)) {
+    if (name) return t('today.questionnaire.checkInTitle', { name });
+    if (item.professionalRole === 'Trainer') return t('today.questionnaire.checkInTitleFallback.Trainer');
+    if (item.professionalRole === 'Nutritionist') return t('today.questionnaire.checkInTitleFallback.Nutritionist');
+    return t('today.questionnaire.checkInTitleFallback.other');
+  }
   if (name) return t('today.questionnaire.title', { name });
   if (item.professionalRole === 'Trainer') return t('today.questionnaire.titleFallback.Trainer');
   if (item.professionalRole === 'Nutritionist') return t('today.questionnaire.titleFallback.Nutritionist');

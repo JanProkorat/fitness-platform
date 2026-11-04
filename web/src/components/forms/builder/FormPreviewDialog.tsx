@@ -3,7 +3,14 @@ import { Smile, Star } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { isChoiceKind, QuestionKind, type DraftForm, type DraftQuestion } from '@/components/forms/builder/form-builder-model';
+import {
+  isChoiceKind,
+  isSectionKind,
+  questionNumbers,
+  QuestionKind,
+  type DraftForm,
+  type DraftQuestion,
+} from '@/components/forms/builder/form-builder-model';
 
 const FACES = [1, 2, 3, 4, 5];
 
@@ -72,6 +79,7 @@ interface Props {
 /** Read-only view of the current, unsaved draft as a client would see it. Inputs are inert. */
 export default function FormPreviewDialog({ open, onOpenChange, doc }: Props) {
   const { t } = useTranslation();
+  const numbers = questionNumbers(doc.questions);
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
@@ -80,16 +88,23 @@ export default function FormPreviewDialog({ open, onOpenChange, doc }: Props) {
           <DialogDescription>{doc.description || t('forms.builder.preview.hint')}</DialogDescription>
         </DialogHeader>
         <ol className="flex flex-col gap-6" inert data-testid="form-preview">
-          {doc.questions.map((question, index) => (
-            <li key={question.key} className="flex flex-col gap-2">
-              <p className="text-copy font-semibold text-ink">
-                {index + 1}. {question.label}
-                {question.isRequired && <span className="text-destructive"> *</span>}
-              </p>
-              {question.helperText && <p className="text-body text-muted-foreground">{question.helperText}</p>}
-              <PreviewAnswer question={question} />
-            </li>
-          ))}
+          {doc.questions.map((question, index) =>
+            isSectionKind(question.type) ? (
+              <li key={question.key} data-testid="preview-section" className="flex flex-col gap-1 border-b border-line pb-2">
+                <h3 className="font-display text-card-title font-semibold text-ink">{question.label}</h3>
+                {question.helperText && <p className="text-body text-muted-foreground">{question.helperText}</p>}
+              </li>
+            ) : (
+              <li key={question.key} className="flex flex-col gap-2">
+                <p className="text-copy font-semibold text-ink">
+                  {numbers[index]}. {question.label}
+                  {question.isRequired && <span className="text-destructive"> *</span>}
+                </p>
+                {question.helperText && <p className="text-body text-muted-foreground">{question.helperText}</p>}
+                <PreviewAnswer question={question} />
+              </li>
+            ),
+          )}
         </ol>
       </DialogContent>
     </Dialog>

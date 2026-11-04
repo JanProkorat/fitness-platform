@@ -15,7 +15,7 @@ namespace FitnessPlatform.Tests.Infrastructure;
 /// process-global <c>ServiceResolver.Provider</c> alive for concurrently running
 /// standalone (no-collection) tests. That means the generic <c>IHost</c> itself,
 /// and every <see cref="BackgroundService"/> registered on it
-/// (<see cref="WeeklyCheckInScheduler"/>, <see cref="PhotoDiaryReminderScheduler"/>,
+/// (<see cref="PhotoDiaryReminderScheduler"/>,
 /// <see cref="SocialLoginNonceReaperService"/>), is left running for the
 /// remaining lifetime of the test process — only their Testcontainers are
 /// disposed at collection teardown. Because
@@ -33,11 +33,11 @@ namespace FitnessPlatform.Tests.Infrastructure;
 /// None of the integration-test suite exercises their autonomous scheduling
 /// behavior via the hosted-service pipeline — the scheduling/reaping logic
 /// itself is covered by dedicated tests that resolve the singleton directly
-/// (<c>Services.GetRequiredService&lt;WeeklyCheckInScheduler&gt;()</c>, etc. — see
+/// (<c>Services.GetRequiredService&lt;PhotoDiaryReminderScheduler&gt;()</c>, etc. — see
 /// <c>FitnessApiFactoryTests</c>) and drive its tick method by hand. Removing the
 /// <see cref="IHostedService"/> registration only stops the background loop from
 /// auto-starting; the underlying singleton registration
-/// (<c>AddSingleton&lt;WeeklyCheckInScheduler&gt;()</c>, etc.) is left untouched,
+/// (<c>AddSingleton&lt;PhotoDiaryReminderScheduler&gt;()</c>, etc.) is left untouched,
 /// so those direct-resolution tests are unaffected.
 ///
 /// <see cref="EmailDispatchWorker"/> is intentionally NOT included in the
@@ -76,7 +76,6 @@ public static class TestHostedServiceExtensions
 {
     private static readonly Type[] BackgroundServiceTypes =
     [
-        typeof(WeeklyCheckInScheduler),
         typeof(PhotoDiaryReminderScheduler),
         typeof(CoachRoleLinkSweeper),
         typeof(SocialLoginNonceReaperService),

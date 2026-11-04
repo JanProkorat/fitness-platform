@@ -287,7 +287,10 @@ function QuestionSummary({ question }: { question: DraftQuestion }) {
 
 interface Props {
   question: DraftQuestion;
+  /** Position in the sortable list, sections included. */
   index: number;
+  /** Displayed question number; sections are skipped. */
+  number: number;
   selected: boolean;
   errors?: QuestionErrors;
   onSelect: () => void;
@@ -300,7 +303,7 @@ const BARE_INPUT =
   'min-w-0 border-transparent bg-transparent px-2 shadow-none hover:border-line focus-visible:bg-card';
 
 /** One question of the form: header with handle, title and helper text, then its editor when selected. */
-export default function QuestionCard({ question, index, selected, errors, onSelect, onChange, onDuplicate, onDelete }: Props) {
+export default function QuestionCard({ question, index, number, selected, errors, onSelect, onChange, onDuplicate, onDelete }: Props) {
   const { t } = useTranslation();
   const { ref, handleRef, isDragging, isDropTarget } = useSortable({
     id: question.key,
@@ -320,7 +323,7 @@ export default function QuestionCard({ question, index, selected, errors, onSele
       data-testid="question-card"
       data-key={question.key}
       data-kind={question.type}
-      aria-label={t('forms.builder.card.label', { number: index + 1, title: question.label })}
+      aria-label={t('forms.builder.card.label', { number, title: question.label })}
       onClick={onSelect}
       // Only a text field selects on focus: selecting on a button press would reflow the list under the cursor and lose the click.
       onFocusCapture={(event) => {
@@ -339,7 +342,7 @@ export default function QuestionCard({ question, index, selected, errors, onSele
         <button
           ref={handleRef}
           type="button"
-          aria-label={t('forms.builder.card.reorder', { number: index + 1 })}
+          aria-label={t('forms.builder.card.reorder', { number })}
           className="flex size-7 shrink-0 cursor-grab items-center justify-center rounded-md text-muted-foreground outline-none hover:text-ink focus-visible:ring-3 focus-visible:ring-ring/50 active:cursor-grabbing"
         >
           <GripVertical className="size-4" aria-hidden="true" />
@@ -348,7 +351,7 @@ export default function QuestionCard({ question, index, selected, errors, onSele
           className="flex size-7 shrink-0 items-center justify-center rounded-full bg-ink text-meta font-bold text-primary-foreground"
           aria-hidden="true"
         >
-          {index + 1}
+          {number}
         </span>
         <span className="flex min-w-0 items-center gap-1.5 text-body font-semibold text-muted-foreground">
           <KindIcon kind={question.type} className="size-4 shrink-0" />
@@ -362,7 +365,7 @@ export default function QuestionCard({ question, index, selected, errors, onSele
         <span className="flex-1" />
         <button
           type="button"
-          aria-label={t('forms.builder.card.duplicate', { number: index + 1 })}
+          aria-label={t('forms.builder.card.duplicate', { number })}
           title={t('forms.builder.card.duplicateTitle')}
           onClick={(event) => {
             event.stopPropagation();
@@ -374,7 +377,7 @@ export default function QuestionCard({ question, index, selected, errors, onSele
         </button>
         <button
           type="button"
-          aria-label={t('forms.builder.card.delete', { number: index + 1 })}
+          aria-label={t('forms.builder.card.delete', { number })}
           title={t('forms.builder.card.deleteTitle')}
           onClick={(event) => {
             event.stopPropagation();
@@ -391,7 +394,7 @@ export default function QuestionCard({ question, index, selected, errors, onSele
           value={question.label}
           maxLength={500}
           onChange={(event) => onChange({ label: event.target.value })}
-          aria-label={t('forms.builder.card.titleLabel', { number: index + 1 })}
+          aria-label={t('forms.builder.card.titleLabel', { number })}
           aria-invalid={errors?.label !== undefined}
           placeholder={t('forms.builder.card.titlePlaceholder')}
           className={cn('h-10 font-display text-card-title font-semibold text-ink', BARE_INPUT)}
@@ -401,7 +404,7 @@ export default function QuestionCard({ question, index, selected, errors, onSele
           value={question.helperText}
           maxLength={500}
           onChange={(event) => onChange({ helperText: event.target.value })}
-          aria-label={t('forms.builder.card.helperLabel', { number: index + 1 })}
+          aria-label={t('forms.builder.card.helperLabel', { number })}
           placeholder={t('forms.builder.card.helperPlaceholder')}
           className={cn('h-8 text-copy text-muted-foreground', BARE_INPUT)}
         />

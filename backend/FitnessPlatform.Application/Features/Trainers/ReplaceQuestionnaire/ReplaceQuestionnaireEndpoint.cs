@@ -117,6 +117,7 @@ public class ReplaceQuestionnaireEndpoint(
             ProfessionalId = userGuid,
             LinkId = link.Id,
             Status = QuestionnaireResponseStatus.Pending,
+            Kind = QuestionnaireResponseKind.Questionnaire,
         };
         db.QuestionnaireResponses.Add(newResponse);
 

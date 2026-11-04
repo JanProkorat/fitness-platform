@@ -9,12 +9,12 @@ import type { Locator, Page } from '@playwright/test';
 
 trainerTest.use({ viewport: { width: 1440, height: 1100 } });
 
-async function createForm(page: Page, name: string, typeLabel: 'Onboarding' | 'Check-in') {
+async function createForm(page: Page, name: string, typeLabel: 'Form' | 'Check-in') {
   await page.goto('/forms');
   await page.getByRole('button', { name: 'New form' }).first().click();
   const dialog = page.getByRole('dialog');
   await dialog.getByLabel('Name').fill(name);
-  await dialog.getByRole('radio', { name: new RegExp(typeLabel) }).click();
+  await dialog.getByRole('radio', { name: new RegExp(`^${typeLabel}\\b`) }).click();
   await dialog.getByRole('button', { name: 'Create form' }).click();
   await expect(page).toHaveURL(/\/forms\/[0-9a-f-]{36}$/);
   await expect(page.getByLabel('Form name')).toHaveValue(name);
@@ -61,13 +61,13 @@ async function expectTitles(page: Page, titles: string[]) {
 trainerTest.describe('form builder', () => {
   trainerTest('builds, edits, reorders and saves an onboarding form', async ({ page }) => {
     const name = `E2E builder ${Date.now().toString(36)}`;
-    await createForm(page, name, 'Onboarding');
+    await createForm(page, name, 'Form');
 
     try {
       await expect(page.getByText('No questions yet')).toBeVisible();
       await expect(page.getByRole('button', { name: 'Save' })).toBeDisabled();
 
-      // Onboarding forms can be made the default for new clients (not toggled here: it is a shared setting).
+      // Forms can be made the default for new clients (not toggled here: it is a shared setting).
       await page.getByRole('tab', { name: 'Info' }).click();
       await expect(page.getByTestId('form-info').getByLabel('Default for new clients')).toBeVisible();
       await page.getByRole('tab', { name: 'Library' }).click();
@@ -139,6 +139,37 @@ trainerTest.describe('form builder', () => {
     }
   });
 
+  trainerTest('a section with a description sits between questions and survives a reload', async ({ page }) => {
+    const name = `E2E section builder ${Date.now().toString(36)}`;
+    await createForm(page, name, 'Form');
+
+    try {
+      await page.getByRole('button', { name: 'Add Text' }).click();
+      await page.getByLabel('Question 1 title').fill('Injuries');
+      await page.getByRole('button', { name: 'Add Section' }).click();
+      await page.getByLabel('Section 1 title').fill('Lifestyle');
+      await page.getByLabel('Section 1 description').fill('Sleep and daily routine');
+      await page.getByRole('button', { name: 'Add Text' }).click();
+      // The question after the section is number 2: sections take no number.
+      await page.getByLabel('Question 2 title').fill('Sleep hours');
+      await expect(page.getByTestId('question-count')).toHaveText('2 questions');
+
+      await page.getByRole('button', { name: 'Save' }).click();
+      await expect(page.getByTestId('save-status')).toHaveText('Saved');
+      await page.reload();
+
+      await expect(page.getByLabel('Form name')).toHaveValue(name);
+      await expect(page.getByTestId('form-canvas').locator('[data-key]')).toHaveCount(3);
+      await expect(page.getByTestId('form-canvas').locator('[data-key]').nth(1)).toHaveAttribute('data-kind', 'section');
+      await expect(page.getByLabel('Section 1 title')).toHaveValue('Lifestyle');
+      await expect(page.getByLabel('Section 1 description')).toHaveValue('Sleep and daily routine');
+      await expectTitles(page, ['Injuries', 'Sleep hours']);
+      await expect(page.getByTestId('question-count')).toHaveText('2 questions');
+    } finally {
+      await deleteForm(page, name);
+    }
+  });
+
   trainerTest('check-in form has no default switch and saves', async ({ page }) => {
     const name = `E2E check-in builder ${Date.now().toString(36)}`;
     await createForm(page, name, 'Check-in');
@@ -146,7 +177,13 @@ trainerTest.describe('form builder', () => {
     try {
       // The check-in board lists the rating types first.
       await expect(page.getByTestId('palette-tile').first()).toHaveAttribute('data-kind', 'smiley_rating');
-      await expect(page.getByText(/Weekly check-in/)).toBeVisible();
+      // A new check-in form has no enabled rule yet, so the line offers to set one up in Automations.
+      const scheduleLine = page.getByTestId('check-in-schedule-line');
+      await expect(scheduleLine).toContainText('Not sent yet');
+      await expect(scheduleLine.getByRole('link', { name: 'Set up in Automations' })).toHaveAttribute(
+        'href',
+        '/automations',
+      );
       await expect(page.getByText(/Sunday|Sonntag|neděl/i)).toHaveCount(0);
 
       await page.getByRole('tab', { name: 'Info' }).click();

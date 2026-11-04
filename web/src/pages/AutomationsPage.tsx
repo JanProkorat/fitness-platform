@@ -52,7 +52,6 @@ export default function AutomationsPage() {
   );
 
   const allRules = rulesQuery.data?.rules ?? [];
-  const linkedCheckIns = filter === 'all' ? (rulesQuery.data?.linkedCheckIns ?? []) : [];
   const rules = filter === 'all' ? allRules : allRules.filter((rule) => rule.actionType === filter);
 
   const handleSave = async (values: AutomationRuleFormValues) => {
@@ -111,10 +110,6 @@ export default function AutomationsPage() {
     <div className="flex h-full flex-col gap-4">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="flex flex-col gap-1.5">
-          <span className="flex items-center gap-1.75 text-label font-semibold tracking-label text-marker-text uppercase">
-            <span className="size-1.75 rounded-full bg-marker" aria-hidden="true" />
-            {t('automations.eyebrow')}
-          </span>
           <h1 className="text-display font-semibold text-ink">{t('automations.title')}</h1>
           <p className="text-copy text-muted-foreground">{t('automations.subtitle')}</p>
         </div>
@@ -150,7 +145,6 @@ export default function AutomationsPage() {
         <div className="min-h-0 overflow-y-auto [&_[data-slot=table-container]]:overflow-visible">
           <AutomationsTable
             rules={rules}
-            linkedCheckIns={linkedCheckIns}
             formTitles={formTitles}
             isPending={rulesQuery.isPending}
             isError={rulesQuery.isError}
@@ -163,7 +157,7 @@ export default function AutomationsPage() {
         </div>
         {!rulesQuery.isPending && !rulesQuery.isError && (
           <p className="border-t border-line px-4 py-3 text-meta text-muted-foreground">
-            {t('automations.footer', { count: rules.length + linkedCheckIns.length })}
+            {t('automations.footer', { count: rules.length })}
           </p>
         )}
       </div>

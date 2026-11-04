@@ -143,6 +143,7 @@ public class CreateResponseEndpointTests(FitnessApiFactory factory)
             .FirstAsync(r => r.PublicId == body!.ResponsePublicId, TestContext.Current.CancellationToken);
 
         persisted.LinkId.Should().Be(linkId);
+        persisted.Kind.Should().Be(QuestionnaireResponseKind.Onboarding);
     }
 
     private record ResponseBody(Guid ResponsePublicId);

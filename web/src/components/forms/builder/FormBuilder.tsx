@@ -14,11 +14,13 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import EditorSidePanel, { type EditorSideTabDef } from '@/components/editor/EditorSidePanel';
+import CheckInScheduleLine from '@/components/forms/builder/CheckInScheduleLine';
 import FormBuilderHeader from '@/components/forms/builder/FormBuilderHeader';
 import FormPreviewDialog from '@/components/forms/builder/FormPreviewDialog';
 import FormInfoPanel from '@/components/forms/builder/FormInfoPanel';
 import QuestionCard from '@/components/forms/builder/QuestionCard';
 import QuestionPalette from '@/components/forms/builder/QuestionPalette';
+import SectionCard from '@/components/forms/builder/SectionCard';
 import {
   arrayMove,
   CANVAS_ID,
@@ -30,9 +32,12 @@ import {
   readQuestionDrag,
 } from '@/components/forms/builder/form-builder-drag';
 import {
+  answerableCount,
   createQuestion,
   duplicateQuestion,
   estimateMinutes,
+  isSectionKind,
+  questionNumbers,
   toUpdatePayload,
   validateDraft,
   type DraftForm,
@@ -96,7 +101,10 @@ export default function FormBuilder({ initial, onBack }: Props) {
 
   const errors = useMemo(() => validateDraft(doc), [doc]);
   const visibleErrors = showErrors ? errors : null;
-  const count = doc.questions.length;
+  // `total` counts every row (sections too) for positions; `count` counts only what a client answers.
+  const total = doc.questions.length;
+  const count = answerableCount(doc.questions);
+  const numbers = questionNumbers(doc.questions);
   const isOnboarding = doc.type === QuestionnaireType.Onboarding;
 
   useEffect(() => {
@@ -112,7 +120,7 @@ export default function FormBuilder({ initial, onBack }: Props) {
     if (scrollToKey === null) {
       return;
     }
-    document.querySelector(`[data-testid="question-card"][data-key="${scrollToKey}"]`)?.scrollIntoView({ block: 'nearest' });
+    document.querySelector(`[data-key="${scrollToKey}"]`)?.scrollIntoView({ block: 'nearest' });
     setScrollToKey(null);
   }, [scrollToKey, doc.questions]);
 
@@ -140,10 +148,11 @@ export default function FormBuilder({ initial, onBack }: Props) {
     setScrollToKey(question.key);
   }
 
-  function addPalette(kind: PaletteKind, at = count) {
+  function addPalette(kind: PaletteKind, at = total) {
     insertQuestion(
       createQuestion(kind, {
         label: t('forms.builder.defaults.question'),
+        sectionLabel: t('forms.builder.defaults.section'),
         option: (number) => t('forms.builder.defaults.option', { number }),
         lowLabel: t('forms.builder.defaults.low'),
         highLabel: t('forms.builder.defaults.high'),
@@ -193,20 +202,36 @@ export default function FormBuilder({ initial, onBack }: Props) {
   }
 
   const questionList = (
-    <FormCanvas empty={count === 0}>
-      {doc.questions.map((question, index) => (
-        <QuestionCard
-          key={question.key}
-          question={question}
-          index={index}
-          selected={selectedKey === question.key}
-          errors={visibleErrors?.questions[question.key]}
-          onSelect={() => setSelectedKey(question.key)}
-          onChange={(patch) => patchQuestion(question.key, patch)}
-          onDuplicate={() => duplicate(index)}
-          onDelete={() => remove(question.key)}
-        />
-      ))}
+    <FormCanvas empty={total === 0}>
+      {doc.questions.map((question, index) =>
+        isSectionKind(question.type) ? (
+          <SectionCard
+            key={question.key}
+            question={question}
+            index={index}
+            position={doc.questions.slice(0, index + 1).filter((row) => isSectionKind(row.type)).length}
+            selected={selectedKey === question.key}
+            errors={visibleErrors?.questions[question.key]}
+            onSelect={() => setSelectedKey(question.key)}
+            onChange={(patch) => patchQuestion(question.key, patch)}
+            onDuplicate={() => duplicate(index)}
+            onDelete={() => remove(question.key)}
+          />
+        ) : (
+          <QuestionCard
+            key={question.key}
+            question={question}
+            index={index}
+            number={numbers[index] ?? index + 1}
+            selected={selectedKey === question.key}
+            errors={visibleErrors?.questions[question.key]}
+            onSelect={() => setSelectedKey(question.key)}
+            onChange={(patch) => patchQuestion(question.key, patch)}
+            onDuplicate={() => duplicate(index)}
+            onDelete={() => remove(question.key)}
+          />
+        ),
+      )}
     </FormCanvas>
   );
 
@@ -246,7 +271,7 @@ export default function FormBuilder({ initial, onBack }: Props) {
         const targetId = target?.id;
         const palette = readPaletteDrag(source?.data);
         if (palette) {
-          const at = targetId === CANVAS_ID ? count : doc.questions.findIndex((question) => question.key === targetId);
+          const at = targetId === CANVAS_ID ? total : doc.questions.findIndex((question) => question.key === targetId);
           if (targetId !== undefined && at !== -1) {
             addPalette(palette.paletteKind, at);
           }
@@ -255,7 +280,7 @@ export default function FormBuilder({ initial, onBack }: Props) {
         const question = readQuestionDrag(source?.data);
         if (question) {
           const from = doc.questions.findIndex((candidate) => candidate.key === question.key);
-          const to = targetId === CANVAS_ID ? count - 1 : doc.questions.findIndex((candidate) => candidate.key === targetId);
+          const to = targetId === CANVAS_ID ? total - 1 : doc.questions.findIndex((candidate) => candidate.key === targetId);
           if (from !== -1 && to !== -1 && from !== to) {
             edit((current) => ({ ...current, questions: arrayMove(current.questions, from, to) }));
           }
@@ -295,6 +320,7 @@ export default function FormBuilder({ initial, onBack }: Props) {
             onTitleChange={(title) => patchForm({ title })}
             titleInvalid={visibleErrors?.title !== undefined}
             type={doc.type}
+            isDefault={doc.isDefault}
             dirty={dirty}
             saving={updateMutation.isPending}
             onBack={leave}
@@ -309,7 +335,11 @@ export default function FormBuilder({ initial, onBack }: Props) {
               ) : (
                 <CalendarDays className="size-4 shrink-0" aria-hidden="true" />
               )}
-              <span>{t(isOnboarding ? 'forms.builder.info.onboarding' : 'forms.builder.info.checkIn')}</span>
+              {isOnboarding ? (
+                <span>{t(doc.isDefault ? 'forms.builder.info.onboarding' : 'forms.builder.info.anyTime')}</span>
+              ) : (
+                <CheckInScheduleLine formId={initial.publicId} />
+              )}
               <span aria-hidden="true">·</span>
               <strong data-testid="question-count" className="font-bold text-ink">
                 {t('forms.builder.info.questions', { count })}
@@ -321,6 +351,11 @@ export default function FormBuilder({ initial, onBack }: Props) {
                 </>
               )}
             </p>
+            {visibleErrors?.noQuestions && (
+              <p role="alert" data-testid="form-only-sections" className="text-body text-destructive">
+                {t(visibleErrors.noQuestions)}
+              </p>
+            )}
             {questionList}
           </div>
         </div>

@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
+using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -8,9 +9,11 @@ namespace FitnessPlatform.Application.Features.WeeklyCheckIns.GetTrainerCheckIns
 
 /// <summary>
 /// Returns check-ins for the caller's clients, either the active (week-agnostic) set or a
-/// specific ISO week's check-ins.
+/// specific ISO week's check-ins. Only the current collaboration with each client counts.
 /// </summary>
-public class GetTrainerCheckInsEndpoint(IApplicationDbContext db)
+/// <param name="db">Relational database context.</param>
+/// <param name="timeProvider">Clock, used to tell an expired check-in from a pending one.</param>
+public class GetTrainerCheckInsEndpoint(IApplicationDbContext db, TimeProvider timeProvider)
     : Endpoint<GetTrainerCheckInsRequest, GetTrainerCheckInsResponse>
 {
     /// <inheritdoc />
@@ -24,9 +27,10 @@ public class GetTrainerCheckInsEndpoint(IApplicationDbContext db)
             s.Description =
                 "weekStartDate is optional (YYYY-MM-DD, must be a Monday). When omitted, " +
                 "returns the active set for the authenticated trainer's clients — check-ins " +
-                "that are not dismissed by the client and not yet reviewed by the trainer, " +
-                "across all weeks. When provided, preserves the exact-week behavior (responded " +
-                "and pending, not dismissed, for that specific week) for a future history view.";
+                "the coach has not yet reviewed, across all weeks. When provided, returns the " +
+                "check-ins of that specific week.";
+            s.Responses[StatusCodes.Status200OK] = "Check-ins of the caller's clients";
+            s.Responses[StatusCodes.Status401Unauthorized] = "Missing or unreadable caller claim";
         });
     }
 
@@ -42,46 +46,54 @@ public class GetTrainerCheckInsEndpoint(IApplicationDbContext db)
 
         var professionalUserId = Guid.Parse(userId);
 
-        var query = db.WeeklyCheckIns
+        var query = db.QuestionnaireResponses
             .AsNoTracking()
-            .Where(c => c.ProfessionalUserId == professionalUserId);
+            .CurrentCollaborationCheckIns()
+            .Where(r => r.ProfessionalId == professionalUserId);
 
         query = req.WeekStartDate.HasValue
-            ? query.Where(c =>
-                c.WeekStartDate == req.WeekStartDate.Value &&
-                c.DismissedByClientAt == null)
-            : query.Where(c =>
-                c.DismissedByClientAt == null &&
-                c.ReviewedByTrainerAt == null);
+            ? query.Where(r => r.CheckInWeekStart == req.WeekStartDate.Value)
+            : query.Where(r => r.ReviewedByCoachAtUtc == null);
 
-        var checkIns = await query
-            .Include(c => c.ClientUser)
-            .OrderBy(c => c.ClientUser.LastName)
-                .ThenBy(c => c.ClientUser.FirstName)
-            .Select(c => new TrainerCheckInDto
+        var rows = await query
+            .OrderBy(r => r.Link.ClientProfile.User.LastName)
+                .ThenBy(r => r.Link.ClientProfile.User.FirstName)
+                .ThenBy(r => r.Id)
+            .Select(r => new
             {
-                Id = c.Id,
-                ClientUserId = c.ClientUserId,
-                // Null-safe correlated subquery: FirstOrDefault() on a Guid sequence
-                // yields Guid.Empty if the client has no ClientProfile row, rather than
-                // throwing — avoids an inner join that could silently drop the check-in.
-                ClientPublicId = db.ClientProfiles
-                    .Where(cp => cp.UserId == c.ClientUserId)
-                    .Select(cp => cp.PublicId)
-                    .FirstOrDefault(),
-                ClientName = c.ClientUser.FirstName + " " + c.ClientUser.LastName,
-                Profession = c.Profession.ToString(),
-                WeekStartDate = c.WeekStartDate,
-                Flags = c.Flags,
-                Note = c.Note,
-                SentAt = c.SentAt,
-                RespondedAt = c.RespondedAt,
-                DismissedByClientAt = c.DismissedByClientAt,
-                ReviewedByTrainerAt = c.ReviewedByTrainerAt,
-                Status = c.Status.ToString(),
-                DueAt = c.DueAt
+                r.PublicId,
+                r.ClientId,
+                ClientPublicId = r.Link.ClientProfile.PublicId,
+                ClientName = r.Link.ClientProfile.User.FirstName + " " + r.Link.ClientProfile.User.LastName,
+                r.Link.ProfessionalRole,
+                r.CheckInWeekStart,
+                r.DateCreated,
+                r.Status,
+                r.SubmittedAt,
+                r.CheckInDueAtUtc,
+                r.ReviewedByCoachAtUtc,
             })
             .ToListAsync(ct);
+
+        var nowUtc = timeProvider.GetUtcNow().UtcDateTime;
+
+        var checkIns = rows.Select(r => new TrainerCheckInDto
+        {
+            Id = r.PublicId,
+            ClientUserId = r.ClientId,
+            ClientPublicId = r.ClientPublicId,
+            ClientName = r.ClientName,
+            Profession = CheckInResponses.ProfessionOf(r.ProfessionalRole).ToString(),
+            WeekStartDate = CheckInResponses.WeekStartOf(r.CheckInWeekStart, r.DateCreated),
+            Flags = [],
+            Note = null,
+            SentAt = r.DateCreated,
+            RespondedAt = r.SubmittedAt,
+            DismissedByClientAt = null,
+            ReviewedByTrainerAt = r.ReviewedByCoachAtUtc,
+            Status = CheckInResponses.ResolveStatus(r.Status, r.ReviewedByCoachAtUtc, r.CheckInDueAtUtc, nowUtc).ToString(),
+            DueAt = r.CheckInDueAtUtc,
+        }).ToList();
 
         await Send.OkAsync(new GetTrainerCheckInsResponse { CheckIns = checkIns }, ct);
     }

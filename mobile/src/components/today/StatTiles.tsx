@@ -9,6 +9,7 @@ import { useCheckInHistory } from '@/hooks/useCheckInHistory';
 import { useCollaborations } from '@/hooks/useCollaborations';
 import { useLocalDayChange } from '@/hooks/useLocalDayChange';
 import { useMeasurementHistory } from '@/hooks/useMeasurementHistory';
+import { useOpenCheckIn } from '@/hooks/usePendingQuestionnaires';
 import { usePhotos } from '@/hooks/usePhotos';
 import { useProfileSummary } from '@/hooks/useProfileSummary';
 import { showsError } from '@/lib/queryState';
@@ -36,6 +37,7 @@ export function StatTiles() {
   const photos = usePhotos();
   const checkIns = useCheckInHistory();
   const collaborations = useCollaborations();
+  const openCheckInForm = useOpenCheckIn();
   // Day precision is enough here; reading the clock in render is impure, so derive it from the current day.
   const day = useLocalDayChange();
   const now = useMemo(() => {
@@ -82,12 +84,12 @@ export function StatTiles() {
   })();
 
   const checkInTile = (() => {
-    const action = {
-      symbol: 'chevron.right' as const,
-      label: t('today.stats.openCheckIns'),
-      onPress: () => router.push('/profile/check-ins'),
-    };
-    const base = { symbol: 'checkmark.circle' as const, label: t('today.stats.checkIn'), action };
+    const makeBase = (onPress: () => void) => ({
+      symbol: 'checkmark.circle' as const,
+      label: t('today.stats.checkIn'),
+      action: { symbol: 'chevron.right' as const, label: t('today.stats.openCheckIns'), onPress },
+    });
+    const base = makeBase(() => router.push('/profile/check-ins'));
     if (checkIns.isError) return { ...base, value: PLACEHOLDER_VALUE, caption: unavailable };
     if (checkIns.isPending) return { ...base, value: PLACEHOLDER_VALUE, caption: '' };
 
@@ -100,7 +102,12 @@ export function StatTiles() {
           : open.daysLeft === 0
             ? t('today.stats.checkInDueToday')
             : t('today.stats.checkInDue', { count: open.daysLeft });
-      return { ...base, value: weekday ?? t('today.stats.checkInOpen'), caption: weekday ? caption : '' };
+      // An open check-in opens its form; the history is reachable from the profile.
+      return {
+        ...makeBase(() => void openCheckInForm(open.responseId)),
+        value: weekday ?? t('today.stats.checkInOpen'),
+        caption: weekday ? caption : '',
+      };
     }
 
     // The coach's own schedule; no weekday is assumed when the coach has none.

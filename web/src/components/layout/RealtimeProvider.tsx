@@ -3,6 +3,8 @@ import { HubConnectionBuilder, HubConnection, LogLevel, HubConnectionState, Http
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/stores/auth';
 import { clientOfflineSyncConflictKeys } from '@/hooks/useClientOfflineSyncConflicts';
+import { clientFormsKey } from '@/api/questionnaires';
+import { weeklyCheckInKeys } from '@/hooks/useWeeklyCheckIns';
 import { executeRefresh } from '@/lib/refresh';
 import { RealtimeContext, setHubConnection, useSignalR, type RealtimeApi } from '@/hooks/useSignalR';
 
@@ -20,6 +22,13 @@ const COOPERATION_EVENTS = [
   'clientrequestproposalaccepted',
   'clientrequestproposaldeclined',
 ] as const;
+
+/** Reads the optional client public id of a form event; null when absent or not a string. */
+function readClientPublicId(payload: unknown): string | null {
+  if (typeof payload !== 'object' || payload === null) return null;
+  const value = (payload as Record<string, unknown>).clientPublicId;
+  return typeof value === 'string' && value.length > 0 ? value : null;
+}
 
 /**
  * Owns the single SignalR connection of the signed-in portal session and lets
@@ -208,13 +217,29 @@ function CoachRealtimeSync() {
     void queryClient.invalidateQueries({ queryKey: ['conversations'] });
   }, [queryClient, invalidateInbox]);
 
+  // A submitted or missed form changes the notification list and that client's forms views.
+  const invalidateForms = useCallback(
+    (payload: unknown) => {
+      void queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      // The client Overview check-in trend reads the same responses.
+      void queryClient.invalidateQueries({ queryKey: weeklyCheckInKeys.all });
+      const clientPublicId = readClientPublicId(payload);
+      void queryClient.invalidateQueries({
+        queryKey: clientPublicId ? clientFormsKey(clientPublicId) : ['client-forms'],
+      });
+    },
+    [queryClient],
+  );
+
   const handlers = useMemo(
     () => ({
       ...Object.fromEntries(COOPERATION_EVENTS.map((event) => [event, invalidateAll])),
       newmessage: invalidateInbox,
       offlinesyncconflict: invalidateConflicts,
+      questionnairesubmitted: invalidateForms,
+      checkinmissed: invalidateForms,
     }),
-    [invalidateAll, invalidateInbox, invalidateConflicts],
+    [invalidateAll, invalidateInbox, invalidateConflicts, invalidateForms],
   );
   useSignalR(handlers, invalidateAll);
 

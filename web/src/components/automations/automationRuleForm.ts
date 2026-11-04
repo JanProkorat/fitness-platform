@@ -6,12 +6,14 @@ import {
   AutomationOffsetDirection,
   AutomationScheduleUnit,
   AutomationTriggerKind,
+  DayOfWeek,
   type AutomationRuleDto,
   type ClientAutomationItem,
   type OverrideClientAutomationRequest,
   type PauseClientAutomationRequest,
   type UpdateAutomationRuleRequest,
 } from '@/api/automations';
+import { isCheckInRule } from '@/components/automations/automationFormat';
 
 export const NAME_MAX = 100;
 export const PAUSE_NOTE_MAX = 200;
@@ -20,6 +22,25 @@ export const PHOTO_MESSAGE_MAX = 500;
 export const DEFAULT_EVENT_TIME = '09:00';
 export const DEFAULT_SCHEDULE_TIME = '09:00';
 export const STOP_AFTER_DEFAULT = '5';
+export const CHECK_IN_DEFAULT_WINDOW_DAYS = 2;
+/** The answer window a coach can pick, in days. */
+export const CHECK_IN_WINDOW_DAYS: readonly number[] = [1, 2, 3, 4, 5, 6, 7];
+
+/** The reminder goes out after a day, or at half the window when the window is a single day. */
+export function checkInReminderHours(windowHours: number): number {
+  return Math.min(24, windowHours / 2);
+}
+
+/** The weekday buttons of a check-in rule, Monday first. */
+export const WEEKDAYS: readonly DayOfWeek[] = [
+  DayOfWeek.Monday,
+  DayOfWeek.Tuesday,
+  DayOfWeek.Wednesday,
+  DayOfWeek.Thursday,
+  DayOfWeek.Friday,
+  DayOfWeek.Saturday,
+  DayOfWeek.Sunday,
+];
 
 /** Where the drawer is used: the global page, a client's own rule, or a client's override of a global rule. */
 export type AutomationDrawerVariant = 'global' | 'clientOnly' | 'override';
@@ -76,6 +97,13 @@ export const automationRuleSchema = z
     scheduleInterval: z.string(),
     scheduleUnit: z.enum(AutomationScheduleUnit),
     localTime: z.string(),
+    /** The rule sends a CheckIn form: weekly on a weekday, with an answer window and its own options. */
+    checkIn: z.boolean(),
+    scheduleWeekday: z.enum(DayOfWeek),
+    /** Days the client has to answer, as the select's string value. */
+    answerWindowDays: z.string().refine((value) => numberInRange(value, 1, 7)),
+    reminderEnabled: z.boolean(),
+    notifyCoachOnMissedWeek: z.boolean(),
     eventType: z.enum(AutomationEventType),
     eventOffsetDays: z.string(),
     eventOffsetDirection: z.enum(AutomationOffsetDirection),
@@ -117,7 +145,11 @@ export const automationRuleSchema = z
       fail('questionnaireId', 'automations.errors.formRequired');
     }
 
-    if (values.triggerKind === AutomationTriggerKind.Schedule) {
+    if (values.checkIn) {
+      if (!TIME_PATTERN.test(values.localTime)) {
+        fail('localTime', 'automations.errors.timeRequired');
+      }
+    } else if (values.triggerKind === AutomationTriggerKind.Schedule) {
       if (!numberInRange(values.scheduleInterval, 1, 365)) {
         fail('scheduleInterval', 'automations.errors.intervalRange');
       }
@@ -137,7 +169,7 @@ export const automationRuleSchema = z
       }
     }
 
-    if (values.stopAfterEnabled && !numberInRange(values.stopAfterSends, 1, 1000)) {
+    if (!values.checkIn && values.stopAfterEnabled && !numberInRange(values.stopAfterSends, 1, 1000)) {
       fail('stopAfterSends', 'automations.errors.stopAfterRange');
     }
 
@@ -168,6 +200,9 @@ export const SUMMARY_SENSITIVE_FIELDS = [
   'scheduleInterval',
   'scheduleUnit',
   'localTime',
+  'checkIn',
+  'scheduleWeekday',
+  'answerWindowDays',
   'eventType',
   'eventOffsetDays',
   'eventOffsetDirection',
@@ -190,6 +225,11 @@ export function defaultRuleValues(): AutomationRuleFormValues {
     scheduleInterval: '1',
     scheduleUnit: AutomationScheduleUnit.Weeks,
     localTime: DEFAULT_SCHEDULE_TIME,
+    checkIn: false,
+    scheduleWeekday: DayOfWeek.Monday,
+    answerWindowDays: String(CHECK_IN_DEFAULT_WINDOW_DAYS),
+    reminderEnabled: true,
+    notifyCoachOnMissedWeek: true,
     eventType: AutomationEventType.ClientJoined,
     eventOffsetDays: '0',
     eventOffsetDirection: AutomationOffsetDirection.After,
@@ -216,8 +256,17 @@ export function ruleToFormValues(rule: AutomationRuleDto): AutomationRuleFormVal
   const defaults = defaultRuleValues();
   const isEvent = rule.triggerKind === AutomationTriggerKind.Event;
   const audience = rule.audience ?? AutomationAudience.All;
+  const checkIn = isCheckInRule(rule);
   return {
     ...defaults,
+    checkIn,
+    scheduleWeekday: rule.scheduleWeekday ?? defaults.scheduleWeekday,
+    answerWindowDays:
+      checkIn && rule.answerWindowHours != null
+        ? String(Math.round(rule.answerWindowHours / 24))
+        : defaults.answerWindowDays,
+    reminderEnabled: checkIn ? rule.reminderAfterHours != null : defaults.reminderEnabled,
+    notifyCoachOnMissedWeek: checkIn ? (rule.notifyCoachOnMissedWeek ?? false) : defaults.notifyCoachOnMissedWeek,
     name: rule.name ?? '',
     actionType: rule.actionType ?? defaults.actionType,
     questionnaireId: rule.questionnaireId ?? '',
@@ -249,23 +298,31 @@ export function formValuesToRequest(
   values: AutomationRuleFormValues,
   variant: AutomationDrawerVariant = 'global',
 ): UpdateAutomationRuleRequest {
-  const isSchedule = values.triggerKind === AutomationTriggerKind.Schedule;
+  const checkIn = values.checkIn && values.actionType === AutomationActionType.SendForm;
+  const isSchedule = checkIn || values.triggerKind === AutomationTriggerKind.Schedule;
   const planEvent = !isSchedule && isPlanEvent(values.eventType);
+  const answerWindowHours = Number(values.answerWindowDays) * 24;
   const request: UpdateAutomationRuleRequest = {
     name: values.name.trim(),
     actionType: values.actionType,
     questionnaireId: values.actionType === AutomationActionType.SendForm ? values.questionnaireId : undefined,
     message: values.message.trim() === '' ? undefined : values.message,
-    triggerKind: values.triggerKind,
-    scheduleInterval: isSchedule ? Number(values.scheduleInterval) : undefined,
-    scheduleUnit: isSchedule ? values.scheduleUnit : undefined,
+    triggerKind: checkIn ? AutomationTriggerKind.Schedule : values.triggerKind,
+    scheduleInterval: checkIn ? 1 : isSchedule ? Number(values.scheduleInterval) : undefined,
+    scheduleUnit: checkIn ? AutomationScheduleUnit.Weeks : isSchedule ? values.scheduleUnit : undefined,
     localTime: values.localTime === '' ? undefined : values.localTime,
+    // Check-in fields go out for a check-in rule only; the backend refuses them on any other rule.
+    scheduleWeekday: checkIn ? values.scheduleWeekday : undefined,
+    answerWindowHours: checkIn ? answerWindowHours : undefined,
+    reminderAfterHours: checkIn && values.reminderEnabled ? checkInReminderHours(answerWindowHours) : undefined,
+    notifyCoachOnMissedWeek: checkIn ? values.notifyCoachOnMissedWeek : undefined,
     eventType: isSchedule ? undefined : values.eventType,
     eventOffsetDays: isSchedule ? undefined : Number(values.eventOffsetDays),
     eventOffsetDirection: isSchedule ? undefined : planEvent ? values.eventOffsetDirection : AutomationOffsetDirection.After,
     oncePerPlan: planEvent && values.oncePerPlan,
-    skipWhilePreviousUnanswered: values.skipWhilePreviousUnanswered,
-    stopAfterSends: values.stopAfterEnabled ? Number(values.stopAfterSends) : undefined,
+    // A check-in week stands on its own, so the skip option is off and there is no send limit.
+    skipWhilePreviousUnanswered: checkIn ? false : values.skipWhilePreviousUnanswered,
+    stopAfterSends: !checkIn && values.stopAfterEnabled ? Number(values.stopAfterSends) : undefined,
     enabled: values.enabled,
   };
 
@@ -307,6 +364,10 @@ export function clientItemToRule(item: ClientAutomationItem): AutomationRuleDto 
     scheduleInterval: item.scheduleInterval,
     scheduleUnit: item.scheduleUnit,
     localTime: item.localTime,
+    scheduleWeekday: item.scheduleWeekday,
+    answerWindowHours: item.answerWindowHours,
+    reminderAfterHours: item.reminderAfterHours,
+    notifyCoachOnMissedWeek: item.notifyCoachOnMissedWeek,
     eventType: item.eventType,
     eventOffsetDays: item.eventOffsetDays,
     eventOffsetDirection: item.eventOffsetDirection,
@@ -326,6 +387,10 @@ export function formValuesToOverrideRequest(values: AutomationRuleFormValues): O
     scheduleInterval: full.scheduleInterval,
     scheduleUnit: full.scheduleUnit,
     localTime: full.localTime,
+    scheduleWeekday: full.scheduleWeekday,
+    answerWindowHours: full.answerWindowHours,
+    reminderAfterHours: full.reminderAfterHours,
+    notifyCoachOnMissedWeek: full.notifyCoachOnMissedWeek,
     eventType: full.eventType,
     eventOffsetDays: full.eventOffsetDays,
     eventOffsetDirection: full.eventOffsetDirection,
@@ -366,6 +431,10 @@ export function ruleToToggleRequest(rule: AutomationRuleDto, enabled: boolean): 
   // Keep fields exactly as stored; a stored empty time on an event rule stays empty.
   if (rule.triggerKind === AutomationTriggerKind.Event && !rule.localTime) {
     request.localTime = undefined;
+  }
+  if (isCheckInRule(rule)) {
+    request.answerWindowHours = rule.answerWindowHours ?? CHECK_IN_DEFAULT_WINDOW_DAYS * 24;
+    request.reminderAfterHours = rule.reminderAfterHours;
   }
   return request;
 }

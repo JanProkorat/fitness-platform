@@ -3,6 +3,7 @@ using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Features.Questionnaires.Shared;
 using FitnessPlatform.Application.Infrastructure.Data;
 using Microsoft.AspNetCore.Identity;
@@ -167,8 +168,10 @@ public class GetClientPendingQuestionnairesEndpoint(
             // The submitted check is per response: answering one never hides the other.
             if (linkResponses.Count > 0)
             {
+                // A check-in past its answer window is no longer offered.
                 foreach (var response in linkResponses.Where(r =>
-                             r.Status is QuestionnaireResponseStatus.Pending or QuestionnaireResponseStatus.InProgress))
+                             r.Status is QuestionnaireResponseStatus.Pending or QuestionnaireResponseStatus.InProgress
+                             && !r.IsAnswerWindowClosed(now.UtcDateTime)))
                 {
                     questionnaireItems.Add(new PendingQuestionnaireItem
                     {
@@ -182,6 +185,9 @@ public class GetClientPendingQuestionnairesEndpoint(
                         ResponsePublicId = response.PublicId,
                         ResponseStatus = response.Status.ToString(),
                         Scope = response.Scope,
+                        Kind = response.Kind,
+                        CheckInWeekStart = response.CheckInWeekStart,
+                        CheckInDueAtUtc = response.CheckInDueAtUtc,
                     });
                 }
 

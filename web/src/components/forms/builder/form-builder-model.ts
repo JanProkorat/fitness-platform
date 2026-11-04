@@ -17,6 +17,7 @@ export const QuestionKind = {
   Number: 'number',
   SmileyRating: 'smiley_rating',
   StarRating: 'star_rating',
+  Section: 'section',
 } as const;
 
 export type PaletteKind = (typeof QuestionKind)[keyof typeof QuestionKind];
@@ -29,6 +30,7 @@ const PALETTE_ORDER: Record<QuestionnaireType, PaletteKind[]> = {
     QuestionKind.ShortText,
     QuestionKind.SmileyRating,
     QuestionKind.StarRating,
+    QuestionKind.Section,
   ],
   [QuestionnaireType.CheckIn]: [
     QuestionKind.SmileyRating,
@@ -37,6 +39,7 @@ const PALETTE_ORDER: Record<QuestionnaireType, PaletteKind[]> = {
     QuestionKind.SingleChoice,
     QuestionKind.ShortText,
     QuestionKind.Number,
+    QuestionKind.Section,
   ],
 };
 
@@ -49,7 +52,23 @@ export function isChoiceKind(kind: string): boolean {
   return kind === QuestionKind.SingleChoice || kind === QuestionKind.MultiSelect;
 }
 
-/** True for the six types the builder can edit; `scale`, `file_upload` and unknown types stay read-only. */
+/** True for a section divider: a heading with an optional description that is never answered. */
+export function isSectionKind(kind: string): boolean {
+  return kind === QuestionKind.Section;
+}
+
+/** The number each row shows: sections get none and do not count towards the numbering. */
+export function questionNumbers(questions: DraftQuestion[]): (number | null)[] {
+  let next = 0;
+  return questions.map((question) => (isSectionKind(question.type) ? null : (next += 1)));
+}
+
+/** How many rows a client answers (everything but sections). */
+export function answerableCount(questions: DraftQuestion[]): number {
+  return questions.filter((question) => !isSectionKind(question.type)).length;
+}
+
+/** True for the seven types the builder can edit; `scale`, `file_upload` and unknown types stay read-only. */
 export function isEditableKind(kind: string): kind is PaletteKind {
   return (
     kind === QuestionKind.SingleChoice ||
@@ -57,7 +76,8 @@ export function isEditableKind(kind: string): kind is PaletteKind {
     kind === QuestionKind.ShortText ||
     kind === QuestionKind.Number ||
     kind === QuestionKind.SmileyRating ||
-    kind === QuestionKind.StarRating
+    kind === QuestionKind.StarRating ||
+    kind === QuestionKind.Section
   );
 }
 
@@ -167,6 +187,11 @@ export function toDraftQuestion(dto: QuestionDto): DraftQuestion {
   question.label = dto.label;
   question.helperText = dto.helperText ?? '';
   question.isRequired = dto.isRequired;
+  if (isSectionKind(dto.type)) {
+    question.isRequired = false;
+    question.mappedField = null;
+    return question;
+  }
   if (!isEditableKind(dto.type)) {
     question.rawConfig = dto.config ?? null;
     return question;
@@ -192,6 +217,7 @@ export function toDraftQuestion(dto: QuestionDto): DraftQuestion {
 
 export interface QuestionDefaults {
   label: string;
+  sectionLabel: string;
   option: (index: number) => string;
   lowLabel: string;
   highLabel: string;
@@ -200,7 +226,7 @@ export interface QuestionDefaults {
 /** A fresh question of a palette type, with placeholder copy so it is valid to save straight away. */
 export function createQuestion(kind: PaletteKind, defaults: QuestionDefaults): DraftQuestion {
   const question = emptyQuestion(kind);
-  question.label = defaults.label;
+  question.label = isSectionKind(kind) ? defaults.sectionLabel : defaults.label;
   if (isChoiceKind(kind)) {
     question.options = [defaults.option(1), defaults.option(2)];
   } else if (kind === QuestionKind.SmileyRating) {
@@ -283,6 +309,7 @@ export function serializeConfig(question: DraftQuestion): string | null {
       });
     case QuestionKind.ShortText:
     case QuestionKind.StarRating:
+    case QuestionKind.Section:
       return null;
     default:
       return question.rawConfig;
@@ -297,10 +324,10 @@ export function toUpdatePayload(draft: DraftForm, server: FormServerState) {
     type: question.type,
     label: question.label.trim(),
     helperText: question.helperText.trim() === '' ? null : question.helperText.trim(),
-    isRequired: question.isRequired,
+    isRequired: isSectionKind(question.type) ? false : question.isRequired,
     isHidden: false,
     config: serializeConfig(question),
-    mappedField: question.mappedField,
+    mappedField: isSectionKind(question.type) ? null : question.mappedField,
   }));
   const hidden: UpdateQuestionDto[] = server.hidden.map((question, index) => ({
     publicId: question.publicId,
@@ -381,6 +408,8 @@ export interface FormErrors {
   description?: string;
   /** Per question key. */
   questions: Record<string, QuestionErrors>;
+  /** Set when the form has sections but nothing for a client to answer. */
+  noQuestions?: string;
   count: number;
 }
 
@@ -388,6 +417,10 @@ export interface FormErrors {
 export function validateDraft(draft: DraftForm): FormErrors {
   const result = formSchema.safeParse(draft);
   const errors: FormErrors = { questions: {}, count: 0 };
+  if (draft.questions.length > 0 && answerableCount(draft.questions) === 0) {
+    errors.noQuestions = 'forms.builder.errors.onlySections';
+    errors.count += 1;
+  }
   if (result.success) {
     return errors;
   }

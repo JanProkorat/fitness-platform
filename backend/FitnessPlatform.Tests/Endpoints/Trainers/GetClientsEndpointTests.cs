@@ -6,6 +6,7 @@ using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
+using FitnessPlatform.Tests.Builders;
 using FitnessPlatform.Tests.Infrastructure;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
@@ -376,50 +377,22 @@ public class GetClientsEndpointTests(FitnessApiFactory factory)
     }
 
     [Fact]
-    public async Task List_NewCheckInsFilter_ReturnsRespondedNotYetReviewed_ScopedToGrantedProfession()
+    public async Task List_CheckInFilters_SplitNewUnreviewedFromPastDueUnanswered()
     {
         var (http, trainerId) = await SetupTrainerAsync();
+        var (newClientId, _) = await SetupLinkedClientAsync(trainerId);
+        var (reviewedClientId, _) = await SetupLinkedClientAsync(trainerId);
+        var (missingClientId, _) = await SetupLinkedClientAsync(trainerId);
 
-        // Nutrition-only link — a Training-profession check-in must NOT count for this link,
-        // even though it targets the same client/professional pair.
-        var (clientUserId, _) = await SetupLinkedClientAsync(
-            trainerId, canViewNutritionPlans: true, canViewTrainingPlans: false);
+        await CheckInFixtures.AddForUsersAsync(factory, trainerId, newClientId, submitted: true);
+        await CheckInFixtures.AddForUsersAsync(factory, trainerId, reviewedClientId, submitted: true, reviewed: true);
+        await CheckInFixtures.AddForUsersAsync(factory, trainerId, missingClientId, submitted: false);
 
-        await SeedWeeklyCheckInAsync(
-            trainerId, clientUserId, Profession.Training,
-            respondedAt: DateTime.UtcNow, reviewedAt: null);
+        var fresh = await http.GetAsync("/trainer/clients?filter=NewCheckIns", TestContext.Current.CancellationToken);
+        (await Deserialize(fresh))!.Clients.Select(c => c.UserId).Should().BeEquivalentTo([newClientId]);
 
-        var trainingOnlyResponse = await http.GetAsync(
-            "/trainer/clients?filter=NewCheckIns", TestContext.Current.CancellationToken);
-        (await Deserialize(trainingOnlyResponse))!.Clients.Should().BeEmpty(
-            "a Training check-in must not count for a link that only grants Nutrition");
-
-        await SeedWeeklyCheckInAsync(
-            trainerId, clientUserId, Profession.Nutrition,
-            respondedAt: DateTime.UtcNow, reviewedAt: null);
-
-        var response = await http.GetAsync(
-            "/trainer/clients?filter=NewCheckIns", TestContext.Current.CancellationToken);
-        var body = await Deserialize(response);
-
-        body!.Clients.Select(c => c.UserId).Should().BeEquivalentTo([clientUserId]);
-    }
-
-    [Fact]
-    public async Task List_MissingCheckInsFilter_ReturnsExpiredOrOverdueUnanswered()
-    {
-        var (http, trainerId) = await SetupTrainerAsync();
-        var (clientUserId, _) = await SetupLinkedClientAsync(trainerId);
-
-        await SeedWeeklyCheckInAsync(
-            trainerId, clientUserId, Profession.Nutrition,
-            respondedAt: null, reviewedAt: null, status: WeeklyCheckInStatus.Expired);
-
-        var response = await http.GetAsync(
-            "/trainer/clients?filter=MissingCheckIns", TestContext.Current.CancellationToken);
-        var body = await Deserialize(response);
-
-        body!.Clients.Select(c => c.UserId).Should().BeEquivalentTo([clientUserId]);
+        var missing = await http.GetAsync("/trainer/clients?filter=MissingCheckIns", TestContext.Current.CancellationToken);
+        (await Deserialize(missing))!.Clients.Select(c => c.UserId).Should().BeEquivalentTo([missingClientId]);
     }
 
     [Fact]
@@ -643,30 +616,6 @@ public class GetClientsEndpointTests(FitnessApiFactory factory)
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 
-    private async Task SeedWeeklyCheckInAsync(
-        Guid professionalUserId, Guid clientUserId, Profession profession,
-        DateTime? respondedAt, DateTime? reviewedAt, WeeklyCheckInStatus status = WeeklyCheckInStatus.Responded)
-    {
-        using var scope = factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-
-        db.WeeklyCheckIns.Add(new WeeklyCheckIn
-        {
-            Id = Guid.NewGuid(),
-            ClientUserId = clientUserId,
-            ProfessionalUserId = professionalUserId,
-            Profession = profession,
-            WeekStartDate = DateOnly.FromDateTime(DateTime.UtcNow),
-            Status = status,
-            SentAt = DateTime.UtcNow.AddDays(-7),
-            DueAt = DateTime.UtcNow.AddDays(-1),
-            RespondedAt = respondedAt,
-            ReviewedByTrainerAt = reviewedAt,
-            DateCreated = DateTime.UtcNow,
-            DateModified = DateTime.UtcNow
-        });
-        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
-    }
 
     private static async Task<GetClientsResponseDto?> Deserialize(HttpResponseMessage response) =>
         await response.Content.ReadFromJsonAsync<GetClientsResponseDto>(

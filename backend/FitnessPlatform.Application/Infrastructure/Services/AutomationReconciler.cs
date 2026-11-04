@@ -56,7 +56,8 @@ public sealed class AutomationReconciler(IApplicationDbContext db, ILogger<Autom
                 pair.Zone,
                 pair.StartLocalDate,
                 effective.IsPlanEvent ? snapshot.PlanWindows(pair.Client.ClientUserId) : [],
-                nowUtc);
+                nowUtc,
+                pair.FirstSendNotBeforeUtc);
 
             if (next is not null
                 && effective.StopAfterSends is { } limit

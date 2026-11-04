@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
+import { CHECK_IN_QUERY_KEY } from '@/api/checkIns';
 import {
   PENDING_QUESTIONNAIRES_QUERY_KEY,
   SUBMITTED_QUESTIONNAIRES_QUERY_KEY,
@@ -35,6 +36,8 @@ export function useSendQuestionnaire(
   const refreshLists = useCallback(() => {
     void queryClient.invalidateQueries({ queryKey: PENDING_QUESTIONNAIRES_QUERY_KEY });
     void queryClient.invalidateQueries({ queryKey: SUBMITTED_QUESTIONNAIRES_QUERY_KEY });
+    // A check-in answer also moves its history row and the Today check-in tile.
+    void queryClient.invalidateQueries({ queryKey: CHECK_IN_QUERY_KEY });
   }, [queryClient]);
 
   const mutation = useMutation({

@@ -121,7 +121,7 @@ public class FitnessApiFactory(SharedTestContainers sharedContainers) : WebAppli
             // Testcontainer, cascading via BackgroundServiceExceptionBehavior=StopHost).
             // Supersedes the #282/#299 finding that a narrower, single-type removal
             // predicate was a no-op: that attempt only targeted PhotoDiaryReminderScheduler
-            // and left WeeklyCheckInScheduler/SocialLoginNonceReaperService/EmailDispatchWorker
+            // and left SocialLoginNonceReaperService/EmailDispatchWorker
             // running; this removes all four background loops while leaving each
             // singleton independently resolvable for direct-tick tests (verified by
             // FitnessApiFactoryTests).

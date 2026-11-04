@@ -24,6 +24,11 @@ public class UpdateQuestionnaireValidator : Validator<UpdateQuestionnaireRequest
                 .WithErrorCode(ErrorCodes.QuestionConfigInvalid)
                 .WithMessage("Question config is not valid for its type.")
                 .When(x => QuestionTypes.All.Contains(x.Type));
+            q.RuleFor(x => x)
+                .Must(question => !question.IsRequired && question.MappedField is null)
+                .WithErrorCode(ErrorCodes.QuestionSectionInvalid)
+                .WithMessage("A section cannot be required or mapped to a field.")
+                .When(x => x.Type == QuestionTypes.Section);
         });
     }
 }

@@ -267,6 +267,7 @@ public class AcceptClientRequestEndpoint(
                 ProfessionalId = userGuid,
                 LinkId = link.Id,
                 Status = QuestionnaireResponseStatus.Pending,
+                Kind = QuestionnaireResponseKind.Onboarding,
                 Scope = ClientLinkActivationResult.ScopeOf(canViewNutritionPlans, canViewTrainingPlans),
             };
 

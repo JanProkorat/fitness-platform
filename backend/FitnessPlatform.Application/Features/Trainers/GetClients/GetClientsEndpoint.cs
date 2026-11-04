@@ -220,20 +220,22 @@ public class GetClientsEndpoint(IMongoContext mongo, IApplicationDbContext db, T
                     !m.IsRead &&
                     m.Kind != ChatMessageKind.Event &&
                     m.SenderUserId == l.ClientProfile.User.Id),
-                HasNewCheckIn = db.WeeklyCheckIns.Any(w =>
-                    w.ClientUserId == l.ClientProfile.User.Id &&
-                    w.ProfessionalUserId == callerUserId &&
-                    w.RespondedAt != null &&
-                    w.ReviewedByTrainerAt == null &&
-                    ((l.CanViewNutritionPlans && w.Profession == Profession.Nutrition) ||
-                     (l.CanViewTrainingPlans && w.Profession == Profession.Training))),
-                HasMissingCheckIn = db.WeeklyCheckIns.Any(w =>
-                    w.ClientUserId == l.ClientProfile.User.Id &&
-                    w.ProfessionalUserId == callerUserId &&
-                    ((l.CanViewNutritionPlans && w.Profession == Profession.Nutrition) ||
-                     (l.CanViewTrainingPlans && w.Profession == Profession.Training)) &&
-                    (w.Status == WeeklyCheckInStatus.Expired ||
-                     (w.DueAt != null && w.DueAt < now && w.RespondedAt == null)))
+                // Check-ins are form responses of the link's current collaboration; the open ones are
+                // unsubmitted, so they count by creation time, the submitted ones by submission time.
+                HasNewCheckIn = db.QuestionnaireResponses.Any(r =>
+                    r.LinkId == l.Id &&
+                    r.ProfessionalId == callerUserId &&
+                    r.Kind == QuestionnaireResponseKind.CheckIn &&
+                    r.Status == QuestionnaireResponseStatus.Submitted &&
+                    r.ReviewedByCoachAtUtc == null &&
+                    (l.ActivatedAtUtc == null || r.SubmittedAt >= l.ActivatedAtUtc)),
+                HasMissingCheckIn = db.QuestionnaireResponses.Any(r =>
+                    r.LinkId == l.Id &&
+                    r.ProfessionalId == callerUserId &&
+                    r.Kind == QuestionnaireResponseKind.CheckIn &&
+                    (r.Status == QuestionnaireResponseStatus.Pending || r.Status == QuestionnaireResponseStatus.InProgress) &&
+                    r.CheckInDueAtUtc != null && r.CheckInDueAtUtc < now &&
+                    (l.ActivatedAtUtc == null || r.DateCreated >= l.ActivatedAtUtc))
             })
             .ToListAsync(ct);
     }

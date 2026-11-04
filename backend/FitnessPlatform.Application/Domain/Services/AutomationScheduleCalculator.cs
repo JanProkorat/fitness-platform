@@ -49,6 +49,62 @@ public static class AutomationScheduleCalculator
     }
 
     /// <summary>
+    /// Computes the next fire instant (UTC) strictly after <paramref name="nowUtc"/> of a weekly rule
+    /// anchored to a weekday: the next <paramref name="weekday"/> at <paramref name="localTime"/> in
+    /// <paramref name="zone"/>.
+    /// </summary>
+    /// <param name="weekday">Client-local weekday of the send.</param>
+    /// <param name="localTime">Client-local time of day.</param>
+    /// <param name="zone">The client's time zone.</param>
+    /// <param name="nowUtc">The current instant.</param>
+    public static DateTime ComputeNextWeekdayRunAt(
+        DayOfWeek weekday, TimeOnly localTime, TimeZoneInfo zone, DateTime nowUtc)
+    {
+        var localToday = ClientLocalDateResolver.ResolveLocalDate(nowUtc, zone);
+        var daysAhead = ((int)weekday - (int)localToday.DayOfWeek + 7) % 7;
+        var candidate = ToUtc(localToday.AddDays(daysAhead), localTime, zone);
+
+        while (candidate <= nowUtc)
+        {
+            daysAhead += 7;
+            candidate = ToUtc(localToday.AddDays(daysAhead), localTime, zone);
+        }
+
+        return candidate;
+    }
+
+    /// <summary>
+    /// The first weekly run of a rule anchored to a weekday that falls in a full week: the week of the
+    /// first Monday (client-local) that is on or after <paramref name="notBeforeUtc"/>. A moment exactly
+    /// at local Monday 00:00 counts as that week.
+    /// </summary>
+    /// <param name="weekday">Client-local weekday of the send.</param>
+    /// <param name="localTime">Client-local time of day.</param>
+    /// <param name="zone">The client's time zone.</param>
+    /// <param name="notBeforeUtc">The moment the first week may not start before.</param>
+    public static DateTime ComputeFirstFullWeekRunAt(
+        DayOfWeek weekday, TimeOnly localTime, TimeZoneInfo zone, DateTime notBeforeUtc)
+    {
+        var local = TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(notBeforeUtc, DateTimeKind.Utc), zone);
+        var localDate = DateOnly.FromDateTime(local);
+        var monday = MondayOf(localDate);
+
+        if (monday != localDate || local.TimeOfDay > TimeSpan.Zero)
+        {
+            monday = monday.AddDays(7);
+        }
+
+        return ToUtc(monday.AddDays(((int)weekday + 6) % 7), localTime, zone);
+    }
+
+    /// <summary>
+    /// The Monday of the week that contains <paramref name="localDate"/>.
+    /// </summary>
+    /// <param name="localDate">A calendar date.</param>
+    public static DateOnly MondayOf(DateOnly localDate) =>
+        localDate.AddDays(-(((int)localDate.DayOfWeek + 6) % 7));
+
+    /// <summary>
     /// Converts a local date and time to UTC. A time that does not exist because of a spring-forward
     /// gap moves one hour later; an ambiguous time resolves to the standard-time instant.
     /// </summary>

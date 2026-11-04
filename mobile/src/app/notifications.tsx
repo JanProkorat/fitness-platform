@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { EdgeInsets } from 'react-native-safe-area-context';
 
+import { isCheckInReminderType } from '@/api/checkIns';
 import {
   getNotificationInviteId,
   getNotificationPayload,
@@ -20,6 +21,7 @@ import { OfflineBanner } from '@/components/OfflineBanner';
 import { Text } from '@/components/Text';
 import { useInvites } from '@/hooks/useInvites';
 import { useMarkNotificationsRead, useNotifications } from '@/hooks/useNotifications';
+import { useOpenCheckIn } from '@/hooks/usePendingQuestionnaires';
 import { usePaymentsEnabled } from '@/hooks/usePaymentsEnabled';
 import { isOfflineEmpty, showsError } from '@/lib/queryState';
 import { useTheme } from '@/theme';
@@ -45,6 +47,7 @@ export default function NotificationsSheet() {
   const { data: invites } = useInvites();
   const { markOne, markAll } = useMarkNotificationsRead();
   const payments = usePaymentsEnabled();
+  const openCheckIn = useOpenCheckIn();
 
   // Opening the sheet always shows fresh data.
   useEffect(() => {
@@ -62,7 +65,11 @@ export default function NotificationsSheet() {
   const open = (notification: AppNotification) => {
     if (notification.id && notification.read !== true) markOne(notification.id);
     const requestId = getNotificationRequestId(notification);
-    if (isPaymentRequestedType(notification.type) && payments.enabled) router.replace('/payments');
+    if (isCheckInReminderType(notification.type)) {
+      // Close the sheet first so the form (or the notice) opens over Today, not over the sheet.
+      router.back();
+      void openCheckIn(getNotificationPayload(notification).responseId);
+    } else if (isPaymentRequestedType(notification.type) && payments.enabled) router.replace('/payments');
     else if (requestId) router.replace({ pathname: '/request/[id]', params: { id: requestId } });
     else if (isNutritionPlanPayload(getNotificationPayload(notification))) router.replace('/nutrition');
   };
