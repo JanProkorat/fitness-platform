@@ -971,6 +971,46 @@ test.describe('client detail — nutrition tab', () => {
       }
     });
 
+    test('saves text typed into a tag box without Enter and still validates it', async ({ page }) => {
+      await pinNow(page);
+      let onboarding: Onboarding = { ...FULL_ONBOARDING };
+      await stubOnboarding(page, () => onboarding);
+      await stubPlans(page);
+      await stubMeasurements(page, PROGRESS_WEIGH_INS);
+
+      const requests: { dislikes: string[]; habits: string[] }[] = [];
+      await page.route(/\/trainer\/clients\/[^/]+\/nutrition-profile$/, async (route) => {
+        const saved = route.request().postDataJSON() as { dislikes: string[]; habits: string[] };
+        requests.push(saved);
+        onboarding = { ...onboarding, dislikes: saved.dislikes, habits: saved.habits };
+        await route.fulfill({ json: { ...saved, allergies: ['gluten', 'lactose'] } });
+      });
+
+      await openNutritionTab(page);
+      await page.getByRole('region', { name: /nutrition profile$/ }).getByRole('button', { name: 'Edit' }).click();
+      const dialog = page.getByRole('dialog', { name: 'Edit nutrition profile' });
+      await expect(dialog).toBeVisible();
+
+      // Pending text over the item limit is validated like a chip: inline error, no request, dialog stays open.
+      const tooLong = 'x'.repeat(61);
+      await dialog.getByLabel('Habits').fill(tooLong);
+      await dialog.getByRole('button', { name: 'Save' }).click();
+      await expect(dialog.getByRole('alert')).toBeVisible();
+      expect(requests).toHaveLength(0);
+      await expect(dialog).toBeVisible();
+      await dialog.getByRole('button', { name: `Remove ${tooLong}` }).click();
+
+      // Valid pending text in two boxes, no Enter, plain mouse click on Save.
+      await dialog.getByLabel('Dislikes').fill('Olives');
+      await dialog.getByLabel('Habits').fill('Late dinners');
+      await dialog.getByRole('button', { name: 'Save' }).click();
+      await expect(dialog).toBeHidden();
+
+      expect(requests).toHaveLength(1);
+      expect(requests[0].dislikes).toEqual(['Mushrooms', 'Olives']);
+      expect(requests[0].habits).toEqual(['Skips breakfast', 'Late dinners']);
+    });
+
     test('disables the fibre target when the client has no targets', async ({ page }) => {
       await pinNow(page);
       await stubOnboarding(page, () => ({ targetWeightKg: 75, dislikes: ['Mushrooms'] }));
