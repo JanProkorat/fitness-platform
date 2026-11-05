@@ -5255,6 +5255,7 @@
     "weekCountRange": "Die Anzahl der Wochen muss zwischen 1 und 52 liegen."
   },
   "emailOff": {
+    "footer": "Form Up · Ihr Plan. Gemeinsam.",
     "loading": "Diese E-Mail wird ausgeschaltet …",
     "account": "Konto",
     "emailLabel": "E-Mail",

@@ -5440,6 +5440,7 @@
     "weekCountRange": "Počet týdnů musí být 1 až 52."
   },
   "emailOff": {
+    "footer": "Form Up · Váš plán. Společně.",
     "loading": "Vypínáme tento e-mail…",
     "account": "Účet",
     "emailLabel": "E-mail",
