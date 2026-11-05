@@ -150,7 +150,7 @@ services:
       ConnectionStrings__MongoDB: "mongodb://admin:{0}@mongo-test:27017/?authSource=admin"
       MongoDB__DatabaseName: fitness_test
       MinIO__Endpoint: "minio-test:9000"
-      MinIO__BucketName: "fitness-platform-test"
+      MinIO__BucketName: "form-up-test"
       # Local MinIO overrides — appsettings.Development.json is configured for
       # Cloudflare R2 (Secure=true, https PublicEndpoint, ManageBucket=false).
       # The harness MinIO serves plain HTTP and needs path-style public URLs +
@@ -167,7 +167,7 @@ services:
       Email__Provider: "Smtp"
       Email__SmtpHost: "mailhog-test"
       Email__SmtpPort: "1025"
-      Email__FromAddress: "noreply@fitnessplatform.test"
+      Email__FromAddress: "noreply@formup.test"
     networks:
       - qa-net
     command: ["--qa-seed"]
@@ -205,7 +205,7 @@ services:
       ConnectionStrings__MongoDB: "mongodb://admin:{0}@mongo-test:27017/?authSource=admin"
       MongoDB__DatabaseName: fitness_test
       MinIO__Endpoint: "minio-test:9000"
-      MinIO__BucketName: "fitness-platform-test"
+      MinIO__BucketName: "form-up-test"
       # Local MinIO overrides — appsettings.Development.json is configured for
       # Cloudflare R2 (Secure=true, https PublicEndpoint, ManageBucket=false).
       # The harness MinIO serves plain HTTP and needs path-style public URLs +
@@ -232,7 +232,7 @@ services:
       Email__Provider: "Smtp"
       Email__SmtpHost: "mailhog-test"
       Email__SmtpPort: "1025"
-      Email__FromAddress: "noreply@fitnessplatform.test"
+      Email__FromAddress: "noreply@formup.test"
       # Apply pending EF migrations on API boot for the e2e harness (#436).
       # Gated on this dedicated flag, NOT ASPNETCORE_ENVIRONMENT — Render runs
       # as Development for TLS reasons and must NOT auto-migrate, so the guard

@@ -11,7 +11,7 @@
 import { request as apiRequest } from '@playwright/test';
 import { nutritionistTest as test, expect } from '../fixtures/auth';
 
-const NUTRITIONIST_EMAIL = 'qa.nutri@fitnessplatform.test';
+const NUTRITIONIST_EMAIL = 'qa.nutri@formup.test';
 
 interface LoginResponseBody {
   accessToken: string;

@@ -20,8 +20,8 @@
  *
  * The global-setup.ts (Playwright globalSetup) calls POST /test/reset before
  * this suite runs, so the DB starts from the deterministic QA fixture:
- *   qa.trainer@fitnessplatform.test — is the logged-in user
- *   qa.client@fitnessplatform.test  — is the one seeded client linked to the trainer
+ *   qa.trainer@formup.test — is the logged-in user
+ *   qa.client@formup.test  — is the one seeded client linked to the trainer
  *
  * WHY THIS IS ONE CONSOLIDATED TEST:
  * storageState restores a refresh token from disk. On the first page.goto(),

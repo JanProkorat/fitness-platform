@@ -9,8 +9,8 @@
 import type { Page } from '@playwright/test';
 import { test, expect } from '@playwright/test';
 
-const TRAINER_EMAIL = 'qa.trainer@fitnessplatform.test';
-const CLIENT_EMAIL = 'qa.client@fitnessplatform.test';
+const TRAINER_EMAIL = 'qa.trainer@formup.test';
+const CLIENT_EMAIL = 'qa.client@formup.test';
 
 test.beforeEach(async ({ page }) => {
   await page.addInitScript("window.localStorage.setItem('lang', 'en');");

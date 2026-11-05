@@ -119,8 +119,8 @@ public static class QaSeedRunner
     public static readonly Guid Client2ProfilePublicId  = new("55555555-5555-5555-aaaa-000000000001");
     public static readonly Guid Trainer2ProfilePublicId = new("66666666-6666-6666-bbbb-000000000001");
 
-    public const string Client2Email  = "qa.client2@fitnessplatform.test";
-    public const string Trainer2Email = "qa.trainer2@fitnessplatform.test";
+    public const string Client2Email  = "qa.client2@formup.test";
+    public const string Trainer2Email = "qa.trainer2@formup.test";
 
     // Training plan for the multi-section fixture.
     public static readonly Guid QaMultiSectionPlanExternalId = new("55555555-5555-5555-dddd-000000000001");
@@ -245,7 +245,7 @@ public static class QaSeedRunner
     // -------------------------------------------------------------------------
     public static readonly Guid Client3UserId          = new("77777777-7777-7777-7777-777777777777");
     public static readonly Guid Client3ProfilePublicId = new("77777777-7777-7777-aaaa-000000000001");
-    public const string Client3Email = "qa.client3@fitnessplatform.test";
+    public const string Client3Email = "qa.client3@formup.test";
 
     public static readonly Guid QaInboxConversationId = new("00000000-0000-0000-aabb-000000000001");
     public static readonly Guid QaInboxMessage1Id      = new("00000000-0000-0000-aabb-000000000002");
@@ -265,7 +265,7 @@ public static class QaSeedRunner
     // -------------------------------------------------------------------------
     public static readonly Guid ClientFormerUserId          = new("88888888-8888-8888-8888-888888888888");
     public static readonly Guid ClientFormerProfilePublicId = new("88888888-8888-8888-aaaa-000000000001");
-    public const string ClientFormerEmail = "qa.client.former@fitnessplatform.test";
+    public const string ClientFormerEmail = "qa.client.former@formup.test";
 
     public static readonly Guid QaEndedLinkConversationId = new("00000000-0000-0000-aabb-000000000011");
     public static readonly Guid QaEndedLinkMessage1Id     = new("00000000-0000-0000-aabb-000000000012");
@@ -311,8 +311,8 @@ public static class QaSeedRunner
     public static readonly Guid ClientDuoUserId         = new("44444444-4444-4444-4444-444444444444");
     public static readonly Guid ClientDuoProfilePublicId = new("44444444-4444-4444-aaaa-000000000001");
 
-    public const string CoachEmail      = "qa.coach@fitnessplatform.test";
-    public const string ClientDuoEmail  = "qa.client.both@fitnessplatform.test";
+    public const string CoachEmail      = "qa.coach@formup.test";
+    public const string ClientDuoEmail  = "qa.client.both@formup.test";
 
     public static readonly Guid QaDuoNutritionPlanExternalId = new("44444444-4444-4444-eeee-000000000001");
     public static readonly Guid QaDuoTrainingPlanExternalId  = new("44444444-4444-4444-dddd-000000000001");
@@ -434,9 +434,9 @@ public static class QaSeedRunner
     public const string QaAvatarBlobKey    = "avatars/qa-client-11111111.png";
     public const string QaFoodImageBlobKey = "foods/qa-food-1.png";
 
-    public const string ClientEmail   = "qa.client@fitnessplatform.test";
-    public const string TrainerEmail  = "qa.trainer@fitnessplatform.test";
-    public const string NutriEmail    = "qa.nutri@fitnessplatform.test";
+    public const string ClientEmail   = "qa.client@formup.test";
+    public const string TrainerEmail  = "qa.trainer@formup.test";
+    public const string NutriEmail    = "qa.nutri@formup.test";
     // #474 second pair — separate accounts so multi-section fixture is independently exercisable.
 
     // Sourced from QA_SEED_PASSWORD via .env.test (gitignored). The harness
@@ -2414,7 +2414,7 @@ public static class QaSeedRunner
                     {
                         PublicId   = new Guid("00000000-0000-0000-7777-000000001008"),
                         QuestionId = questionnaire.Questions.First(q => q.PublicId == QaQuestionMedicalDocId).Id,
-                        FileUrl    = "https://storage.qa.fitnessplatform.test/qa-fixtures/medical-clearance-checkup.pdf",
+                        FileUrl    = "https://storage.qa.formup.test/qa-fixtures/medical-clearance-checkup.pdf",
                     },
                 ],
             };
@@ -2628,7 +2628,7 @@ public static class QaSeedRunner
                     {
                         PublicId   = new Guid("00000000-0000-0000-8888-000000001008"),
                         QuestionId = questionnaire.Questions.First(q => q.PublicId == QaNutriQuestionFoodDiaryId).Id,
-                        FileUrl    = "https://storage.qa.fitnessplatform.test/qa-fixtures/food-diary-week1.pdf",
+                        FileUrl    = "https://storage.qa.formup.test/qa-fixtures/food-diary-week1.pdf",
                     },
                 ],
             };

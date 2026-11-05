@@ -5,7 +5,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 import StoreButtons from '@/components/register/StoreButtons';
 
 /** Custom URL scheme of the mobile app (mobile/app.json `scheme`). */
-const APP_SCHEME_URL = 'fitnessplatform://';
+const APP_SCHEME_URL = 'formup://';
 
 const PHONE_USER_AGENT = /iPhone|iPad|iPod|Android/i;
 

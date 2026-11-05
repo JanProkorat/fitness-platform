@@ -84,7 +84,7 @@ async function putRule(api: APIRequestContext, ruleId: string, body: RuleDto): P
  * Makes sure the QA trainer has an enabled check-in rule on Monday at 18:00 and returns a handle whose
  * `restore` undoes it. Call `restore` in a `finally` or an `afterEach`.
  */
-export async function ensureCheckInRule(baseURL: string, email = 'qa.trainer@fitnessplatform.test'): Promise<CheckInRuleHandle> {
+export async function ensureCheckInRule(baseURL: string, email = 'qa.trainer@formup.test'): Promise<CheckInRuleHandle> {
   const api = await login(baseURL, email);
   try {
     const rules = await listRules(api);

@@ -22,7 +22,7 @@
  * NutritionistId = NutriUserId (33333333-...). UploadFoodImageUrlEndpoint
  * compares food.NutritionistId against AppClaims.UserId (the ApplicationUser.Id,
  * what CreateFoodEndpoint writes) — NOT the profile PublicId — so the logged-in
- * nutritionist (qa.nutri@fitnessplatform.test) passes the ownership check.
+ * nutritionist (qa.nutri@formup.test) passes the ownership check.
  *
  * WHY ONE CONSOLIDATED TEST:
  * storageState restores a refresh token from disk. Multiple test() blocks would

@@ -12,7 +12,7 @@
 import { request as apiRequest, type Locator, type Page } from '@playwright/test';
 import { nutritionistTest as test, expect } from '../fixtures/auth';
 
-const NUTRITIONIST_EMAIL = 'qa.nutri@fitnessplatform.test';
+const NUTRITIONIST_EMAIL = 'qa.nutri@formup.test';
 const DAILY_KCAL = 2000;
 const LOG_TAG = '[plan-template-editor-drag-animation]';
 const FOUR_KINDS = ['Breakfast', 'Lunch', 'AfternoonSnack', 'Dinner'];

@@ -32,7 +32,7 @@ const IMAGE_B_PATH = path.resolve(__dirname, '..', 'fixtures', 'ingredient-pictu
 // upload tests route those reads to the fixture bytes and skip inside the Playwright container.
 const IN_CONTAINER = process.env['PLAYWRIGHT_IN_CONTAINER'] === 'true';
 
-const NUTRITIONIST_EMAIL = 'qa.nutri@fitnessplatform.test';
+const NUTRITIONIST_EMAIL = 'qa.nutri@formup.test';
 
 interface LoginResponseBody {
   accessToken: string;
@@ -955,7 +955,7 @@ test.describe('food tags (#1120)', () => {
     }
 
     // --- A throwaway second nutritionist, registered fresh through the real API. ---
-    const secondNutriEmail = `qa.nutri.isolation.${Date.now()}@fitnessplatform.test`;
+    const secondNutriEmail = `qa.nutri.isolation.${Date.now()}@formup.test`;
     const secondNutriPassword = 'CorrectHorse9';
 
     const registerApi = await apiRequest.newContext({ baseURL: origin });

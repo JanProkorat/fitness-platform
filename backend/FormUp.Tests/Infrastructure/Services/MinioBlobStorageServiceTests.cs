@@ -31,7 +31,7 @@ public class MinioBlobStorageServiceTests
         out ILogger<MinioBlobStorageService> logger,
         bool publicUrlIncludesBucket = true,
         string publicEndpoint = "http://localhost:9000",
-        string bucketName = "fitness-platform",
+        string bucketName = "form-up",
         string? presignEndpoint = null,
         string? presignSecure = null)
     {
@@ -135,9 +135,9 @@ public class MinioBlobStorageServiceTests
         // merely shares the host but diverges on the bucket segment must NOT be treated as
         // belonging to this service. Revert the prefix computation to a looser match (e.g. host
         // only) and this assertion fails (result would resolve instead of failing closed).
-        var service = CreateService(out _, publicUrlIncludesBucket: true, bucketName: "fitness-platform");
+        var service = CreateService(out _, publicUrlIncludesBucket: true, bucketName: "form-up");
 
-        // Correct bucket is "fitness-platform" — this uses a different bucket segment
+        // Correct bucket is "form-up" — this uses a different bucket segment
         // ("other-bucket") under the same host, so the prefix must not match.
         const string wrongBucketUrl = "http://localhost:9000/other-bucket/plan-photos/abc/photo.jpg";
 
@@ -296,7 +296,7 @@ public class MinioBlobStorageServiceTests
                 ["MinIO:SecretKey"] = "minioadmin",
                 ["MinIO:Secure"] = "false",
                 ["MinIO:Region"] = "us-east-1",
-                ["MinIO:BucketName"] = "fitness-platform",
+                ["MinIO:BucketName"] = "form-up",
                 ["MinIO:ManageBucket"] = "false",
                 ["MinIO:PublicUrlIncludesBucket"] = "true",
                 ["MinIO:PublicEndpoint"] = "http://localhost:9000"

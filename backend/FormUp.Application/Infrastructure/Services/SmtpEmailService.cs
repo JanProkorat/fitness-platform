@@ -218,7 +218,7 @@ public class SmtpEmailService(IConfiguration configuration, ILogger<SmtpEmailSer
     {
         var smtpHost = configuration[ConfigKeys.EmailSmtpHost] ?? "localhost";
         var smtpPort = int.TryParse(configuration[ConfigKeys.EmailSmtpPort], out var port) ? port : 1025;
-        var fromAddress = configuration[ConfigKeys.EmailFromAddress] ?? "noreply@fitnessplatform.local";
+        var fromAddress = configuration[ConfigKeys.EmailFromAddress] ?? "noreply@formup.local";
         var fromName = configuration[ConfigKeys.EmailFromName] ?? "GF Platform";
 
         var message = new MimeMessage();

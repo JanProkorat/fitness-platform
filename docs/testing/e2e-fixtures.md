@@ -49,15 +49,15 @@ docker ps --format '{{.Names}}'
 
 | Role         | Email                            | Stable user id                            |
 | ------------ | -------------------------------- | ----------------------------------------- |
-| Client       | `qa.client@fitnessplatform.test` | `11111111-1111-1111-1111-111111111111`    |
-| Trainer      | `qa.trainer@fitnessplatform.test`| `22222222-2222-2222-2222-222222222222`    |
-| Nutritionist | `qa.nutri@fitnessplatform.test`  | `33333333-3333-3333-3333-333333333333`    |
-| Client 2     | `qa.client2@fitnessplatform.test`| `55555555-5555-5555-5555-555555555555`    |
-| Trainer 2    | `qa.trainer2@fitnessplatform.test`| `66666666-6666-6666-6666-666666666666`   |
-| Client 3     | `qa.client3@fitnessplatform.test`| `77777777-7777-7777-7777-777777777777`    |
-| Former client | `qa.client.former@fitnessplatform.test` | `88888888-8888-8888-8888-888888888888` |
-| Coach (trainer + nutritionist) | `qa.coach@fitnessplatform.test` | `99999999-9999-9999-9999-999999999999` |
-| Client "QA Duo" | `qa.client.both@fitnessplatform.test` | `44444444-4444-4444-4444-444444444444` |
+| Client       | `qa.client@formup.test` | `11111111-1111-1111-1111-111111111111`    |
+| Trainer      | `qa.trainer@formup.test`| `22222222-2222-2222-2222-222222222222`    |
+| Nutritionist | `qa.nutri@formup.test`  | `33333333-3333-3333-3333-333333333333`    |
+| Client 2     | `qa.client2@formup.test`| `55555555-5555-5555-5555-555555555555`    |
+| Trainer 2    | `qa.trainer2@formup.test`| `66666666-6666-6666-6666-666666666666`   |
+| Client 3     | `qa.client3@formup.test`| `77777777-7777-7777-7777-777777777777`    |
+| Former client | `qa.client.former@formup.test` | `88888888-8888-8888-8888-888888888888` |
+| Coach (trainer + nutritionist) | `qa.coach@formup.test` | `99999999-9999-9999-9999-999999999999` |
+| Client "QA Duo" | `qa.client.both@formup.test` | `44444444-4444-4444-4444-444444444444` |
 
 The second pair (`Client 2` / `Trainer 2`) is dedicated to the multi-section shared-exercise fixture (#474). Client 3 is linked to the QA trainer only — see [the inbox fixture](#seeded-inbox-conversation--weekly-check-ins-1095) — and has no conversation and no active plan. The former client has an **ended** link to the QA trainer and one conversation — see [the ended-link fixture](#ended-link-conversation-1101). They share the same password as the other accounts (`QA_SEED_PASSWORD` from `.env.test`).
 
@@ -142,7 +142,7 @@ API_URL=$(scripts/test-env ports | jq -r '.api_url')
 # 1. Log in as the QA client and capture the access token
 ACCESS=$(curl -sk -X POST "$API_URL/auth/login" \
   -H "Content-Type: application/json" \
-  -d '{"email":"qa.client@fitnessplatform.test","password":"<QA_SEED_PASSWORD>"}' \
+  -d '{"email":"qa.client@formup.test","password":"<QA_SEED_PASSWORD>"}' \
   | jq -r '.accessToken')
 
 # 2. Fetch the client's training plans (should include the seeded plan)
@@ -184,7 +184,7 @@ The plan exercises the three past-session states the web portal classifies in `c
 - `TrainingPlan.ClientId` = `ClientUserId` (`11111111-...`) — keyed on **`ApplicationUser.Id`** since #840, NOT `ClientProfile.PublicId`. This document previously stated the opposite; that was correct only before #840 and joining by `PublicId` now matches zero documents silently. `SessionExecution.ClientId` uses the same identifier, so plan and execution join directly.
 - `TrainingPlan.TrainerId` = `TrainerUserId` (`22222222-...`) — keyed on **`ApplicationUser.Id`**, NOT `ProfessionalProfile.PublicId`. `GetTrainingPlansEndpoint` and `GetTrainingPlanEndpoint` scope by `Guid.Parse(AppClaims.UserId)` which is `ApplicationUser.Id`. Using the profile `PublicId` (`bbbbbbbb-...`) would make the plan invisible to `GET /training/plans`.
 - `SessionExecution.ClientId` = `ClientUserId` (`11111111-...`) — also **`ApplicationUser.Id`**. `CompleteWorkoutEndpoint` scopes executions by `ClientId == Guid.Parse(AppClaims.UserId)`, which is `ApplicationUser.Id`.
-- Login as `qa.trainer@fitnessplatform.test` to access via `GET /training/plans/{planId}`.
+- Login as `qa.trainer@formup.test` to access via `GET /training/plans/{planId}`.
 
 ### Plan shape
 
@@ -310,8 +310,8 @@ A third training plan is seeded for the **second** QA client/trainer pair. Its p
 
 ### Ownership
 
-- Client: `qa.client2@fitnessplatform.test` (`Client2UserId = 55555555-5555-5555-5555-555555555555`)
-- Trainer: `qa.trainer2@fitnessplatform.test` (`Trainer2UserId = 66666666-6666-6666-6666-666666666666`)
+- Client: `qa.client2@formup.test` (`Client2UserId = 55555555-5555-5555-5555-555555555555`)
+- Trainer: `qa.trainer2@formup.test` (`Trainer2UserId = 66666666-6666-6666-6666-666666666666`)
 - `TrainingPlan.TrainerId` = `Trainer2UserId` (ApplicationUser.Id — same rule as all other plans)
 - `TrainingPlan.ClientId` = `Client2UserId = 55555555-5555-5555-5555-555555555555` (ApplicationUser.Id — same rule as all other plans, per #840)
 
@@ -360,7 +360,7 @@ SessionExecution (ExternalId = 55555555-5555-5555-4455-000000000001)
 
 ### What to verify on the coach-detail screen
 
-Log in as `qa.trainer2@fitnessplatform.test` and navigate to the client's workout log for this session. On the coach-detail planned-vs-actual view:
+Log in as `qa.trainer2@formup.test` and navigate to the client's workout log for this session. On the coach-detail planned-vs-actual view:
 
 - **Standard section**: Set 1 and Set 3 for "QA Kettlebell Swing" must show the "upraveno" indicator and display the actual values (`12 reps / 28 kg` and `10 reps / 28 kg`). Set 2 shows `15 reps / 24 kg` without an "upraveno" indicator.
 - **AMRAP section**: "QA Kettlebell Swing" shows `15 reps / 24 kg` with no "upraveno" indicator, even though the same exercise ID was edited in the Standard section — because section keying means each section is independent.
@@ -374,7 +374,7 @@ API_URL=$(scripts/test-env ports | jq -r '.api_url')
 # Log in as qa.trainer2 and capture the access token
 ACCESS=$(curl -sk -X POST "$API_URL/auth/login" \
   -H "Content-Type: application/json" \
-  -d '{"email":"qa.trainer2@fitnessplatform.test","password":"<QA_SEED_PASSWORD>"}' \
+  -d '{"email":"qa.trainer2@formup.test","password":"<QA_SEED_PASSWORD>"}' \
   | jq -r '.accessToken')
 
 # Fetch the multi-section plan
@@ -457,7 +457,7 @@ Questionnaire "QA Onboarding Questionnaire" (ExternalId = 00000000-0000-0000-777
 | Q3 — training days (single_choice) | `ValueText = "3-4"` | `3-4` |
 | Q4 — energy (scale) | `ValueNumber = 7` | `7 / 10` |
 | Q5 — injuries (multi_select) | `ValueJson = "[\"Knee\",\"Shoulder\"]"` | `Knee, Shoulder` |
-| Q6 — medical doc (file_upload) | `FileUrl = "https://storage.qa.fitnessplatform.test/qa-fixtures/medical-clearance-checkup.pdf"` | link text `medical-clearance-checkup.pdf` |
+| Q6 — medical doc (file_upload) | `FileUrl = "https://storage.qa.formup.test/qa-fixtures/medical-clearance-checkup.pdf"` | link text `medical-clearance-checkup.pdf` |
 
 ### Curl recipe — fetch as the QA trainer
 
@@ -466,7 +466,7 @@ API_URL=$(scripts/test-env ports | jq -r '.api_url')
 
 ACCESS=$(curl -sk -X POST "$API_URL/auth/login" \
   -H "Content-Type: application/json" \
-  -d '{"email":"qa.trainer@fitnessplatform.test","password":"<QA_SEED_PASSWORD>"}' \
+  -d '{"email":"qa.trainer@formup.test","password":"<QA_SEED_PASSWORD>"}' \
   | jq -r '.accessToken')
 
 curl -sk -H "Authorization: Bearer $ACCESS" \
@@ -539,7 +539,7 @@ Questionnaire "QA Nutrition Intake Questionnaire" (ExternalId = 00000000-0000-00
 | Q3 — meals per day (single_choice) | `ValueText = "3-4"` | `3-4` |
 | Q4 — appetite (scale) | `ValueNumber = 6` | `6 / 10` |
 | Q5 — allergies (multi_select) | `ValueJson = "[\"Gluten\",\"Dairy\"]"` | `Gluten, Dairy` |
-| Q6 — food diary (file_upload) | `FileUrl = "https://storage.qa.fitnessplatform.test/qa-fixtures/food-diary-week1.pdf"` | link text `food-diary-week1.pdf` |
+| Q6 — food diary (file_upload) | `FileUrl = "https://storage.qa.formup.test/qa-fixtures/food-diary-week1.pdf"` | link text `food-diary-week1.pdf` |
 
 ### Curl recipe — fetch as the QA nutritionist
 
@@ -548,7 +548,7 @@ API_URL=$(scripts/test-env ports | jq -r '.api_url')
 
 ACCESS=$(curl -sk -X POST "$API_URL/auth/login" \
   -H "Content-Type: application/json" \
-  -d '{"email":"qa.nutri@fitnessplatform.test","password":"<QA_SEED_PASSWORD>"}' \
+  -d '{"email":"qa.nutri@formup.test","password":"<QA_SEED_PASSWORD>"}' \
   | jq -r '.accessToken')
 
 curl -sk -H "Authorization: Bearer $ACCESS" \
@@ -588,7 +588,7 @@ seeded training plan.
 
 ### Fixture shape
 
-- **Third client** (`qa.client3@fitnessplatform.test`) — linked to the QA
+- **Third client** (`qa.client3@formup.test`) — linked to the QA
   trainer only (`ProfessionalRole = Trainer`, `IsActive = true`). No
   conversation, no active plan. Exists so the `NoMessages` filter chip has a
   guaranteed non-zero row, and so `clients.spec.ts`'s strict-mode `'1 active
@@ -626,7 +626,7 @@ coaches.
 | `QaEndedLinkMessage1Id` | `00000000-0000-0000-aabb-000000000012` | Coach's goodbye message (read, 5 h old) |
 | `QaEndedLinkMessage2Id` | `00000000-0000-0000-aabb-000000000013` | Client's follow-up (**unread**, 4 h old) |
 
-- **Former client** (`qa.client.former@fitnessplatform.test`, display name
+- **Former client** (`qa.client.former@formup.test`, display name
   "QA Former") — the name deliberately does not contain "QA Client", so
   existing `QA Client` text locators stay unique. Same seed password.
 - **Link** — to the QA trainer with `IsActive = false`; it grants training
@@ -644,7 +644,7 @@ API_URL=$(scripts/test-env ports | jq -r '.api_url')
 
 ACCESS=$(curl -sk -X POST "$API_URL/auth/login" \
   -H "Content-Type: application/json" \
-  -d '{"email":"qa.trainer@fitnessplatform.test","password":"<QA_SEED_PASSWORD>"}' \
+  -d '{"email":"qa.trainer@formup.test","password":"<QA_SEED_PASSWORD>"}' \
   | jq -r '.accessToken')
 
 # Conversation list, default filter=All
@@ -694,8 +694,8 @@ Both accounts use `QA_SEED_PASSWORD`.
 
 | Fixture | Ids / shape | Expected values |
 |---|---|---|
-| Coach | `qa.coach@fitnessplatform.test`, "QA Coach", roles Trainer + Nutritionist, profile PublicId `99999999-9999-9999-bbbb-000000000001` | — |
-| Client | `qa.client.both@fitnessplatform.test`, "QA Duo", profile PublicId `44444444-4444-4444-aaaa-000000000001` | Height 175 cm, goal LoseFat, target weight 66 kg; other onboarding answers and nutrition targets as the QA client's |
+| Coach | `qa.coach@formup.test`, "QA Coach", roles Trainer + Nutritionist, profile PublicId `99999999-9999-9999-bbbb-000000000001` | — |
+| Client | `qa.client.both@formup.test`, "QA Duo", profile PublicId `44444444-4444-4444-aaaa-000000000001` | Height 175 cm, goal LoseFat, target weight 66 kg; other onboarding answers and nutrition targets as the QA client's |
 | Link | One active link, QA Coach → QA Duo, role Nutritionist, `CanViewNutritionPlans` and `CanViewTrainingPlans` both true | Overview shows the both-roles layout |
 | Nutrition plan | `44444444-4444-4444-eeee-000000000001`, "QA Duo Nutrition Plan", author QA Coach, starts last Monday, 2 weeks, 3 meals a day | 2500 kcal, 26/38/36 % |
 | Training plan | `44444444-4444-4444-dddd-000000000001`, "QA Duo Training Plan", author QA Coach, starts this Monday, 1 published week, sessions A/B/C on the reset weekday, +2 and +4 days | — |

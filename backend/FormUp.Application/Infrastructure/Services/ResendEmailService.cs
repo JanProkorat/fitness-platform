@@ -199,7 +199,7 @@ public class ResendEmailService(IResend resend, IConfiguration configuration, IL
     private async Task SendEmailAsync(
         string toEmail, string subject, string htmlBody, CancellationToken ct, (string ContentId, byte[] Png)? inlineImage = null)
     {
-        var fromAddress = configuration[ConfigKeys.EmailFromAddress] ?? "noreply@fitnessplatform.local";
+        var fromAddress = configuration[ConfigKeys.EmailFromAddress] ?? "noreply@formup.local";
         var fromName = configuration[ConfigKeys.EmailFromName] ?? "GF Platform";
 
         var message = new EmailMessage

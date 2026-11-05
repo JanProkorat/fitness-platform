@@ -65,7 +65,7 @@ public class DeletePlanPhotoEndpoint(IApplicationDbContext db, IBlobStorageServi
         }
 
         // Derive the blob container path from the blob URL.
-        // Stored as the full public URL (e.g. http://localhost:9000/fitness-platform/plan-photos/…)
+        // Stored as the full public URL (e.g. http://localhost:9000/form-up/plan-photos/…)
         // or as a relative path (plan-photos/…) depending on the environment.
         // We try to extract the path starting at the scope prefix.
         var containerPath = ExtractContainerPath(photo.BlobUrl);
@@ -100,12 +100,12 @@ public class DeletePlanPhotoEndpoint(IApplicationDbContext db, IBlobStorageServi
             return blobUrl;
 
         // Strip scheme + host + bucket: keep everything after the third slash.
-        // e.g. "http://localhost:9000/fitness-platform/plan-photos/abc/def.jpg"
+        // e.g. "http://localhost:9000/form-up/plan-photos/abc/def.jpg"
         //   → "plan-photos/abc/def.jpg"
         try
         {
             var uri = new Uri(blobUrl);
-            // uri.AbsolutePath = "/fitness-platform/plan-photos/abc/def.jpg"
+            // uri.AbsolutePath = "/form-up/plan-photos/abc/def.jpg"
             // Strip the leading "/" and the bucket segment.
             var path = uri.AbsolutePath.TrimStart('/');
             var firstSlash = path.IndexOf('/', StringComparison.Ordinal);

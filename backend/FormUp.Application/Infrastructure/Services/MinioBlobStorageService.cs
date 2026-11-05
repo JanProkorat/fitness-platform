@@ -52,7 +52,7 @@ public class MinioBlobStorageService : IBlobStorageService
         var secretKey = configuration["MinIO:SecretKey"] ?? "minioadmin";
         var secure = configuration.GetValue("MinIO:Secure", false);
         var region = configuration["MinIO:Region"];
-        _bucketName = configuration["MinIO:BucketName"] ?? "fitness-platform";
+        _bucketName = configuration["MinIO:BucketName"] ?? "form-up";
         _manageBucket = configuration.GetValue("MinIO:ManageBucket", true);
         _publicUrlIncludesBucket = configuration.GetValue("MinIO:PublicUrlIncludesBucket", true);
         _publicEndpoint = configuration["MinIO:PublicEndpoint"]

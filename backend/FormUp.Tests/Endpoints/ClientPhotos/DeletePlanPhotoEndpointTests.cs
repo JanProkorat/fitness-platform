@@ -43,7 +43,7 @@ public class DeletePlanPhotoEndpointTests
     private PlanPhoto CreatePhoto(
         Guid? publicId = null,
         Guid? uploadedBy = null,
-        string blobUrl = "http://localhost:9000/fitness-platform/plan-photos/abc/photo.jpg") =>
+        string blobUrl = "http://localhost:9000/form-up/plan-photos/abc/photo.jpg") =>
         new()
         {
             PublicId = publicId ?? Guid.NewGuid(),
@@ -147,7 +147,7 @@ public class DeletePlanPhotoEndpointTests
 
     [Theory]
     [InlineData(
-        "http://localhost:9000/fitness-platform/plan-photos/pid/photo.jpg",
+        "http://localhost:9000/form-up/plan-photos/pid/photo.jpg",
         "plan-photos/pid/photo.jpg")]
     [InlineData(
         "https://storage.example.com/myapp/plan-photos/x/y.png",

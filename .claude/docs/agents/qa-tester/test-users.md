@@ -6,9 +6,9 @@ Two paths depending on which backend is up:
 
 - **Compose harness up** (preferred) — log in directly as the seeded
   fixture (`docs/testing/e2e-fixtures.md`):
-  `qa.client@fitnessplatform.test` / `QaPass123!` for client flows,
-  `qa.trainer@fitnessplatform.test` for trainer flows,
-  `qa.nutri@fitnessplatform.test` for nutritionist flows. Use this
+  `qa.client@formup.test` / `QaPass123!` for client flows,
+  `qa.trainer@formup.test` for trainer flows,
+  `qa.nutri@formup.test` for nutritionist flows. Use this
   whenever an AC depends on pre-existing data.
 - **Ad-hoc `dotnet run`** (fallback) — no real seeded users, only
   roles. Create a throwaway test account per run via

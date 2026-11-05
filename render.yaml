@@ -1,4 +1,4 @@
-# Render Blueprint — Fitness Platform backend (dev environment)
+# Render Blueprint — Form Up backend (dev environment)
 #
 # Deploys ONE service:
 #   - fitness-api    Web Service (Docker) — ASP.NET Core 10 / FastEndpoints API
@@ -67,9 +67,9 @@ services:
       - key: JWT_SECRET
         generateValue: true         # Render generates a 256-bit random value once
       - key: Jwt__Issuer
-        value: FitnessPlatform
+        value: FormUp
       - key: Jwt__Audience
-        value: FitnessPlatform
+        value: FormUp
       - key: Jwt__AccessTokenExpirationMinutes
         value: "15"
       - key: Jwt__RefreshTokenExpirationDays
@@ -77,7 +77,7 @@ services:
 
       # ── Blob storage (Cloudflare R2 — 10 GB free, S3-compatible) ──────
       # Cloudflare setup (one-time, in the dashboard):
-      #   1. Create bucket `fitness-platform-dev` in your R2 namespace.
+      #   1. Create bucket `form-up-dev` in your R2 namespace.
       #   2. Bucket → Settings → Public Access → "Allow Access" via R2.dev.
       #      Cloudflare gives you a `https://pub-<hash>.r2.dev` URL.
       #   3. Manage R2 API Tokens → Create Token → Object Read & Write,
@@ -90,7 +90,7 @@ services:
       - key: MinIO__PublicEndpoint
         value: https://pub-b21414194c8b407492b727f12c20ffcb.r2.dev
       - key: MinIO__BucketName
-        value: fitness-platform-dev
+        value: form-up-dev
       - key: MinIO__Secure
         value: "true"
       - key: MinIO__Region
@@ -118,7 +118,7 @@ services:
         value: onboarding@resend.dev   # swap to noreply@<your-domain> once you
                                        # own + verify a domain in Resend
       - key: Email__FromName
-        value: Fitness Platform
+        value: Form Up
       - key: Resend__ApiToken
         sync: false
 

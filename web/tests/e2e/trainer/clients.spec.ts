@@ -90,7 +90,7 @@ test.describe('clients list page', () => {
     await expect(page.getByRole('heading', { name: 'Invite client', exact: true })).toBeVisible();
 
     const uniqueSuffix = Date.now();
-    await page.getByRole('textbox', { name: 'Email', exact: true }).fill(`qa.invite.${uniqueSuffix}@fitnessplatform.test`);
+    await page.getByRole('textbox', { name: 'Email', exact: true }).fill(`qa.invite.${uniqueSuffix}@formup.test`);
     await page.getByRole('textbox', { name: 'Email', exact: true }).press('Tab');
 
     // Onboarding form row: "None" is always offered, and picking it is an explicit skip.
@@ -139,7 +139,7 @@ test.describe('clients list page', () => {
     await expect(page.getByRole('heading', { name: 'Invite client', exact: true })).toBeVisible();
 
     const packageTile = page.getByTestId('offer-package-tiles').getByRole('radio', { name: /Monthly coaching/ });
-    await page.getByRole('textbox', { name: 'Email', exact: true }).fill(`qa.invite.pkg.${Date.now()}@fitnessplatform.test`);
+    await page.getByRole('textbox', { name: 'Email', exact: true }).fill(`qa.invite.pkg.${Date.now()}@formup.test`);
     await page.getByRole('textbox', { name: 'Email', exact: true }).press('Tab');
 
     await packageTile.click();
@@ -188,7 +188,7 @@ test.describe('clients list page', () => {
     await page.getByRole('button', { name: 'Invite client', exact: true }).click();
     await expect(page.getByRole('heading', { name: 'Invite client', exact: true })).toBeVisible();
     await expect(page.getByTestId('offer-form-row')).toContainText('Default onboarding');
-    await page.getByRole('textbox', { name: 'Email', exact: true }).fill(`qa.invite.form.${Date.now()}@fitnessplatform.test`);
+    await page.getByRole('textbox', { name: 'Email', exact: true }).fill(`qa.invite.form.${Date.now()}@formup.test`);
     await page.getByRole('textbox', { name: 'Email', exact: true }).press('Tab');
 
     let sentBody: Record<string, unknown> | undefined;
@@ -213,7 +213,7 @@ test.describe('clients list page', () => {
    * belongs to a coach, so the response is indistinguishable from a real
    * invite. The drawer closes and the usual success toast shows.
    *
-   * qa.nutri@fitnessplatform.test is the seeded Nutritionist
+   * qa.nutri@formup.test is the seeded Nutritionist
    * (docs/testing/e2e-fixtures.md:54). Kept to a single invite attempt:
    * pending-invite creation is rate-limited to 30 per 15 minutes per
    * trainer (Program.cs:178-188).
@@ -222,7 +222,7 @@ test.describe('clients list page', () => {
     await page.getByRole('button', { name: 'Invite client', exact: true }).click();
     await expect(page.getByRole('heading', { name: 'Invite client', exact: true })).toBeVisible();
 
-    await page.getByRole('textbox', { name: 'Email', exact: true }).fill('qa.nutri@fitnessplatform.test');
+    await page.getByRole('textbox', { name: 'Email', exact: true }).fill('qa.nutri@formup.test');
     await page.getByRole('textbox', { name: 'Email', exact: true }).press('Tab');
 
     const submitButton = page.getByRole('button', { name: 'Send invitation' });
@@ -375,7 +375,7 @@ test.describe('clients list page', () => {
   });
 });
 
-const TRAINER_EMAIL = 'qa.trainer@fitnessplatform.test';
+const TRAINER_EMAIL = 'qa.trainer@formup.test';
 
 interface LoginResponseBody {
   accessToken: string;
@@ -579,7 +579,7 @@ test.describe('client tag filter — create a tag (#1119)', () => {
               {
                 publicId: '99999999-9999-9999-9999-999999999999',
                 userId: '88888888-8888-8888-8888-888888888888',
-                email: 'ended.link@fitnessplatform.test',
+                email: 'ended.link@formup.test',
                 firstName: 'Ended',
                 lastName: 'Link',
                 isActive: false,

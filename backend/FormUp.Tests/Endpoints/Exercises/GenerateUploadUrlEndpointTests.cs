@@ -34,7 +34,7 @@ public class GenerateUploadUrlEndpointTests
                 Arg.Any<string>(),
                 Arg.Any<TimeSpan>(),
                 Arg.Any<CancellationToken>())
-            .Returns(new BlobUploadUrl("https://minio/upload?token=abc", "https://minio/fitness-platform/exercises/videos/test.mp4"));
+            .Returns(new BlobUploadUrl("https://minio/upload?token=abc", "https://minio/form-up/exercises/videos/test.mp4"));
 
         var ep = Factory.Create<GenerateUploadUrlEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(

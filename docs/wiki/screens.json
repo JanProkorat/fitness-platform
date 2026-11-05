@@ -59,7 +59,7 @@
       "shots": [
         { "name": "default" },
         { "name": "not-registered", "steps": "type an email with no account (e.g. nobody@example.com), click 'Poslat odkaz pro obnovení', wait for the error under the field" },
-        { "name": "sent", "steps": "type qa.trainer@fitnessplatform.test, click 'Poslat odkaz pro obnovení', wait for 'Zkontrolujte poštu' (board PageResetCheckEmail)" }
+        { "name": "sent", "steps": "type qa.trainer@formup.test, click 'Poslat odkaz pro obnovení', wait for 'Zkontrolujte poštu' (board PageResetCheckEmail)" }
       ],
       "notionPageId": null
     },
@@ -319,7 +319,7 @@
       "shots": [
         { "name": "trainer", "steps": "sign in as the trainer, open /clients, click 'QA Client' and wait for the Overview tab to load (board PageClientDetailTrainer)" },
         { "name": "nutritionist", "steps": "sign in as the nutritionist, open /clients, click 'QA Client' and wait for the Overview tab to load (board PageClientDetailNutritionist)" },
-        { "name": "both-roles", "steps": "sign in as qa.coach@fitnessplatform.test, open /clients, click 'QA Duo' and wait for the Overview tab to load (board PageClientDetail)" }
+        { "name": "both-roles", "steps": "sign in as qa.coach@formup.test, open /clients, click 'QA Duo' and wait for the Overview tab to load (board PageClientDetail)" }
       ],
       "notionPageId": "3f81c0f6-641f-814f-9e2d-c5440c350d64"
     },
@@ -370,7 +370,7 @@
       "board": "PageClientNutrition",
       "shots": [
         { "name": "with-plan", "steps": "sign in as the nutritionist, open /clients, click 'QA Client', click the tab 'Výživa' and wait for the Nutrition tab to load (board PageClientNutrition)" },
-        { "name": "both-roles", "steps": "sign in as qa.coach@fitnessplatform.test, open /clients, click 'QA Duo', click the tab 'Výživa' and wait for the Nutrition tab to load (board PageClientNutrition)" }
+        { "name": "both-roles", "steps": "sign in as qa.coach@formup.test, open /clients, click 'QA Duo', click the tab 'Výživa' and wait for the Nutrition tab to load (board PageClientNutrition)" }
       ]
     },
     {

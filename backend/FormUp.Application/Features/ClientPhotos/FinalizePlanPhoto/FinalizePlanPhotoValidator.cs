@@ -89,7 +89,7 @@ public class FinalizePlanPhotoValidator : Validator<FinalizePlanPhotoRequest>
             return blobUrl;
 
         // Strip scheme + host + bucket: keep everything after the bucket segment.
-        // e.g. "http://localhost:9000/fitness-platform/plan-photos/abc/def.jpg"
+        // e.g. "http://localhost:9000/form-up/plan-photos/abc/def.jpg"
         //   → "plan-photos/abc/def.jpg"
         try
         {
