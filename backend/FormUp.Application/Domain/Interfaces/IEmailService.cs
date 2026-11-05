@@ -62,4 +62,11 @@ public interface IEmailService
     /// <param name="email">The resolved email content.</param>
     /// <param name="ct">Cancellation token.</param>
     Task SendPaymentRequestEmailAsync(PaymentRequestEmail email, CancellationToken ct);
+
+    /// <summary>
+    /// Sends a coach notification email (check-in, join request, photos, workout) in the item's language.
+    /// </summary>
+    /// <param name="item">The queued notification with its template values.</param>
+    /// <param name="ct">Cancellation token.</param>
+    Task SendNotificationEmailAsync(NotificationEmailWorkItem item, CancellationToken ct);
 }

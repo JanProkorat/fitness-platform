@@ -621,6 +621,9 @@ public static class ErrorCodes
     /// <summary>The bank account was changed again after the change being undone.</summary>
     public const string BankAccountUndoSuperseded = "BANK_ACCOUNT_UNDO_SUPERSEDED";
 
+    /// <summary>The notification email link is tampered, expired, from another key, or its account is gone. One code for every case.</summary>
+    public const string EmailLinkInvalid = "EMAIL_LINK_INVALID";
+
     // ── Invite package terms (#1676) ────────────────────────────────────
     /// <summary>An invite names a discount but no package.</summary>
     public const string InviteDiscountNeedsPackage = "INVITE_DISCOUNT_NEEDS_PACKAGE";

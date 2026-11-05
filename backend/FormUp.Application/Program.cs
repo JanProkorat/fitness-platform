@@ -187,6 +187,19 @@ builder.Services.AddRateLimiter(options =>
                     QueueLimit = 0
                 }));
 
+    // Anonymous notification email links: see AppPolicies.EmailLinkRateLimit for why this is not the auth budget.
+    options.AddPolicy(AppPolicies.EmailLinkRateLimit, context =>
+        rateLimitingDisabled
+            ? RateLimitPartition.GetNoLimiter("disabled")
+            : RateLimitPartition.GetFixedWindowLimiter(
+                partitionKey: GetPartitionKey(context),
+                factory: _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = 60,
+                    Window = TimeSpan.FromMinutes(15),
+                    QueueLimit = 0
+                }));
+
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
 });
 
@@ -223,8 +236,10 @@ builder.Services.AddScoped<ICoachDisciplineAccess, CoachDisciplineAccess>();
 builder.Services.AddScoped<ICoachRoleRemover, CoachRoleRemover>();
 builder.Services.AddScoped<IPrDetectionService, PrDetectionService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<INotificationEmailSender, NotificationEmailSender>();
 builder.Services.AddScoped<IWorkoutCompletionService, WorkoutCompletionService>();
 builder.Services.AddScoped<IEmailVerificationTokenService, EmailVerificationTokenService>();
+builder.Services.AddSingleton<IEmailTurnOffTokenService, EmailTurnOffTokenService>();
 // Registers IHttpClientFactory — consumed by ExpoPushNotificationService below
 // and by the ResendClient typed client when Email:Provider = Resend.
 builder.Services.AddHttpClient();
@@ -277,6 +292,9 @@ builder.Services.AddSingleton<AutomationScheduler>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<AutomationScheduler>());
 builder.Services.AddScoped<AutomationOccurrenceSender>();
 builder.Services.AddScoped<AutomationClaimProcessor>();
+builder.Services.AddSingleton<NotificationEmailGroupingScheduler>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<NotificationEmailGroupingScheduler>());
+builder.Services.AddScoped<NotificationEmailGroupProcessor>();
 builder.Services.AddScoped<AutomationReconciler>();
 builder.Services.AddScoped<AutomationEventPoller>();
 builder.Services.AddScoped<AutomationAnswerSweeper>();
@@ -463,6 +481,7 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
     app.UseHttpsRedirection();
 }
+app.UseStaticFiles();
 app.UseCors(AppPolicies.AllowWebApp);
 app.UseAuthentication();
 app.UseAuthorization();

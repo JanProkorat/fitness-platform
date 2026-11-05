@@ -387,4 +387,53 @@ public class NotificationServiceTests(NotificationServiceContainerFixture contai
 
         _push.Calls.Should().ContainSingle(c => c.UserId == recipientId);
     }
+
+    /// <summary>
+    /// The new-message, photos and workout notices write their in-app row, but the push switch decides
+    /// whether a device is pinged.
+    /// </summary>
+    [Theory]
+    [InlineData(NotificationType.NewMessage, NotificationEvent.NewMessage)]
+    [InlineData(NotificationType.ProgressPhotosSubmitted, NotificationEvent.ProgressPhotosSubmitted)]
+    [InlineData(NotificationType.WorkoutFinished, NotificationEvent.WorkoutFinished)]
+    public async Task CreateAsync_CoachEventPushDisabled_WritesInAppRowAndSkipsPush(
+        NotificationType type, NotificationEvent preferenceEvent)
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var recipientId = await SeedUserAsync("en");
+        await using (var seedDb = NotificationServiceContainerFixture.BuildDbContext(containerFixture.ConnectionString))
+        {
+            seedDb.NotificationPreferences.Add(new NotificationPreference
+            {
+                UserId = recipientId,
+                Event = preferenceEvent,
+                EmailEnabled = true,
+                PushEnabled = false,
+            });
+            await seedDb.SaveChangesAsync(ct);
+        }
+
+        var parameters = new Dictionary<string, string> { ["clientName"] = "Petra", ["sessionName"] = "Push" };
+        await BuildSut().CreateAsync(recipientId, type, parameters, ct: ct);
+
+        (await _db.Notifications.AsNoTracking().CountAsync(n => n.RecipientUserId == recipientId, ct)).Should().Be(1);
+        _push.Calls.Should().BeEmpty();
+    }
+
+    /// <summary>
+    /// Without a saved row the default decides: workout finished is off by default, progress photos on.
+    /// </summary>
+    [Theory]
+    [InlineData(NotificationType.WorkoutFinished, false)]
+    [InlineData(NotificationType.ProgressPhotosSubmitted, true)]
+    public async Task CreateAsync_CoachEventNoSavedRow_FollowsTheDefaultPushChoice(NotificationType type, bool expectPush)
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var recipientId = await SeedUserAsync("en");
+
+        var parameters = new Dictionary<string, string> { ["clientName"] = "Petra", ["sessionName"] = "Push" };
+        await BuildSut().CreateAsync(recipientId, type, parameters, ct: ct);
+
+        _push.Calls.Any(c => c.UserId == recipientId).Should().Be(expectPush);
+    }
 }

@@ -24,7 +24,16 @@ public class InvitationPackageBlockTests
         var html = InvitationPackageBlock.Render(package, "en");
 
         html.Should().Contain("&lt;b&gt;Online &amp; more&lt;/b&gt;").And.NotContain("<b>Online");
-        html.Should().Contain("See the price in the app.").And.Contain("Monthly");
+        html.Should().Contain("See the price and details in the Form Up app.").And.Contain("Monthly");
+    }
+
+    [Fact]
+    public void Render_UsesTheFormUpPaletteNotTheOldGoldOne()
+    {
+        var html = InvitationPackageBlock.Render(new InvitationPackageInfo("Package", PackageBillingInterval.Monthly, null), "en");
+
+        html.Should().NotContain("c9a84c").And.NotContain("rgba(201,168,76").And.NotContain("#8a6f2e").And.NotContain("#f0ece4");
+        html.Should().Contain("#E7E4DE");
     }
 
     [Theory]
@@ -45,8 +54,8 @@ public class InvitationPackageBlockTests
     }
 
     [Theory]
-    [InlineData("cs", "Cenu najdete v aplikaci.")]
-    [InlineData("de", "Den Preis sehen Sie in der App.")]
+    [InlineData("cs", "Cenu a podrobnosti najdete v aplikaci Form Up.")]
+    [InlineData("de", "Preis und Details sehen Sie in der Form-Up-App.")]
     public void Render_PriceNoteIsLocalizedAndAddressesTheClientFormally(string language, string note)
     {
         var package = new InvitationPackageInfo("Package", PackageBillingInterval.OneOff, null);

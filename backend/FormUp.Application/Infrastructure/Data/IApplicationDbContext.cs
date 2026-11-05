@@ -129,6 +129,11 @@ public interface IApplicationDbContext
     DbSet<NotificationPreference> NotificationPreferences { get; set; }
 
     /// <summary>
+    /// Bursts of events waiting to be sent as one grouped notification email.
+    /// </summary>
+    DbSet<PendingNotificationEmail> PendingNotificationEmails { get; set; }
+
+    /// <summary>
     /// Messaging conversations between professionals and clients.
     /// </summary>
     DbSet<Conversation> Conversations { get; set; }
@@ -327,6 +332,26 @@ public interface IApplicationDbContext
     Task<AutomationSchedule?> ClaimDueAutomationScheduleAsync(DateTime nowUtc, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Opens or extends the grouped-email burst for one recipient, event and group with a single
+    /// <c>INSERT … ON CONFLICT DO UPDATE</c>: a new burst is due after the event's quiet window, an open one
+    /// moves its last event and due time on, never past the event's maximum wait. Timing only; no content.
+    /// </summary>
+    Task UpsertPendingNotificationEmailAsync(
+        Guid recipientUserId,
+        NotificationEvent notificationEvent,
+        Guid groupId,
+        DateTime eventAtUtc,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Claims the earliest pending notification email that is due at <paramref name="nowUtc"/> with
+    /// <c>FOR UPDATE SKIP LOCKED</c>, so two workers never send the same burst. Call it inside a transaction
+    /// from <see cref="BeginTransactionAsync"/>; the lock lasts until that transaction ends. Returns the
+    /// tracked row, or null when nothing is due.
+    /// </summary>
+    Task<PendingNotificationEmail?> ClaimDuePendingNotificationEmailAsync(DateTime nowUtc, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Saves one user's notification choices with a single <c>INSERT … ON CONFLICT (user_id, event)
     /// DO UPDATE</c>, so two concurrent first saves cannot collide on the unique index. The events
     /// must be distinct.
@@ -334,5 +359,17 @@ public interface IApplicationDbContext
     Task UpsertNotificationPreferencesAsync(
         Guid userId,
         IReadOnlyCollection<(NotificationEvent Event, bool EmailEnabled, bool PushEnabled)> preferences,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Sets only the email switch of one event with a single <c>INSERT … ON CONFLICT (user_id, event) DO UPDATE</c>.
+    /// A user with no saved row gets one holding <paramref name="pushEnabledIfNew"/>; a saved push value is never touched.
+    /// Repeating the call with the same value changes nothing but the update stamp.
+    /// </summary>
+    Task UpsertNotificationEmailEnabledAsync(
+        Guid userId,
+        NotificationEvent notificationEvent,
+        bool emailEnabled,
+        bool pushEnabledIfNew,
         CancellationToken cancellationToken = default);
 }

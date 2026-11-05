@@ -26,10 +26,14 @@ namespace FormUp.Application.Features.Messaging.SendMessage;
 /// Blob storage — downloads and sniffs a staged image before promoting it to a permanent
 /// object, and signs the final <c>ImageUrl</c> echoed back in the response.
 /// </param>
+/// <param name="notificationService">Creates the coach's in-app new-message notice.</param>
+/// <param name="logger">Logger for the best-effort notice.</param>
 public class SendMessageEndpoint(
     IApplicationDbContext db,
     IRealtimeNotifier notifier,
-    IBlobStorageService blobStorage) : Endpoint<SendMessageRequest, SendMessageResponse>
+    IBlobStorageService blobStorage,
+    INotificationService notificationService,
+    ILogger<SendMessageEndpoint> logger) : Endpoint<SendMessageRequest, SendMessageResponse>
 {
     public override void Configure()
     {
@@ -232,6 +236,42 @@ public class SendMessageEndpoint(
             imageWidth = message.ImageWidth,
             imageHeight = message.ImageHeight,
         }, ct);
+
+        // The in-app notice is for the coach only; a client reads the chat itself.
+        if (!senderIsProfessional)
+        {
+            try
+            {
+                await notificationService.CreateAsync(
+                    recipientUserId,
+                    NotificationType.NewMessage,
+                    new Dictionary<string, string>
+                    {
+                        ["clientName"] = senderName,
+                        ["conversationId"] = conversation.PublicId.ToString(),
+                    },
+                    ct: ct);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                logger.LogWarning(ex,
+                    "Failed to create the new-message notice for user {UserId} in conversation {ConversationId}",
+                    recipientUserId, conversation.PublicId);
+            }
+
+            // Opens or extends the burst that the grouped email is sent for; the scheduler sends it later.
+            try
+            {
+                await db.UpsertPendingNotificationEmailAsync(
+                    recipientUserId, NotificationEvent.NewMessage, conversation.PublicId, message.DateCreated, ct);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                logger.LogWarning(ex,
+                    "Failed to queue the grouped new-message email for user {UserId} in conversation {ConversationId}",
+                    recipientUserId, conversation.PublicId);
+            }
+        }
 
         await Send.OkAsync(new SendMessageResponse
         {

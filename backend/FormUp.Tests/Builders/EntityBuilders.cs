@@ -58,6 +58,11 @@ public static class EntityBuilder
     public static PendingInviteBuilder PendingInvite => new();
 
     /// <summary>
+    /// Creates a new <see cref="PlanPhotoBuilder"/>.
+    /// </summary>
+    public static PlanPhotoBuilder PlanPhoto => new();
+
+    /// <summary>
     /// Creates a new <see cref="PlanPhotoViewerBuilder"/>.
     /// </summary>
     public static PlanPhotoViewerBuilder PlanPhotoViewer => new();
@@ -217,6 +222,59 @@ public class QuestionnaireResponseBuilder
         CheckInDueAtUtc = _checkInDueAtUtc,
         ReviewedByCoachAtUtc = _reviewedAtUtc,
         Answers = _answers,
+    };
+}
+
+/// <summary>
+/// Builder for plan-less <see cref="PlanPhoto"/> test entities (a free-form progress photo by default).
+/// </summary>
+public class PlanPhotoBuilder
+{
+    private long _clientProfileId;
+    private Guid _uploadedByUserId = Guid.NewGuid();
+    private PlanPhotoCategory _category = PlanPhotoCategory.FreeForm;
+    private Guid? _diaryRequestId;
+    private DateTime _createdAt = DateTime.UtcNow;
+
+    /// <summary>
+    /// Sets the owning client profile (internal id) and the uploading client's user id.
+    /// </summary>
+    public PlanPhotoBuilder ForClient(long clientProfileId, Guid clientUserId)
+    {
+        _clientProfileId = clientProfileId;
+        _uploadedByUserId = clientUserId;
+        return this;
+    }
+
+    /// <summary>
+    /// Sets the photo category.
+    /// </summary>
+    public PlanPhotoBuilder WithCategory(PlanPhotoCategory category) { _category = category; return this; }
+
+    /// <summary>
+    /// Links the photo to a diary request, making it an answer to a coach's request.
+    /// </summary>
+    public PlanPhotoBuilder AnsweringRequest(Guid diaryRequestId) { _diaryRequestId = diaryRequestId; return this; }
+
+    /// <summary>
+    /// Sets when the photo was uploaded (UTC).
+    /// </summary>
+    public PlanPhotoBuilder CreatedAt(DateTime createdAt) { _createdAt = createdAt; return this; }
+
+    /// <summary>
+    /// Builds the <see cref="PlanPhoto"/> instance.
+    /// </summary>
+    public PlanPhoto Build() => new()
+    {
+        PublicId = Guid.NewGuid(),
+        ClientProfileId = _clientProfileId,
+        Category = _category,
+        BlobUrl = $"plan-photos/unlinked/{_uploadedByUserId}/{Guid.NewGuid()}.jpg",
+        TakenAt = _createdAt,
+        UploadedByUserId = _uploadedByUserId,
+        DiaryRequestId = _diaryRequestId,
+        DateCreated = _createdAt,
+        DateUpdated = _createdAt,
     };
 }
 

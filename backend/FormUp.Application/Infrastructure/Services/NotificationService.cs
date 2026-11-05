@@ -65,6 +65,9 @@ public class NotificationService(IApplicationDbContext db, IPushNotificationServ
     private static NotificationEvent? MapToPreferenceEvent(NotificationType type) => type switch
     {
         NotificationType.ClientRequestReceived => NotificationEvent.JoinRequest,
+        NotificationType.NewMessage => NotificationEvent.NewMessage,
+        NotificationType.ProgressPhotosSubmitted => NotificationEvent.ProgressPhotosSubmitted,
+        NotificationType.WorkoutFinished => NotificationEvent.WorkoutFinished,
         _ => null,
     };
 

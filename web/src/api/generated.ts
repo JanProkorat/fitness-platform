@@ -1332,6 +1332,185 @@ export class ApiClient {
     }
 
     /**
+     * Turn a notification email back on from its link
+     * @return The email is on; returns the account email and the event
+     */
+    emailLinkTurnOnEndpoint(emailLinkTurnOnRequest: EmailLinkTurnOnRequest, signal?: AbortSignal): Promise<EmailLinkTurnOnResponse> {
+        let url_ = this.baseUrl + "/users/email-links/turn-on";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(emailLinkTurnOnRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processEmailLinkTurnOnEndpoint(_response);
+        });
+    }
+
+    protected processEmailLinkTurnOnEndpoint(response: AxiosResponse): Promise<EmailLinkTurnOnResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<EmailLinkTurnOnResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Tampered, expired or unknown link, or the account no longer exists (EMAIL_LINK_INVALID)", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<EmailLinkTurnOnResponse>(null as any);
+    }
+
+    /**
+     * Turn off a notification email from its link
+     * @return The email is off; returns the account email and the event
+     */
+    emailLinkTurnOffEndpoint(emailLinkTurnOffRequest: EmailLinkTurnOffRequest, signal?: AbortSignal): Promise<EmailLinkTurnOffResponse> {
+        let url_ = this.baseUrl + "/users/email-links/turn-off";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(emailLinkTurnOffRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processEmailLinkTurnOffEndpoint(_response);
+        });
+    }
+
+    protected processEmailLinkTurnOffEndpoint(response: AxiosResponse): Promise<EmailLinkTurnOffResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<EmailLinkTurnOffResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Tampered, expired or unknown link, or the account no longer exists (EMAIL_LINK_INVALID)", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<EmailLinkTurnOffResponse>(null as any);
+    }
+
+    /**
+     * One-click unsubscribe from a notification email
+     * @param token The token from the List-Unsubscribe link's query string.
+     * @return No Content
+     */
+    emailLinkOneClickEndpoint(token: string, signal?: AbortSignal): Promise<void> {
+        let url_ = this.baseUrl + "/users/email-links/one-click?";
+        if (token === undefined || token === null)
+            throw new globalThis.Error("The parameter 'token' must be defined and cannot be null.");
+        else
+            url_ += "token=" + encodeURIComponent("" + token) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "POST",
+            url: url_,
+            headers: {
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processEmailLinkOneClickEndpoint(_response);
+        });
+    }
+
+    protected processEmailLinkOneClickEndpoint(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
      * Disable my coach account
      * @return Date the account stops being active and the roles removed by this call
      */
@@ -22686,6 +22865,38 @@ export interface GetMyCoachRolesResponse {
     coachAccountActiveUntil?: string | undefined;
     /** When the account would stop being active if disabled now (UTC); at or before now means at once. */
     activeUntilIfDisabled?: string | undefined;
+}
+
+/** The email switch that was turned back on. */
+export interface EmailLinkTurnOnResponse {
+    /** Email address of the account the link belongs to. */
+    email?: string;
+    /** The notification event whose email is now on. */
+    event?: NotificationEvent;
+}
+
+/** Request for turning a notification email back on from the link in that email. */
+export interface EmailLinkTurnOnRequest {
+    /** The token from the emailed link. */
+    token: string;
+}
+
+/** The email switch that was turned off. */
+export interface EmailLinkTurnOffResponse {
+    /** Email address of the account the link belongs to. */
+    email?: string;
+    /** The notification event whose email is now off. */
+    event?: NotificationEvent;
+}
+
+/** Request for turning off one notification email from the link in that email. */
+export interface EmailLinkTurnOffRequest {
+    /** The token from the emailed link. */
+    token: string;
+}
+
+/** Request for the RFC 8058 one-click unsubscribe post a mail client sends for a notification email. */
+export interface EmailLinkOneClickRequest {
 }
 
 /** Outcome of disabling the caller's coach account. */

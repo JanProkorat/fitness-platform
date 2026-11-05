@@ -5254,6 +5254,37 @@
     "weekCountRequired": "Geben Sie eine Anzahl von Wochen ein.",
     "weekCountRange": "Die Anzahl der Wochen muss zwischen 1 und 52 liegen."
   },
+  "emailOff": {
+    "footer": "Form Up · Ihr Plan. Gemeinsam.",
+    "loading": "Diese E-Mail wird ausgeschaltet …",
+    "account": "Konto",
+    "emailLabel": "E-Mail",
+    "settings": "Benachrichtigungseinstellungen",
+    "off": {
+      "title": "Diese E-Mail ist ausgeschaltet",
+      "body": "Sie erhalten keine E-Mails zu „{{event}}“ mehr. Die Benachrichtigung erscheint weiterhin in der App.",
+      "note": "Nur diese E-Mail ist ausgeschaltet. Ihre anderen Benachrichtigungs-E-Mails bleiben unverändert.",
+      "turnOn": "Wieder einschalten",
+      "working": "Wird eingeschaltet …",
+      "turnOnFailed": "Das Einschalten hat nicht geklappt."
+    },
+    "on": {
+      "title": "Diese E-Mail ist wieder eingeschaltet",
+      "body": "Wir senden Ihnen wieder E-Mails zu „{{event}}“.",
+      "note": "Alle Benachrichtigungs-E-Mails ändern Sie unter Einstellungen › Benachrichtigungen."
+    },
+    "invalid": {
+      "title": "Dieser Link funktioniert nicht",
+      "body": "Er ist möglicherweise unvollständig oder gehört zu einem anderen Konto.",
+      "note": "Melden Sie sich an, um unter Einstellungen › Benachrichtigungen zu wählen, welche E-Mails Sie erhalten.",
+      "signIn": "Anmelden"
+    },
+    "failed": {
+      "title": "Etwas ist schiefgelaufen",
+      "body": "Wir konnten diese E-Mail gerade nicht ausschalten. Versuchen Sie es in einem Moment erneut.",
+      "retry": "Erneut versuchen"
+    }
+  },
   "entry": {
     "brand": "Form Up",
     "login": {

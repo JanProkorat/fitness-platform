@@ -15,6 +15,7 @@ import RegisterPage from '@/pages/RegisterPage';
 import VerifyEmailPage from '@/pages/VerifyEmailPage';
 import InviteAcceptPage from '@/pages/InviteAcceptPage';
 import BankAccountUndoPage from '@/pages/BankAccountUndoPage';
+import EmailTurnOffPage from '@/pages/EmailTurnOffPage';
 import DownloadAppPage from '@/pages/DownloadAppPage';
 import ClientsPage from '@/pages/ClientsPage';
 import ClientDetailPage from '@/pages/ClientDetailPage';
@@ -73,6 +74,7 @@ export default function App() {
           <Route path="/verify-email" element={<VerifyEmailPage />} />
           <Route path="/invite/accept" element={<InviteAcceptPage />} />
           <Route path="/bank-account/undo" element={<BankAccountUndoPage />} />
+          <Route path="/email-off" element={<EmailTurnOffPage />} />
           <Route path="/download-app" element={<DownloadAppPage />} />
 
           <Route element={<ProtectedRoute />}>

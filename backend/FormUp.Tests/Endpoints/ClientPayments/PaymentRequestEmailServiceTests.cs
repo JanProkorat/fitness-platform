@@ -50,17 +50,21 @@ public class PaymentRequestEmailServiceTests
         }).Build();
 
     [Theory]
-    [InlineData("Smtp", "cs", "Částka", "ŽÁDOST O PLATBU")]
-    [InlineData("Resend", "en", "Amount", "PAYMENT REQUEST")]
-    [InlineData("Resend", "de", "Betrag", "ZAHLUNGSAUFFORDERUNG")]
+    [InlineData("Smtp", "cs", "Částka", "ŽÁDOST O PLATBU", " za Online coaching")]
+    [InlineData("Resend", "en", "Amount", "PAYMENT REQUEST", " for Online coaching")]
+    [InlineData("Resend", "de", "Betrag", "ZAHLUNGSAUFFORDERUNG", " f&#252;r Online coaching")]
     public async Task PaymentRequest_EachProvider_SendsTheQrInlineUnderTheContentIdTheHtmlUsesInTheRecipientsLanguage(
-        string provider, string language, string amountLabel, string title)
+        string provider, string language, string amountLabel, string removedLabel, string headingTail)
     {
         var sent = provider == "Smtp" ? await SendViaSmtpAsync(Email(language)) : await SendViaResendAsync(Email(language));
 
         sent.To.Should().Equal("eva@example.com");
         sent.Subject.Should().StartWith("Martin Král: 1");
-        sent.Html.Should().Contain($"cid:{PaymentMessageComposer.QrContentId}").And.Contain(amountLabel).And.Contain(title);
+        sent.Html.Should().Contain($"cid:{PaymentMessageComposer.QrContentId}").And.Contain(amountLabel);
+        System.Text.RegularExpressions.Regex.Match(sent.Html, "<h1[^>]*>(.*?)</h1>", System.Text.RegularExpressions.RegexOptions.Singleline)
+            .Groups[1].Value.Should().Contain(headingTail);
+        sent.Html.Should().NotContain(removedLabel, "the label above the heading was dropped from every email");
+        sent.Html.Should().Contain("prefers-color-scheme").And.NotContain("{{");
         sent.ImageContentId.Should().Be(PaymentMessageComposer.QrContentId);
         sent.ImageBytes.Should().Equal(FakePng);
     }

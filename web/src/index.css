@@ -1423,3 +1423,12 @@
     radial-gradient(620px 520px at 98% 90%, var(--gf-hero-fresh), transparent 70%),
     radial-gradient(520px 420px at 0% 0%, var(--gf-hero-rose), transparent 70%);
 }
+
+/* Standalone email-link pages (PageEmailOff* boards): a warm wash from the top-right corner and a
+   fresh one from the bottom-left, over the page ground. */
+@utility email-page-wash {
+  background-repeat: no-repeat;
+  background-image:
+    radial-gradient(620px 460px at 100% 0%, var(--gf-hero-warm), transparent 70%),
+    radial-gradient(560px 460px at 0% 100%, var(--gf-hero-fresh), transparent 70%);
+}

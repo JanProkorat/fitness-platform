@@ -168,7 +168,8 @@ public class SessionLockEnforcementTests
             StubComplianceService(),
             EndpointTestHelpers.CreateGrantingLinkAuthorizationService(),
             Substitute.For<ILogger<CompleteWorkoutEndpoint>>(),
-            new MockDbBuilder().Build(), TimeProvider.System);
+            new MockDbBuilder().Build(), TimeProvider.System,
+            Substitute.For<INotificationService>(), Substitute.For<INotificationEmailSender>());
     }
 
     [Fact]
