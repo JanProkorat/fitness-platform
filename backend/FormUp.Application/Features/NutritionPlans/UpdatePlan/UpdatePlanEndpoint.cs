@@ -57,7 +57,9 @@ public class UpdatePlanEndpoint(
             s.Responses[StatusCodes.Status401Unauthorized] = "Missing or unreadable caller claim";
             s.Responses[StatusCodes.Status404NotFound] = "Plan not found, or not editable by the caller";
             s.Responses[StatusCodes.Status409Conflict] =
-                "PLAN_VERSION_CONFLICT, MEAL_LOCKED or PAST_DAY_LOCKED";
+                "PLAN_VERSION_CONFLICT, MEAL_LOCKED or PAST_DAY_LOCKED. Lock responses (MEAL_LOCKED, " +
+                "PAST_DAY_LOCKED) also carry the rejected meal as top-level mealId (null when the request " +
+                "sent none), weekNumber and dayOfWeek";
         });
     }
 
@@ -244,7 +246,17 @@ public class UpdatePlanEndpoint(
         if (!req.PreserveLockedMeals
             && FindLockViolation(req, storedStartDate, lockedMeals, clientToday) is { } violation)
         {
-            await this.SendProblemAsync(409, violation.ErrorCode, violation.Message, ct);
+            await this.SendProblemAsync(
+                409,
+                violation.ErrorCode,
+                violation.Message,
+                ct,
+                new Dictionary<string, object?>
+                {
+                    ["mealId"] = violation.MealId,
+                    ["weekNumber"] = violation.WeekNumber,
+                    ["dayOfWeek"] = violation.DayOfWeek
+                });
             return false;
         }
 
@@ -350,7 +362,7 @@ public class UpdatePlanEndpoint(
     /// (<see cref="ErrorCodes.MealLocked"/>), or any other meal placed on a past day
     /// (<see cref="ErrorCodes.PastDayLocked"/>). Null when the request is allowed.
     /// </summary>
-    private static (string ErrorCode, string Message)? FindLockViolation(
+    private static LockViolation? FindLockViolation(
         UpdatePlanRequest req,
         DateTime? storedStartDate,
         Dictionary<Guid, PlanMealLock> lockedMeals,
@@ -372,7 +384,12 @@ public class UpdatePlanEndpoint(
                             || mealLock.DayOfWeek != day.DayOfWeek
                             || !HasSameLockedContent(mealLock.Meal, meal))
                         {
-                            return (ErrorCodes.MealLocked, "A meal the client ate, or one on a past day, cannot be changed or moved.");
+                            return new LockViolation(
+                                ErrorCodes.MealLocked,
+                                "A meal the client ate, or one on a past day, cannot be changed or moved.",
+                                mealId,
+                                week.WeekNumber,
+                                day.DayOfWeek);
                         }
 
                         continue;
@@ -380,16 +397,32 @@ public class UpdatePlanEndpoint(
 
                     if (PlanMealLockResolver.IsPastDay(storedStartDate, week.WeekNumber, day.DayOfWeek, clientToday))
                     {
-                        return (ErrorCodes.PastDayLocked, "Meals cannot be added to a day that has already passed.");
+                        return new LockViolation(
+                            ErrorCodes.PastDayLocked,
+                            "Meals cannot be added to a day that has already passed.",
+                            meal.MealId,
+                            week.WeekNumber,
+                            day.DayOfWeek);
                     }
                 }
             }
         }
 
-        return lockedMeals.Keys.Any(mealId => !seenLockedIds.Contains(mealId))
-            ? (ErrorCodes.MealLocked, "A meal the client ate, or one on a past day, cannot be deleted.")
-            : null;
+        var deleted = lockedMeals.Values.FirstOrDefault(mealLock => !seenLockedIds.Contains(mealLock.Meal.MealId));
+
+        return deleted is null
+            ? null
+            : new LockViolation(
+                ErrorCodes.MealLocked,
+                "A meal the client ate, or one on a past day, cannot be deleted.",
+                deleted.Meal.MealId,
+                deleted.WeekNumber,
+                deleted.DayOfWeek);
     }
+
+    /// <summary>The first lock the request breaks, with the meal slot the web should outline.</summary>
+    private readonly record struct LockViolation(
+        string ErrorCode, string Message, Guid? MealId, int WeekNumber, int DayOfWeek);
 
     private static bool HasSameLockedContent(PlanMeal stored, UpdateMealRequest incoming) =>
         stored.Kind == incoming.Kind
