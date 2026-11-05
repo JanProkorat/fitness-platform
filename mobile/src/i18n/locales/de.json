@@ -104,7 +104,7 @@
     "notifications": {
       "title": "Benachrichtigungen",
       "messages": "Nachrichten",
-      "loadError": "Die Benachrichtigungseinstellungen konnten nicht geladen werden. Tippen, um es erneut zu versuchen.",
+      "loadError": "Die Benachrichtigungseinstellungen konnten nicht geladen werden. Tippen Sie, um es erneut zu versuchen.",
       "saveError": "Die Änderung konnte nicht gespeichert werden. Bitte versuchen Sie es erneut."
     },
     "delete": {
