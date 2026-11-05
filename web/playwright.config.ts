@@ -163,6 +163,7 @@ export default defineConfig({
       testMatch: /trainer\/.+\.spec\.ts/,
       testIgnore: [
         /trainer\/inbox-attachments\.spec\.ts/,
+        /trainer\/price-ended-link\.spec\.ts/,
         /trainer\/(client-detail|clients|inbox-cooperation-events|inbox)\.spec\.ts/,
       ],
       use: {
@@ -195,6 +196,19 @@ export default defineConfig({
       name: 'trainer-media',
       dependencies: ['trainer', 'trainer-chat'],
       testMatch: /trainer\/inbox-attachments\.spec\.ts/,
+      use: {
+        ...devices['Desktop Chrome'],
+      },
+    },
+
+    // ─── Trainer-ending spec ──────────────────────────────────────────────────
+    // price-ended-link.spec.ts only. It ends the seeded QA Ending client's link
+    // through the client API, which changes qa.trainer's roster and fires a
+    // notification, so it runs after every trainer and trainer-chat test.
+    {
+      name: 'trainer-ending',
+      dependencies: ['trainer', 'trainer-chat'],
+      testMatch: /trainer\/price-ended-link\.spec\.ts/,
       use: {
         ...devices['Desktop Chrome'],
       },
