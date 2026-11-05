@@ -396,6 +396,20 @@ public class QaSeedRunnerTests(QaSeedRunnerFactory factory)
         (await db.ChatMessages.CountAsync(m => endedLinkMessageIds.Contains(m.PublicId), ct))
             .Should().Be(2, "both ended-link messages must be present with no duplicates");
 
+        // Ending client — live link, no conversation, created exactly once.
+        (await db.Users.CountAsync(u => u.Email == QaSeedRunner.ClientEndingEmail, ct))
+            .Should().Be(1, "the ending-client user must be created exactly once");
+
+        var endingLinks = await db.ClientProfessionalLinks
+            .Where(l => l.ClientProfile.UserId == QaSeedRunner.ClientEndingUserId)
+            .ToListAsync(ct);
+        endingLinks.Should().ContainSingle("the qa.trainer <-> ending-client link must be created exactly once")
+            .Which.IsActive.Should().BeTrue("the ending client's link must be live so the e2e can end it");
+
+        (await db.Conversations.CountAsync(
+                c => c.ClientUserId == QaSeedRunner.ClientEndingUserId, ct))
+            .Should().Be(0, "the ending client has no conversation");
+
         // #326 — past training plan and its two executions.
         (await mongo.TrainingPlans.CountDocumentsAsync(
                 Builders<TrainingPlan>.Filter.Eq(p => p.ExternalId, QaSeedRunner.QaPastTrainingPlanExternalId),
@@ -490,8 +504,9 @@ public class QaSeedRunnerTests(QaSeedRunnerFactory factory)
             .Should().Be(6, "the 6 answers must not be duplicated on re-seed");
 
         // Total links: 2 trainer↔client (#474) + 1 nutritionist↔client (#720) + 1 qa.trainer↔client3 (#1095)
-        // + 1 ended qa.trainer↔former-client (#1101) + 1 qa.coach↔QA Duo (#1311).
-        (await db.ClientProfessionalLinks.CountAsync(ct)).Should().Be(6, "no duplicate links on re-seed");
+        // + 1 ended qa.trainer↔former-client (#1101) + 1 qa.coach↔QA Duo (#1311)
+        // + 1 live qa.trainer↔QA Ending.
+        (await db.ClientProfessionalLinks.CountAsync(ct)).Should().Be(7, "no duplicate links on re-seed");
 
         var nutritionPlan = await mongo.NutritionPlans
             .Find(p => p.ExternalId == QaSeedRunner.QaNutritionPlanExternalId)

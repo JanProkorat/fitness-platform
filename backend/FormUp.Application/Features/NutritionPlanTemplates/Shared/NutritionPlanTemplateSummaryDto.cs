@@ -40,13 +40,13 @@ public class NutritionPlanTemplateSummaryDto
     public int WeekCount { get; set; }
 
     /// <summary>
-    /// Most common meal count over the template's non-empty days (days with at least one meal,
-    /// across all weeks); ties resolve to the smaller count. Null when no day has a meal.
+    /// Most common meal count (empty rows included) over days with at least one food or recipe;
+    /// ties go to the smaller count. Null when no day has a food or recipe.
     /// </summary>
     public int? MealsPerDay { get; set; }
 
     /// <summary>
-    /// Average kcal per non-empty day, in whole kcal. Null when no day has a meal.
+    /// Average kcal per day with at least one food or recipe, rounded to whole kcal. Null when no such day.
     /// </summary>
     public decimal? AvgKcalPerDay { get; set; }
 

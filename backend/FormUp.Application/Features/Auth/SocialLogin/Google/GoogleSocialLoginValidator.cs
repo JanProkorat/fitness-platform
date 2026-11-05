@@ -27,5 +27,12 @@ public class GoogleSocialLoginValidator : Validator<GoogleSocialLoginRequest>
         RuleFor(x => x.Roles)
             .Must(roles => !SocialSignUpRoles.MixesClientWithCoach(roles))
             .WithMessage(SocialSignUpRoles.ClientCoachMixMessage);
+
+        // "Client must consent" is enforced by the endpoint for new accounts only: an empty role
+        // list means Client, and linked users sign in without the field.
+        RuleFor(x => x.HealthDataConsent)
+            .Null()
+            .WithMessage(SocialSignUpRoles.CoachHealthDataConsentMessage)
+            .When(x => x.Roles is not null && SocialSignUpRoles.HasCoachRole(x.Roles));
     }
 }

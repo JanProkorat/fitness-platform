@@ -14,6 +14,12 @@ public static class SocialSignUpRoles
     /// <summary>Message returned when Client is combined with a coach role.</summary>
     public const string ClientCoachMixMessage = "Cannot combine Client role with Trainer or Nutritionist.";
 
+    /// <summary>Message returned when a coach sign-up sends a health-data consent.</summary>
+    public const string CoachHealthDataConsentMessage = "Health data consent applies to client accounts only.";
+
+    /// <summary>Message returned when a new client account does not grant health-data consent.</summary>
+    public const string HealthDataConsentRequiredMessage = "Health data consent is required to create a client account.";
+
     private static readonly HashSet<string> Allowed = new(StringComparer.OrdinalIgnoreCase)
     {
         nameof(UserRole.Trainer),
