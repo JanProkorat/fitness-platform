@@ -65,6 +65,9 @@ public class SaveDayPhotosEndpoint(
                 "UploadedAt timestamp; new URLs receive the current UTC time. Pass an empty Photos list " +
                 "to remove all photos; pass null for Note to clear the day-level diary note. " +
                 "Creates the log entry if it does not exist yet.";
+            s.Responses[StatusCodes.Status204NoContent] = "Photos saved";
+            s.Responses[StatusCodes.Status400BadRequest] = "Invalid request, or a photo URL is not a blob URL from this plan's upload folder (INVALID_BLOB_URL)";
+            s.Responses[StatusCodes.Status404NotFound] = "No active plan covers today";
         });
     }
 

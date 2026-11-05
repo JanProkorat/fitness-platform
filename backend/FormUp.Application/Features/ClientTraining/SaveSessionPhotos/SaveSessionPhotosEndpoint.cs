@@ -64,6 +64,9 @@ public class SaveSessionPhotosEndpoint(
                 "Existing photo URLs that are re-submitted keep their original UploadedAt " +
                 "timestamp; new URLs receive the current UTC time. Pass an empty Photos list " +
                 "to remove all photos. Creates the log entry if it does not exist yet.";
+            s.Responses[StatusCodes.Status204NoContent] = "Photos saved";
+            s.Responses[StatusCodes.Status400BadRequest] = "Invalid request, or a photo URL is not a blob URL from this session's upload folder (INVALID_BLOB_URL)";
+            s.Responses[StatusCodes.Status404NotFound] = "No active plan covers today, or the session is not in it";
         });
     }
 
