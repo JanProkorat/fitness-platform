@@ -5,6 +5,7 @@ using FormUp.Application.Domain.Interfaces;
 using FormUp.Application.Domain.Services;
 using FormUp.Application.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Logging;
 
 namespace FormUp.Application.Infrastructure.Services;
@@ -40,8 +41,9 @@ public sealed class NotificationEmailGroupProcessor(
     /// <returns>True when a burst was claimed (sent, skipped or discarded); false when nothing was due.</returns>
     public async Task<bool> ProcessNextAsync(DateTime nowUtc, CancellationToken ct)
     {
-        PendingSend? send;
+        PendingSend? send = null;
         long pendingId;
+        var failed = false;
 
         await using (var transaction = await db.BeginTransactionAsync(ct))
         {
@@ -64,10 +66,20 @@ public sealed class NotificationEmailGroupProcessor(
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
                 logger.LogError(ex, "NotificationEmailGroupingScheduler: handling pending email {PendingId} failed.", pendingId);
-                await DiscardAsync(pendingId, ct);
+                failed = true;
+                await RollbackQuietlyAsync(transaction);
 
-                return true;
+                // Forget the failed attempt's tracked Remove(pending) so nothing can replay it.
+                (db as DbContext)?.ChangeTracker.Clear();
             }
+        }
+
+        if (failed)
+        {
+            // The claim transaction has ended, so this delete commits on its own instead of being rolled back with it.
+            await DiscardAsync(pendingId, ct);
+
+            return true;
         }
 
         if (send is not null)
@@ -237,7 +249,19 @@ public sealed class NotificationEmailGroupProcessor(
             });
     }
 
-    // A row that cannot be handled is dropped so it cannot starve the ones behind it.
+    private async Task RollbackQuietlyAsync(IDbContextTransaction transaction)
+    {
+        try
+        {
+            await transaction.RollbackAsync(CancellationToken.None);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "NotificationEmailGroupingScheduler: could not roll back the claim transaction.");
+        }
+    }
+
+    // A row that cannot be handled is dropped so it cannot starve the ones behind it. Call it outside any transaction.
     private async Task DiscardAsync(long pendingId, CancellationToken ct)
     {
         try
