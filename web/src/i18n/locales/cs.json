@@ -2335,6 +2335,46 @@
       "message": "Šablona se od otevření změnila jinde. Vaše úpravy tu zůstaly a nic se nepřepsalo. Načtením nejnovější verze své úpravy zahodíte.",
       "reload": "Načíst nejnovější"
     },
+    "locks": {
+      "nothingPlanned": "Nic nenaplánováno",
+      "today": "Dnes",
+      "dayLocked": "{{day}}: den už proběhl a je uzamčen",
+      "close": "Zavřít",
+      "rowLocked": "V tomto řádku jsou snězená jídla nebo jídla z minulosti, proto ho nelze odebrat.",
+      "mealLockedError": "Jídlo bylo mezitím snězeno nebo uzamčeno, proto se plán neuložil. Týden byl znovu načten ze serveru.",
+      "pastDayLockedError": "Mezitím uplynul den a nelze do něj přidávat jídla. Plán se neuložil, týden byl znovu načten.",
+      "legend": {
+        "label": "Barvy jídel",
+        "eaten": "Snězeno",
+        "partlyEaten": "Částečně snězeno",
+        "missed": "Vynecháno",
+        "locked": "Uzamčeno"
+      },
+      "state": {
+        "eaten": "Snězeno",
+        "missed": "Vynecháno",
+        "partly": "{{eaten}} z {{total}} snězeno",
+        "partlyShort": "{{eaten}}/{{total}} snězeno"
+      },
+      "reason": {
+        "past": "Uzamčeno · {{day}} už proběhl",
+        "eaten": "Uzamčeno · klient z něj už jedl"
+      },
+      "kcalOf": "{{eaten}} z {{planned}} kcal",
+      "percent": "{{percent}} %",
+      "eatenAt": "Snězeno v {{time}}",
+      "eatenMacros": "Snězeno",
+      "item": {
+        "eaten": "Snězeno",
+        "notEaten": "Nesnězeno",
+        "recipe": "Recept · {{amount}}×",
+        "food": "Surovina · {{amount}} g"
+      },
+      "yourNote": "Vaše poznámka",
+      "snapshotNote": "Uloženo tak, jak to klient zaznamenal. Pozdější úpravy plánu to nemění.",
+      "lockedNote": "Toto jídlo je uzamčeno a nelze ho měnit.",
+      "openDay": "Otevřít: {{day}}"
+    },
     "leave": {
       "title": "Odejít bez uložení?",
       "body": "Máte neuložené změny. Pokud odejdete, přijdete o ně.",

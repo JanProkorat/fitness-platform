@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AutoScroller, Feedback, KeyboardSensor, PointerSensor } from '@dnd-kit/dom';
 import { move } from '@dnd-kit/helpers';
@@ -24,7 +24,18 @@ import DayNavigator from '@/components/plan-editor/DayNavigator';
 import DayView from '@/components/plan-editor/DayView';
 import GridDragOverlay from '@/components/plan-editor/GridDragOverlay';
 import LibraryPanel from '@/components/plan-editor/LibraryPanel';
+import LockedMealPopover from '@/components/plan-editor/LockedMealPopover';
 import MealDetail from '@/components/plan-editor/MealDetail';
+import MealLockLegend from '@/components/plan-editor/MealLockLegend';
+import {
+  dayHasLock,
+  isPastDay,
+  keepLocked,
+  mealLockView,
+  MealLocksContext,
+  slotDate,
+  type PlanMealLocks,
+} from '@/components/plan-editor/meal-locks';
 import MealPicker from '@/components/plan-editor/MealPicker';
 import NutritionView, { NutritionLegend } from '@/components/plan-editor/NutritionView';
 import { PopoverBoundaryContext } from '@/components/plan-editor/PopoverBoundary';
@@ -207,6 +218,8 @@ interface Props {
   allowWeekRemoval?: boolean;
   /** Unreviewed offline-sync conflicts of this plan; only the client plan editor passes them. */
   syncConflicts?: PlanEditorSyncConflicts;
+  /** The server's lock verdicts of a client plan; only the client plan editor passes them. */
+  mealLocks?: PlanMealLocks | null;
   saveState: PlanEditorSaveState;
   /** Persists the document; resolves with the server's copy, or null when the save failed. */
   onSave: (doc: EditorDocument) => Promise<EditorDocument | null>;
@@ -377,12 +390,27 @@ export default function PlanEditor({
   renderBanner,
   allowWeekRemoval,
   syncConflicts,
+  mealLocks,
   saveState,
   onSave,
   onReload,
 }: Props) {
   const { t, i18n } = useTranslation();
-  const { doc, dirty, canUndo, canRedo, edit, undo, redo, markSaved } = usePlanEditorState(initial);
+  const { doc, dirty, canUndo, canRedo, edit: rawEdit, undo, redo, markSaved } = usePlanEditorState(initial);
+  const locks = mealLocks ?? null;
+  const locksRef = useRef(locks);
+  useEffect(() => {
+    locksRef.current = locks;
+  });
+  // Every edit passes through here, so a locked meal or a past day never changes in the document, whichever control asked.
+  const edit = useCallback<PlanEditorState['edit']>(
+    (update, coalesceKey) =>
+      rawEdit((current) => {
+        const next = update(current);
+        return locksRef.current ? keepLocked(locksRef.current, next, current) : next;
+      }, coalesceKey),
+    [rawEdit],
+  );
   const targets = doc.targets;
   const dailyKcalTarget = targets.kcal;
   const [weekIndex, setWeekIndex] = useState(0);
@@ -545,6 +573,14 @@ export default function PlanEditor({
     setOpenGhostId(null);
   }
 
+  /** "Open <day>" in a locked meal's popover: the Day view on that weekday. */
+  function openDay(dayOfWeekValue: number) {
+    navigate({ day: dayOfWeekValue });
+    setRange('day');
+    setView('meals');
+    setDetailCell(null);
+  }
+
   /** "Show" in the strip: the conflict's popover in the Week view (switching week), its panel in the Day view. */
   function showConflict(placed: PlacedConflict) {
     if (placed.weekIndex === null || placed.dayOfWeek === null) {
@@ -631,6 +667,55 @@ export default function PlanEditor({
     return rowMeal(week?.days.find((day) => day.dayOfWeek === dayOfWeekValue), rows[rowIndex]);
   }
 
+  /** True when the slot is on a past day or holds a meal that may not change: nothing can land on it or leave it. */
+  function slotBlocked(cell: CellRef): boolean {
+    if (!locks || !week) {
+      return false;
+    }
+    if (isPastDay(locks, week.weekNumber, cell.dayOfWeek)) {
+      return true;
+    }
+    const meal = mealAt(cell.dayOfWeek, cell.rowIndex);
+    return meal ? mealLockView(locks, meal.mealId, week.weekNumber, cell.dayOfWeek).locked : false;
+  }
+
+  /** True when the weekday is past or holds a meal that may not change. */
+  function dayLocked(dayOfWeekValue: number): boolean {
+    if (!locks || !week) {
+      return false;
+    }
+    const meals = week.days.find((day) => day.dayOfWeek === dayOfWeekValue)?.meals ?? [];
+    return dayHasLock(locks, week.weekNumber, dayOfWeekValue, meals);
+  }
+
+  function weekHasLock(): boolean {
+    return week !== undefined && week.days.some((day) => dayLocked(day.dayOfWeek));
+  }
+
+  /** Sliding a meal along its row shifts every meal between the two days, so none of those slots may be blocked. */
+  function alongRowBlocked(rowIndex: number, fromDay: number, toDay: number): boolean {
+    for (let day = Math.min(fromDay, toDay); day <= Math.max(fromDay, toDay); day += 1) {
+      if (slotBlocked({ dayOfWeek: day, rowIndex })) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /** Whether a tile dragged from `source` may not be dropped on `hit`: a copy only needs the target open, a slide the whole stretch. */
+  function cellDropBlocked(source: CellMealDrag, hit: CellRef, copy: boolean): boolean {
+    if (slotBlocked(hit)) {
+      return true;
+    }
+    if (copy) {
+      return false;
+    }
+    if (hit.dayOfWeek === source.dayOfWeek) {
+      return dayLocked(source.dayOfWeek);
+    }
+    return hit.rowIndex === source.rowIndex && alongRowBlocked(source.rowIndex, source.dayOfWeek, hit.dayOfWeek);
+  }
+
   function selectCell(cell: SelectedCell) {
     setSelected(cell);
     const meal = mealAt(cell.dayOfWeek, cell.rowIndex);
@@ -649,6 +734,22 @@ export default function PlanEditor({
     if (conflict && conflictsModel) {
       return <SyncConflictPopoverBody placed={conflict} model={conflictsModel} onClose={() => setDetailCell(null)} />;
     }
+    const lock = locks ? mealLockView(locks, meal.mealId, week.weekNumber, cell.dayOfWeek) : null;
+    if (locks && lock?.locked) {
+      return (
+        <LockedMealPopover
+          meal={meal}
+          lock={lock}
+          clientName={locks.clientName}
+          dayOfWeek={cell.dayOfWeek}
+          date={slotDate(locks.startDate, week.weekNumber, cell.dayOfWeek)}
+          pastDay={isPastDay(locks, week.weekNumber, cell.dayOfWeek)}
+          language={i18n.language}
+          onClose={() => setDetailCell(null)}
+          onOpenDay={() => openDay(cell.dayOfWeek)}
+        />
+      );
+    }
     return (
       <MealDetail
         meal={meal}
@@ -665,7 +766,7 @@ export default function PlanEditor({
 
   /** An empty target takes the copy at once; a filled one asks Replace or Add first. */
   function onCellMealDrop(source: CellMealDrag, target: SelectedCell) {
-    if (readOnly || source.weekIndex !== currentIndex) {
+    if (readOnly || source.weekIndex !== currentIndex || slotBlocked(target)) {
       return;
     }
     const targetMeal = mealAt(target.dayOfWeek, target.rowIndex);
@@ -723,7 +824,7 @@ export default function PlanEditor({
     const day = week?.days.find((candidate) => candidate.dayOfWeek === dayOfWeekValue);
     const slots = daySlots(day);
     const from = slots.findIndex((meal) => meal.mealId === mealId);
-    if (readOnly || !week || from === -1) {
+    if (readOnly || !week || from === -1 || dayLocked(dayOfWeekValue)) {
       return;
     }
     const to = movedSlotIndex(from, gapIndex, slots.length);
@@ -770,7 +871,7 @@ export default function PlanEditor({
       week.days.find((candidate) => candidate.dayOfWeek === source.dayOfWeek),
     ).get(source.mealId);
     const landing = rowIndex === undefined ? undefined : mealAt(toDay, rowIndex);
-    if (rowIndex === undefined || !landing) {
+    if (rowIndex === undefined || !landing || alongRowBlocked(rowIndex, source.dayOfWeek, toDay)) {
       return;
     }
     const placement = rowMovePlacement(week, rowIndex, source.dayOfWeek, toDay);
@@ -844,18 +945,15 @@ export default function PlanEditor({
       setGridDrag(next);
       return;
     }
-    const next = cellDragView(
-      currentDoc,
-      index,
-      previous.source,
-      hitCellLocked(
-        runtime.cells,
-        { dayOfWeek: previous.source.dayOfWeek, rowIndex: previous.source.rowIndex },
-        x,
-        y,
-      ),
-      runtime.alt,
+    const hit = hitCellLocked(
+      runtime.cells,
+      { dayOfWeek: previous.source.dayOfWeek, rowIndex: previous.source.rowIndex },
+      x,
+      y,
     );
+    // A slot nothing may land on is not a hover at all: no preview, no drop.
+    const hover = hit && !cellDropBlocked(previous.source, hit, runtime.alt) ? hit : null;
+    const next = cellDragView(currentDoc, index, previous.source, hover, runtime.alt);
     if (
       next.mode === previous.mode &&
       next.alt === previous.alt &&
@@ -1013,7 +1111,7 @@ export default function PlanEditor({
    * copy leaves out for the meal cap are named in the announcement, and in a toast when no dialog explained them.
    */
   function runLabelMove(move: LabelMove, mode: LabelOpMode, options: { focus: boolean; viaDialog: boolean }) {
-    if (readOnly || !week) {
+    if (readOnly || !week || weekHasLock()) {
       return;
     }
     const outcome = previewLabelMove(week, move).outcome[mode];
@@ -1052,7 +1150,7 @@ export default function PlanEditor({
    * announces it. `animate` slides the tiles; a drop turns it off, because the hover preview already showed the result.
    */
   function moveLabelContents(move: LabelMove, options: { focus: boolean; animate: boolean }) {
-    if (readOnly || !week || labelMovePlacement(week, move).length === 0) {
+    if (readOnly || !week || weekHasLock() || labelMovePlacement(week, move).length === 0) {
       return;
     }
     setSelected(null);
@@ -1166,6 +1264,9 @@ export default function PlanEditor({
   }
 
   function addToCell(item: LibraryItem, cell: SelectedCell) {
+    if (slotBlocked(cell)) {
+      return;
+    }
     edit((current) => addItemToCell(current, currentIndex, cell.dayOfWeek, cell.rowIndex, item));
   }
 
@@ -1219,6 +1320,10 @@ export default function PlanEditor({
   /** A row with no food goes at once; one with food asks first. */
   function requestRemoveRow(rowIndex: number) {
     if (readOnly || !week) {
+      return;
+    }
+    if (week.days.some((day) => slotBlocked({ dayOfWeek: day.dayOfWeek, rowIndex }) && mealAt(day.dayOfWeek, rowIndex))) {
+      addToast(t('planEditor.locks.rowLocked'), 'error');
       return;
     }
     const days = daysWithFoodInRow(week, rowIndex);
@@ -1363,7 +1468,7 @@ export default function PlanEditor({
       icon: BookOpen,
       content: (
         <LibraryPanel
-          canAdd={activeSelected !== null}
+          canAdd={activeSelected !== null && !slotBlocked(activeSelected)}
           disabled={readOnly}
           onAdd={(item) => activeSelected && addToCell(item, activeSelected)}
           extraTab={
@@ -1385,6 +1490,7 @@ export default function PlanEditor({
 
   return (
     <SyncConflictsContext.Provider value={conflictsModel}>
+    <MealLocksContext.Provider value={locks}>
     <PopoverBoundaryContext.Provider value={scrollArea}>
     <DragDropProvider
       sensors={DRAG_SENSORS}
@@ -1500,7 +1606,8 @@ export default function PlanEditor({
               />
 
             {(range === 'week' || rows.length === 0) && (
-              <div className="px-6 py-3">
+              <div className="flex items-center gap-4 px-6 py-3">
+                <div className="min-w-0 flex-1">
                 <WeekTabs
                   weekCount={doc.weeks.length}
                   current={currentIndex}
@@ -1521,6 +1628,8 @@ export default function PlanEditor({
                   }}
                   onRemoveLast={allowWeekRemoval ? () => setRemoveWeekNumber(doc.weeks.length) : undefined}
                 />
+                </div>
+                {locks && view === 'meals' && rows.length > 0 && <MealLockLegend />}
               </div>
             )}
 
@@ -1629,7 +1738,7 @@ export default function PlanEditor({
                   onAddMeal={() => openAddMeal('week', null)}
                   onMoveMeal={readOnly ? undefined : moveByKey}
                   onMoveMealAlong={readOnly ? undefined : moveAlongByKey}
-                  onLabelKeyMove={readOnly ? undefined : moveLabelByKey}
+                  onLabelKeyMove={readOnly || weekHasLock() ? undefined : moveLabelByKey}
                   drag={gridDrag}
                 />
               )}
@@ -1765,6 +1874,7 @@ export default function PlanEditor({
       </Dialog>
     </DragDropProvider>
     </PopoverBoundaryContext.Provider>
+    </MealLocksContext.Provider>
     </SyncConflictsContext.Provider>
   );
 }

@@ -29,6 +29,7 @@ import {
   setMealNote,
   setRecipeServings,
 } from '@/components/plan-editor/plan-editor-ops';
+import { mealLockView, useMealLocks } from '@/components/plan-editor/meal-locks';
 import SyncConflictDayPanel from '@/components/plan-editor/sync-conflicts/SyncConflictDayPanel';
 import { useSyncConflicts } from '@/components/plan-editor/sync-conflicts/SyncConflictsContext';
 import { MAX_NOTE_LENGTH, type EditorMeal } from '@/components/plan-editor/plan-editor-types';
@@ -84,12 +85,16 @@ export default function MealBlock({
   const { t } = useTranslation();
   const conflicts = useSyncConflicts();
   const conflict = conflicts?.forMeal(weekIndex, meal.mealId);
-  const draggable = !readOnly && mealItemCount(meal) > 0;
+  const locks = useMealLocks();
+  // A locked meal reads like a read-only one: it neither moves nor takes a drop, and its controls are gone.
+  const locked = locks ? mealLockView(locks, meal.mealId, weekIndex + 1, dayOfWeek).locked : false;
+  const frozen = readOnly || locked;
+  const draggable = !frozen && mealItemCount(meal) > 0;
   const { ref: dropRef, isDropTarget } = useDroppable({
     id: `cell:${weekIndex}:${dayOfWeek}:${rowIndex}`,
     data: { weekIndex, dayOfWeek, rowIndex },
     // A meal card is dropped by position (see the editor), so no card takes a drop while one is dragged.
-    disabled: readOnly || drag !== null,
+    disabled: frozen || drag !== null,
   });
   const { ref: dragRef, isDragging } = useDraggable({
     id: `cell-meal:${weekIndex}:${dayOfWeek}:${rowIndex}`,
@@ -168,7 +173,7 @@ export default function MealBlock({
               {t('planEditor.day.percentOfDay', { percent: Math.round((totals.kcal / dayKcal) * 100) })}
             </span>
           )}
-          {!readOnly && (
+          {!frozen && (
             <span className="ml-auto flex items-center gap-1">
               <button
                 type="button"
@@ -194,7 +199,7 @@ export default function MealBlock({
               <MealItemRow
                 key={`${entry.type}:${entry.index}`}
                 entry={entry}
-                readOnly={readOnly}
+                readOnly={frozen}
                 variant="day"
                 position={{ weekIndex, dayOfWeek, mealId: meal.mealId }}
                 sourceId={
@@ -222,14 +227,14 @@ export default function MealBlock({
             ))}
           </ul>
         ) : (
-          !readOnly && (
+          !frozen && (
             <p className="rounded-xl border border-dashed border-line px-4 py-3 text-body text-muted-foreground">
               {t('planEditor.day.emptyMeal')}
             </p>
           )
         )}
 
-        {readOnly ? (
+        {frozen ? (
           shown.note && (
             <p className="flex items-center gap-2 text-body text-ink">
               <StickyNote className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
