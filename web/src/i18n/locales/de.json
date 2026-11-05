@@ -53,7 +53,7 @@
   },
   "auth": {
     "login": "Anmelden",
-    "loginSubtitle": "Weiter zu deinem Plan",
+    "loginSubtitle": "Weiter zu Ihrem Plan",
     "loginLoading": "Anmeldung...",
     "loginError": "Ungültige E-Mail oder Passwort",
     "forgotPassword": "Passwort vergessen",
@@ -247,7 +247,7 @@
   "accountMenu": {
     "trigger": "Kontomenü",
     "title": "Konto",
-    "profile": "Dein Profil",
+    "profile": "Ihr Profil",
     "settings": "Einstellungen",
     "language": "Sprache",
     "theme": "Design",
@@ -266,7 +266,7 @@
     "eyebrow": "Konto",
     "title": "Einstellungen",
     "subtitle": "Anmeldung, Benachrichtigungen, Zahlungen und die Rollen Ihres Kontos",
-    "loadError": "Die Einstellungen konnten nicht geladen werden. Bitte lade die Seite neu.",
+    "loadError": "Die Einstellungen konnten nicht geladen werden. Bitte laden Sie die Seite neu.",
     "status": {
       "saved": "Alle Änderungen gespeichert",
       "saving": "Wird gespeichert…",
@@ -274,19 +274,19 @@
     },
     "account": {
       "title": "Konto",
-      "description": "Wie du dich anmeldest und nach welcher Uhr sich deine Erinnerungen richten.",
+      "description": "Wie Sie sich anmelden und nach welcher Uhr sich Ihre Erinnerungen richten.",
       "email": "Anmelde-E-Mail",
-      "emailHint": "Mit dieser Adresse meldest du dich an. Klienten sehen sie auch in deinem Profil.",
+      "emailHint": "Mit dieser Adresse melden Sie sich an. Klienten sehen sie auch in Ihrem Profil.",
       "timeZone": "Zeitzone",
       "timeZoneHint": "Check-in-Erinnerungen und Sitzungszeiten nutzen sie.",
       "timeZoneError": "Die Zeitzone konnte nicht gespeichert werden.",
       "password": "Passwort",
       "changePassword": "Passwort ändern",
       "passwordChanged": "Zuletzt geändert am {{date}}.",
-      "passwordManaged": "Du meldest dich mit Google an. Dein Passwort wird dort verwaltet.",
+      "passwordManaged": "Sie melden sich mit Google an. Ihr Passwort wird dort verwaltet.",
       "passwordDialog": {
         "title": "Passwort ändern",
-        "lede": "Hier bleibst du angemeldet. Andere Geräte werden abgemeldet.",
+        "lede": "Hier bleiben Sie angemeldet. Andere Geräte werden abgemeldet.",
         "current": "Aktuelles Passwort",
         "new": "Neues Passwort",
         "repeat": "Neues Passwort wiederholen",
@@ -301,8 +301,8 @@
         "forgot": "Aktuelles Passwort vergessen?",
         "resetSent": "Link zum Zurücksetzen an {{email}} gesendet.",
         "resetError": "Der Link zum Zurücksetzen konnte nicht gesendet werden.",
-        "currentRequired": "Gib dein aktuelles Passwort ein.",
-        "wrongCurrent": "Das ist nicht dein aktuelles Passwort.",
+        "currentRequired": "Geben Sie Ihr aktuelles Passwort ein.",
+        "wrongCurrent": "Das ist nicht Ihr aktuelles Passwort.",
         "submit": "Passwort ändern",
         "submitting": "Wird geändert…",
         "success": "Passwort geändert.",
@@ -311,7 +311,7 @@
     },
     "notifications": {
       "title": "Benachrichtigungen",
-      "description": "Wähle, wie wir dich über Klientenaktivität informieren. In-App-Benachrichtigungen erscheinen immer.",
+      "description": "Wählen Sie, wie wir Sie über Klientenaktivität informieren. In-App-Benachrichtigungen erscheinen immer.",
       "event": "Ereignis",
       "email": "E-Mail",
       "app": "Coach-App",
@@ -321,7 +321,7 @@
       "events": {
         "newMessage": {
           "title": "Neue Nachricht",
-          "description": "Ein Klient schreibt dir im Chat."
+          "description": "Ein Klient schreibt Ihnen im Chat."
         },
         "checkIn": {
           "title": "Wöchentlicher Check-in eingereicht",
@@ -329,11 +329,11 @@
         },
         "joinRequest": {
           "title": "Beitrittsanfrage",
-          "description": "Jemand möchte dein Klient werden."
+          "description": "Jemand möchte Ihr Klient werden."
         },
         "photos": {
           "title": "Fortschrittsfotos eingereicht",
-          "description": "Ein Klient beantwortet deine Fotoanfrage."
+          "description": "Ein Klient beantwortet Ihre Fotoanfrage."
         },
         "workout": {
           "title": "Training beendet",
@@ -342,8 +342,8 @@
       }
     },
     "roles": {
-      "title": "Deine Rollen",
-      "description": "Jede Rolle schaltet eigene Werkzeuge frei und erscheint in der Suche unter deinem Namen.",
+      "title": "Ihre Rollen",
+      "description": "Jede Rolle schaltet eigene Werkzeuge frei und erscheint in der Suche unter Ihrem Namen.",
       "add": "Rolle hinzufügen",
       "remove": "Rolle entfernen",
       "active": "Aktiv",
@@ -353,100 +353,100 @@
         "trainer": "Workouts, Übungen, Trainingspläne und Vorlagen.",
         "nutritionist": "Rezepte, Zutaten, Ernährungspläne und Vorlagen."
       },
-      "note": "Das Entfernen einer Rolle blendet sie in der Suche aus und stoppt neue Arbeit darin: keine neuen Pläne oder Vorlagen und keine neuen Klienten. Laufende Pläne bleiben aktiv, bis sie enden: Klienten protokollieren weiter und du kannst sie anpassen. Danach bleibt alles Geteilte für euch beide sichtbar, nur lesbar. Füge die Rolle jederzeit wieder hinzu, um erneut zu bearbeiten.",
+      "note": "Das Entfernen einer Rolle blendet sie in der Suche aus und stoppt neue Arbeit darin: keine neuen Pläne oder Vorlagen und keine neuen Klienten. Laufende Pläne bleiben aktiv, bis sie enden: Klienten protokollieren weiter und Sie können sie anpassen. Danach bleibt alles Geteilte für Sie beide sichtbar, nur lesbar. Fügen Sie die Rolle jederzeit wieder hinzu, um erneut zu bearbeiten.",
       "addDialog": {
         "title": "Rolle {{role}} hinzufügen?",
-        "body": "Du erhältst die Werkzeuge dieser Rolle und erscheinst damit in der Suche. Du kannst sie später wieder entfernen.",
+        "body": "Sie erhalten die Werkzeuge dieser Rolle und erscheinen damit in der Suche. Sie können sie später wieder entfernen.",
         "chooseTitle": "Rolle hinzufügen",
-        "chooseBody": "Wähle, welche Rolle du hinzufügen möchtest. Du erhältst ihre Werkzeuge und erscheinst damit in der Suche. Du kannst sie später wieder entfernen."
+        "chooseBody": "Wählen Sie, welche Rolle Sie hinzufügen möchten. Sie erhalten ihre Werkzeuge und erscheinen damit in der Suche. Sie können sie später wieder entfernen."
       },
       "clients_one": "{{count}} Klient",
       "clients_other": "{{count}} Klienten",
       "removed": "Rolle entfernt.",
       "removeError": "Die Rolle konnte nicht entfernt werden. Es wurde nichts geändert.",
-      "loadError": "Deine Rollen konnten nicht geladen werden. Bitte lade die Seite neu.",
-      "onlyRoleNote": "Das ist deine einzige Rolle. Sie zu entfernen deaktiviert dein Coach-Konto, genau wie die Schaltfläche unten.",
-      "noRolesNote": "Dein Coach-Konto ist deaktiviert. Füge eine Rolle hinzu, um es zu reaktivieren.",
+      "loadError": "Ihre Rollen konnten nicht geladen werden. Bitte laden Sie die Seite neu.",
+      "onlyRoleNote": "Das ist Ihre einzige Rolle. Sie zu entfernen deaktiviert Ihr Coach-Konto, genau wie die Schaltfläche unten.",
+      "noRolesNote": "Ihr Coach-Konto ist deaktiviert. Fügen Sie eine Rolle hinzu, um es zu reaktivieren.",
       "removeDialog": {
         "keep": "Rolle behalten",
-        "footnote": "Die Rolle verschwindet sofort aus der Suche und von deiner Profilkarte. Füge sie jederzeit wieder hinzu, um erneut zu bearbeiten.",
+        "footnote": "Die Rolle verschwindet sofort aus der Suche und von Ihrer Profilkarte. Fügen Sie sie jederzeit wieder hinzu, um erneut zu bearbeiten.",
         "notified_zero": "Kein Klient wird benachrichtigt",
         "notified_one": "{{count}} Klient wird benachrichtigt",
         "notified_other": "{{count}} Klienten werden benachrichtigt",
         "trainer": {
           "title": "Rolle Personal Trainer entfernen?",
-          "description": "Du coachst weiter als Ernährungsberater. Nichts wird gelöscht.",
-          "shared_one": "{{count}} hat auch Ernährung bei dir und bleibt dein Klient.",
-          "shared_other": "{{count}} haben auch Ernährung bei dir und bleiben deine Klienten.",
-          "rest_one": "Der andere {{count}} bleibt mit dir verbunden, bis sein aktueller Plan endet; danach endet das Coaching und sein Verlauf wird archiviert.",
-          "rest_other": "Die anderen {{count}} bleiben mit dir verbunden, bis ihr aktueller Plan endet; danach endet das Coaching und ihr Verlauf wird archiviert.",
-          "restAll_one": "Dieser Klient bleibt mit dir verbunden, bis sein aktueller Plan endet; danach endet das Coaching und sein Verlauf wird archiviert.",
-          "restAll_other": "Alle {{count}} bleiben mit dir verbunden, bis ihr aktueller Plan endet; danach endet das Coaching und ihr Verlauf wird archiviert.",
+          "description": "Sie coachen weiter als Ernährungsberater. Nichts wird gelöscht.",
+          "shared_one": "{{count}} hat auch Ernährung bei Ihnen und bleibt Ihr Klient.",
+          "shared_other": "{{count}} haben auch Ernährung bei Ihnen und bleiben Ihre Klienten.",
+          "rest_one": "Der andere {{count}} bleibt mit Ihnen verbunden, bis sein aktueller Plan endet; danach endet das Coaching und sein Verlauf wird archiviert.",
+          "rest_other": "Die anderen {{count}} bleiben mit Ihnen verbunden, bis ihr aktueller Plan endet; danach endet das Coaching und ihr Verlauf wird archiviert.",
+          "restAll_one": "Dieser Klient bleibt mit Ihnen verbunden, bis sein aktueller Plan endet; danach endet das Coaching und sein Verlauf wird archiviert.",
+          "restAll_other": "Alle {{count}} bleiben mit Ihnen verbunden, bis ihr aktueller Plan endet; danach endet das Coaching und ihr Verlauf wird archiviert.",
           "plansTitle": "Laufende Pläne laufen bis zum Ende",
-          "plansBody": "Bereits gestartete Trainingspläne bleiben für dich und deine Klienten aktiv, bis sie enden.",
-          "libraryTitle": "Deine Trainingsbibliothek wird schreibgeschützt",
+          "plansBody": "Bereits gestartete Trainingspläne bleiben für Sie und Ihre Klienten aktiv, bis sie enden.",
+          "libraryTitle": "Ihre Trainingsbibliothek wird schreibgeschützt",
           "libraryBody": "Übungen, Workouts und Trainingsvorlagen bleiben sichtbar, können aber nicht erstellt, bearbeitet oder zugewiesen werden.",
           "confirm": "Personal Trainer entfernen"
         },
         "nutritionist": {
           "title": "Rolle Ernährungsberater entfernen?",
-          "description": "Du coachst weiter als Personal Trainer. Nichts wird gelöscht.",
-          "shared_one": "{{count}} trainiert auch bei dir und bleibt dein Klient.",
-          "shared_other": "{{count}} trainieren auch bei dir und bleiben deine Klienten.",
-          "rest_one": "Der andere {{count}} bleibt mit dir verbunden, bis sein aktueller Plan endet; danach endet das Coaching und sein Verlauf wird archiviert.",
-          "rest_other": "Die anderen {{count}} bleiben mit dir verbunden, bis ihr aktueller Plan endet; danach endet das Coaching und ihr Verlauf wird archiviert.",
-          "restAll_one": "Dieser Klient bleibt mit dir verbunden, bis sein aktueller Plan endet; danach endet das Coaching und sein Verlauf wird archiviert.",
-          "restAll_other": "Alle {{count}} bleiben mit dir verbunden, bis ihr aktueller Plan endet; danach endet das Coaching und ihr Verlauf wird archiviert.",
+          "description": "Sie coachen weiter als Personal Trainer. Nichts wird gelöscht.",
+          "shared_one": "{{count}} trainiert auch bei Ihnen und bleibt Ihr Klient.",
+          "shared_other": "{{count}} trainieren auch bei Ihnen und bleiben Ihre Klienten.",
+          "rest_one": "Der andere {{count}} bleibt mit Ihnen verbunden, bis sein aktueller Plan endet; danach endet das Coaching und sein Verlauf wird archiviert.",
+          "rest_other": "Die anderen {{count}} bleiben mit Ihnen verbunden, bis ihr aktueller Plan endet; danach endet das Coaching und ihr Verlauf wird archiviert.",
+          "restAll_one": "Dieser Klient bleibt mit Ihnen verbunden, bis sein aktueller Plan endet; danach endet das Coaching und sein Verlauf wird archiviert.",
+          "restAll_other": "Alle {{count}} bleiben mit Ihnen verbunden, bis ihr aktueller Plan endet; danach endet das Coaching und ihr Verlauf wird archiviert.",
           "plansTitle": "Laufende Pläne laufen bis zum Ende",
-          "plansBody": "Bereits gestartete Ernährungspläne bleiben für dich und deine Klienten aktiv, bis sie enden.",
-          "libraryTitle": "Deine Ernährungsbibliothek wird schreibgeschützt",
+          "plansBody": "Bereits gestartete Ernährungspläne bleiben für Sie und Ihre Klienten aktiv, bis sie enden.",
+          "libraryTitle": "Ihre Ernährungsbibliothek wird schreibgeschützt",
           "libraryBody": "Rezepte, Zutaten und Ernährungsplanvorlagen bleiben sichtbar, können aber nicht erstellt, bearbeitet oder zugewiesen werden.",
           "confirm": "Ernährungsberater entfernen"
         }
       }
     },
     "disableDialog": {
-      "title": "Dein Coach-Konto deaktivieren?",
-      "description": "Dadurch werden alle deine Rollen entfernt: {{roles}}. Das Entfernen deiner einzigen Rolle bewirkt dasselbe.",
+      "title": "Ihr Coach-Konto deaktivieren?",
+      "description": "Dadurch werden alle Ihre Rollen entfernt: {{roles}}. Das Entfernen Ihrer einzigen Rolle bewirkt dasselbe.",
       "later": {
         "untilTitle": "Aktiv bis {{date}}",
-        "untilBody": "Alles funktioniert wie bisher bis zum letzten Tag deines aktuellen Abos.",
-        "chargesBody": "Nach diesem Datum wird dir nichts mehr berechnet. Dein Abo verlängert sich nicht.",
-        "plansBody": "Bereits gestartete Pläne bleiben aktiv, bis sie enden, auch nach dem {{date}}, kostenlos. Diese Klienten bleiben bis dahin mit dir verbunden."
+        "untilBody": "Alles funktioniert wie bisher bis zum letzten Tag Ihres aktuellen Abos.",
+        "chargesBody": "Nach diesem Datum wird Ihnen nichts mehr berechnet. Ihr Abo verlängert sich nicht.",
+        "plansBody": "Bereits gestartete Pläne bleiben aktiv, bis sie enden, auch nach dem {{date}}, kostenlos. Diese Klienten bleiben bis dahin mit Ihnen verbunden."
       },
       "now": {
-        "untilTitle": "Deine Rollen enden jetzt",
-        "untilBody": "Du hast keinen bezahlten Zeitraum mehr, daher wird die Deaktivierung sofort wirksam.",
-        "chargesBody": "Es wird dir nichts mehr berechnet.",
-        "plansBody": "Bereits gestartete Pläne bleiben aktiv, bis sie enden, kostenlos. Diese Klienten bleiben bis dahin mit dir verbunden."
+        "untilTitle": "Ihre Rollen enden jetzt",
+        "untilBody": "Sie haben keinen bezahlten Zeitraum mehr, daher wird die Deaktivierung sofort wirksam.",
+        "chargesBody": "Es wird Ihnen nichts mehr berechnet.",
+        "plansBody": "Bereits gestartete Pläne bleiben aktiv, bis sie enden, kostenlos. Diese Klienten bleiben bis dahin mit Ihnen verbunden."
       },
       "chargesTitle": "Keine weiteren Kosten",
       "plansTitle": "Laufende Pläne laufen bis zum Ende",
       "readOnlyTitle": "Alles andere wird schreibgeschützt",
-      "readOnlyBody": "Du behältst den Zugriff auf alle deine Klienten, Pläne, Vorlagen, Rezepte und Chats. Du kannst nur nichts mehr erstellen oder ändern.",
-      "footnote": "Anders überlegt? Füge jederzeit eine Rolle hinzu, um das Konto zu reaktivieren und wieder zu bearbeiten.",
+      "readOnlyBody": "Sie behalten den Zugriff auf alle Ihre Klienten, Pläne, Vorlagen, Rezepte und Chats. Sie können nur nichts mehr erstellen oder ändern.",
+      "footnote": "Anders überlegt? Fügen Sie jederzeit eine Rolle hinzu, um das Konto zu reaktivieren und wieder zu bearbeiten.",
       "keep": "Konto behalten",
       "confirm": "Konto deaktivieren",
       "error": "Das Coach-Konto konnte nicht deaktiviert werden. Es wurde nichts geändert.",
       "endedToast": "Coach-Konto deaktiviert.",
-      "scheduledToast": "Dein Coach-Konto wird am Ende des Zeitraums deaktiviert."
+      "scheduledToast": "Ihr Coach-Konto wird am Ende des Zeitraums deaktiviert."
     },
     "danger": {
       "title": "Gefahrenbereich",
-      "description": "Aktionen, die deine Arbeit auf Form Up beenden.",
+      "description": "Aktionen, die Ihre Arbeit auf Form Up beenden.",
       "disableTitle": "Coach-Konto deaktivieren",
-      "disableBody": "Entfernt alle deine Rollen und beendet die Abrechnung, wenn dein aktuelles Abo endet. Deine Daten bleiben, nur lesbar.",
+      "disableBody": "Entfernt alle Ihre Rollen und beendet die Abrechnung, wenn Ihr aktuelles Abo endet. Ihre Daten bleiben, nur lesbar.",
       "disable": "Konto deaktivieren",
       "deleteTitle": "Konto löschen",
-      "deleteBody": "Löscht dein Konto, Pläne, Vorlagen und Nachrichten dauerhaft. Klienten verlieren den Zugriff auf Geteiltes. Das kann nicht rückgängig gemacht werden.",
+      "deleteBody": "Löscht Ihr Konto, Pläne, Vorlagen und Nachrichten dauerhaft. Klienten verlieren den Zugriff auf Geteiltes. Das kann nicht rückgängig gemacht werden.",
       "delete": "Konto löschen",
-      "confirmTitle": "Dein Konto löschen?",
-      "confirmBody": "Dein Konto und alles darin wird dauerhaft gelöscht. Das kann nicht rückgängig gemacht werden.",
+      "confirmTitle": "Ihr Konto löschen?",
+      "confirmBody": "Ihr Konto und alles darin wird dauerhaft gelöscht. Das kann nicht rückgängig gemacht werden.",
       "confirmAction": "Konto löschen",
       "deleteError": "Das Konto konnte nicht gelöscht werden. Es wurde nichts geändert.",
       "disabledUntil": "Deaktiviert, aktiv bis {{date}}.",
       "keep": "Konto behalten",
-      "kept": "Dein Coach-Konto bleibt aktiv.",
+      "kept": "Ihr Coach-Konto bleibt aktiv.",
       "keepError": "Das Coach-Konto konnte nicht behalten werden. Es wurde nichts geändert."
     }
   },
@@ -901,7 +901,7 @@
     "loadError": "Profildaten konnten nicht geladen werden",
     "trainerProfileLoadError": "Trainerprofil konnte nicht geladen werden",
     "rolesTitle": "Rollen",
-    "rolesSubtitle": "Wähle die Dienstleistungen, die du anbietest. Rollen können kombiniert werden.",
+    "rolesSubtitle": "Wählen Sie die Dienstleistungen, die Sie anbieten. Rollen können kombiniert werden.",
     "trainerRoleDesc": "Krafttraining, Kardio, Rehabilitation, Kondition",
     "nutritionistRoleDesc": "Ernährungspläne, Makros, Ernährungsstrategien",
     "roleRemovalNotSupported": "Das Entfernen von Rollen wird noch nicht unterstützt",
@@ -949,32 +949,32 @@
     "questionnairesPlaceholder": "Fragebogenverwaltung kommt bald.",
     "page": {
       "eyebrow": "Konto",
-      "title": "Dein Profil",
-      "subtitle": "Was Kunden sehen, wenn sie dich finden, und wie sie dich erreichen",
+      "title": "Ihr Profil",
+      "subtitle": "Was Kunden sehen, wenn sie Sie finden, und wie sie Sie erreichen",
       "allSaved": "Alle Änderungen gespeichert",
       "saved": "Profil gespeichert",
       "photo": {
         "title": "Foto und Name",
-        "description": "Kunden sehen das auf deinem Profil, in der Suche und im Chat.",
+        "description": "Kunden sehen das auf Ihrem Profil, in der Suche und im Chat.",
         "upload": "Foto hochladen",
         "uploading": "Wird hochgeladen...",
         "remove": "Entfernen",
-        "hint": "Ein quadratisches Foto deines Gesichts funktioniert am besten.",
+        "hint": "Ein quadratisches Foto Ihres Gesichts funktioniert am besten.",
         "removed": "Foto entfernt",
-        "removeError": "Das Foto konnte nicht entfernt werden. Bitte versuche es erneut.",
-        "badType": "Wähle ein JPG-, PNG- oder WebP-Bild.",
+        "removeError": "Das Foto konnte nicht entfernt werden. Bitte versuchen Sie es erneut.",
+        "badType": "Wählen Sie ein JPG-, PNG- oder WebP-Bild.",
         "tooLarge": "Das Foto darf höchstens 5 MB groß sein."
       },
       "account": {
         "title": "Konto",
-        "description": "Privat — nur du und die Kunden, mit denen du arbeitest, sehen das.",
-        "emailHint": "Mit dieser Adresse meldest du dich an.",
+        "description": "Privat — nur Sie und die Kunden, mit denen Sie arbeiten, sehen das.",
+        "emailHint": "Mit dieser Adresse melden Sie sich an.",
         "phoneHint": "Optional."
       },
       "about": {
-        "title": "Über dich",
-        "description": "Das Erste, was ein Kunde liest, bevor er dir eine Anfrage schickt.",
-        "bioHint": "Wem du hilfst, wie du arbeitest und was ein Kunde im ersten Monat erwarten kann.",
+        "title": "Über Sie",
+        "description": "Das Erste, was ein Kunde liest, bevor er Ihnen eine Anfrage schickt.",
+        "bioHint": "Wem Sie helfen, wie Sie arbeiten und was ein Kunde im ersten Monat erwarten kann.",
         "cityHint": "In der Suche sichtbar; Kunden filtern danach.",
         "price": "Preis",
         "priceHint": "Vom günstigsten aktiven Paket, das in Ihrem Profil angezeigt wird.",
@@ -985,9 +985,9 @@
       },
       "expertise": {
         "title": "Expertise",
-        "description": "Was du trainierst, in welchen Sprachen und was dich qualifiziert.",
+        "description": "Was Sie trainieren, in welchen Sprachen und was Sie qualifiziert.",
         "specializationsHint": "Mit Enter hinzufügen. Kunden suchen danach.",
-        "languagesHint": "Sprachen, in denen du Sitzungen hältst und chattest.",
+        "languagesHint": "Sprachen, in denen Sie Sitzungen halten und chatten.",
         "certificates": "Zertifikate und Ausbildung",
         "addCertificate": "Zertifikat hinzufügen",
         "certificateTitle": "Zertifikat oder Abschluss",
@@ -1000,34 +1000,34 @@
         "removeCertificate": "Zertifikat {{number}} entfernen"
       },
       "work": {
-        "title": "Wie du arbeitest",
+        "title": "Wie Sie arbeiten",
         "description": "Kunden filtern die Suche danach.",
         "online": "Online",
         "onlineHint": "Pläne, Chat und Check-ins in der App. Keine persönlichen Treffen.",
         "inPerson": "Persönlich",
-        "inPersonHint": "Du trainierst Kunden persönlich, im Studio oder draußen.",
+        "inPersonHint": "Sie trainieren Kunden persönlich, im Studio oder draußen.",
         "both": "Beides",
         "bothHint": "Persönliche Sitzungen plus Online-Pläne und Check-ins."
       },
       "links": {
         "title": "Links",
-        "description": "Optional. Wird als Symbole auf deinem öffentlichen Profil angezeigt.",
-        "websitePlaceholder": "deinewebsite.de",
-        "instagramPlaceholder": "@deinprofil",
+        "description": "Optional. Wird als Symbole auf Ihrem öffentlichen Profil angezeigt.",
+        "websitePlaceholder": "ihrewebsite.de",
+        "instagramPlaceholder": "@ihrprofil",
         "linkedinPlaceholder": "linkedin.com/in/..."
       },
       "visibility": {
         "title": "Sichtbarkeit",
-        "description": "Lege fest, wer dich finden kann.",
+        "description": "Legen Sie fest, wer Sie finden kann.",
         "showInSearch": "In der Coach-Suche anzeigen",
-        "showInSearchHint": "Kunden, die in der App einen Coach suchen, finden dein Profil.",
-        "acceptNewClients": "Nehme neue Kunden an",
-        "acceptNewClientsHint": "Schalte aus, wenn du ausgelastet bist. Dein Profil bleibt mit „Keine neuen Kunden“ sichtbar."
+        "showInSearchHint": "Kunden, die in der App einen Coach suchen, finden Ihr Profil.",
+        "acceptNewClients": "Neue Kunden annehmen",
+        "acceptNewClientsHint": "Schalten Sie aus, wenn Sie ausgelastet sind. Ihr Profil bleibt mit „Keine neuen Kunden“ sichtbar."
       },
       "preview": {
-        "title": "So sehen Kunden dich",
-        "noName": "Dein Name",
-        "noBio": "Hier erscheint deine Bio.",
+        "title": "So sehen Kunden Sie",
+        "noName": "Ihr Name",
+        "noBio": "Hier erscheint Ihre Bio.",
         "online": "Online",
         "inPerson": "Persönlich",
         "both": "Online & persönlich",
@@ -1036,21 +1036,21 @@
         "price": "Preis ab",
         "languages": "Sprachen",
         "certificates": "Zertifikate",
-        "note": "Aktualisiert sich beim Tippen. Kunden sehen diese Karte in der Suche und über deinen Einladungslink."
+        "note": "Aktualisiert sich beim Tippen. Kunden sehen diese Karte in der Suche und über Ihren Einladungslink."
       },
       "validation": {
         "required": "Dieses Feld ist erforderlich.",
-        "tooLong": "Verwende höchstens {{max}} Zeichen.",
-        "listTooLong": "Zu viele Einträge — entferne einige.",
-        "year": "Gib eine vierstellige Jahreszahl ein.",
-        "certificateTitleRequired": "Gib einen Titel für dieses Zertifikat ein.",
-        "invalidCertificates": "Einige Zertifikate konnten nicht gespeichert werden. Prüfe ihre Titel.",
-        "serverInvalid": "Dieser Wert wurde abgelehnt. Bitte prüfe ihn."
+        "tooLong": "Verwenden Sie höchstens {{max}} Zeichen.",
+        "listTooLong": "Zu viele Einträge — entfernen Sie einige.",
+        "year": "Geben Sie eine vierstellige Jahreszahl ein.",
+        "certificateTitleRequired": "Geben Sie einen Titel für dieses Zertifikat ein.",
+        "invalidCertificates": "Einige Zertifikate konnten nicht gespeichert werden. Prüfen Sie ihre Titel.",
+        "serverInvalid": "Dieser Wert wurde abgelehnt. Bitte prüfen Sie ihn."
       },
       "error": {
         "forbidden": "Nur Trainer und Ernährungsberater haben ein Berufsprofil.",
-        "notFound": "Du hast noch kein Berufsprofil.",
-        "generic": "Dein Profil konnte nicht geladen werden. Bitte versuche es erneut.",
+        "notFound": "Sie haben noch kein Berufsprofil.",
+        "generic": "Ihr Profil konnte nicht geladen werden. Bitte versuchen Sie es erneut.",
         "retry": "Erneut versuchen"
       }
     }
@@ -2104,8 +2104,8 @@
     "removeRow": {
       "aria": "{{meal}} aus Woche {{week}} entfernen",
       "title": "{{meal}} aus Woche {{week}} entfernen?",
-      "body_one": "An {{count}} Tag ist etwas eingetragen ({{days}}). Die anderen Wochen behalten diese Zeile. Du kannst das rückgängig machen.",
-      "body_other": "An {{count}} Tagen ist etwas eingetragen ({{days}}). Die anderen Wochen behalten diese Zeile. Du kannst das rückgängig machen.",
+      "body_one": "An {{count}} Tag ist etwas eingetragen ({{days}}). Die anderen Wochen behalten diese Zeile. Sie können das rückgängig machen.",
+      "body_other": "An {{count}} Tagen ist etwas eingetragen ({{days}}). Die anderen Wochen behalten diese Zeile. Sie können das rückgängig machen.",
       "confirm": "{{meal}} entfernen"
     },
     "cardDrop": {
@@ -3236,11 +3236,11 @@
     "FOOD_GALLERY_FULL": "Diese Zutat hat bereits die maximale Anzahl an Bildern.",
     "FOOD_GALLERY_IMAGE_NOT_FOUND": "Dieses Bild gehört nicht mehr zu dieser Zutat. Es wurde möglicherweise an anderer Stelle geändert.",
     "FOOD_IMAGES_CONFLICT": "Die Bilder dieser Zutat wurden an anderer Stelle geändert. Bitte versuchen Sie es erneut.",
-    "ONLY_COACH_ROLE": "Das ist deine einzige Coach-Rolle, sie kann hier nicht entfernt werden.",
-    "ROLE_NOT_ASSIGNED": "Du hast diese Rolle nicht mehr. Deine Rollen wurden aktualisiert.",
-    "NO_ACTIVE_COACH_ROLE": "Du hast keine aktive Coach-Rolle, daher gibt es nichts zu deaktivieren. Deine Rollen wurden aktualisiert.",
-    "COACH_ACCOUNT_NOT_DISABLING": "Dein Coach-Konto wird nicht deaktiviert. Deine Rollen wurden aktualisiert.",
-    "COACH_ACCOUNT_DISABLE_ENDED": "Die Deaktivierung ist bereits beendet und kann nicht rückgängig gemacht werden. Füge eine Rolle hinzu, um dein Konto zu reaktivieren.",
+    "ONLY_COACH_ROLE": "Das ist Ihre einzige Coach-Rolle, sie kann hier nicht entfernt werden.",
+    "ROLE_NOT_ASSIGNED": "Sie haben diese Rolle nicht mehr. Ihre Rollen wurden aktualisiert.",
+    "NO_ACTIVE_COACH_ROLE": "Sie haben keine aktive Coach-Rolle, daher gibt es nichts zu deaktivieren. Ihre Rollen wurden aktualisiert.",
+    "COACH_ACCOUNT_NOT_DISABLING": "Ihr Coach-Konto wird nicht deaktiviert. Ihre Rollen wurden aktualisiert.",
+    "COACH_ACCOUNT_DISABLE_ENDED": "Die Deaktivierung ist bereits beendet und kann nicht rückgängig gemacht werden. Fügen Sie eine Rolle hinzu, um Ihr Konto zu reaktivieren.",
     "NUTRITION_PLAN_TEMPLATE_NOT_FOUND": "Diese Planvorlage existiert nicht mehr.",
     "NUTRITION_PLAN_TEMPLATE_NOT_OWNED": "Sie können nur Ihre eigenen Planvorlagen ändern.",
     "NUTRITION_PLAN_TEMPLATE_VERSION_CONFLICT": "Diese Planvorlage wurde an anderer Stelle geändert. Laden Sie sie neu, um die aktuelle Version zu sehen."
@@ -4118,7 +4118,7 @@
       "pendingHint": "Warten auf Bestätigung durch den Klienten."
     },
     "request": {
-      "alreadyPending": "Der Klient hat bereits eine offene Anfrage — warte, bis er sie annimmt oder ablehnt.",
+      "alreadyPending": "Der Klient hat bereits eine offene Anfrage — warten Sie, bis er sie annimmt oder ablehnt.",
       "dialogTitle": "Fototagebuch anfordern",
       "dialogSubtitle": "Der Klient sieht die Anfrage als Banner und kann sie annehmen oder ablehnen.",
       "infoBanner": "Der Klient sieht die Anfrage als Banner auf dem Startbildschirm. Er kann sie annehmen oder ablehnen (mit optionalem Grund).",
@@ -4229,7 +4229,7 @@
         "title": "Fotos anfordern",
         "description": "{{name}} erhält eine Benachrichtigung in der App",
         "descriptionOpen": "Eine Fotoanfrage an {{name}} ist offen",
-        "coachFallback": "Dein Trainer",
+        "coachFallback": "Ihr Trainer",
         "once": "Einmal",
         "everyDay": "Jeden Tag",
         "for": "Für",
