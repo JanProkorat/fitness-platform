@@ -2,12 +2,13 @@ import { useCallback, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useDraggable, useDroppable } from '@dnd-kit/react';
 import { Lock, Plus, StickyNote, X } from 'lucide-react';
-import type { MealKind } from '@/api/generated';
+import { MealLockState, type MealKind } from '@/api/generated';
 import { cn } from '@/lib/utils';
 import DayTargetPopover from '@/components/plan-editor/DayTargetPopover';
 import MacroDots from '@/components/plan-editor/MacroDots';
 import MealTileFace from '@/components/plan-editor/MealTileFace';
 import {
+  eatenSnapshotKcal,
   isPastDay,
   isToday,
   lockedTileSurfaceClass,
@@ -237,7 +238,18 @@ function MealCell({
             flipKey={gridFaceKey(dayOfWeek, rowIndex)}
             lock={
               locked && lock
-                ? { state: lock.state, eaten: Math.min(lock.info?.eatenItemIds.length ?? 0, itemCount), total: itemCount }
+                ? {
+                    state: lock.state,
+                    eaten: Math.min(lock.info?.eatenItemIds.length ?? 0, itemCount),
+                    total: itemCount,
+                    // What was eaten, from the snapshot like the popover; a missed or snapshot-less meal shows its own total.
+                    kcal:
+                      lock.info &&
+                      lock.info.snapshot.length > 0 &&
+                      (lock.state === MealLockState.Eaten || lock.state === MealLockState.PartlyEaten)
+                        ? eatenSnapshotKcal(lock.info)
+                        : undefined,
+                  }
                 : undefined
             }
             pastEmpty={pastDay && shownCount === 0}

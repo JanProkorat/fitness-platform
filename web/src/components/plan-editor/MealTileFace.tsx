@@ -53,6 +53,8 @@ export interface TileLock {
   state: MealLockState;
   eaten: number;
   total: number;
+  /** kcal the tile shows after the chip: what was eaten, from the snapshot. Without it the meal's own total shows. */
+  kcal?: number;
 }
 
 const LOCK_CHIP_CLASS: Record<MealLockState, string> = {
@@ -76,12 +78,12 @@ function LockChip({ lock }: { lock: TileLock }) {
       data-testid="meal-lock-chip"
       data-state={lock.state}
       className={cn(
-        'inline-flex shrink-0 items-center gap-1 rounded-full bg-card/70 px-2 py-0.5 text-meta font-semibold',
+        'inline-flex min-w-0 items-center gap-1 rounded-full bg-card/70 px-2 py-0.5 text-meta font-semibold',
         LOCK_CHIP_CLASS[lock.state],
       )}
     >
-      <Icon className="size-3" aria-hidden="true" />
-      {label}
+      <Icon className="size-3 shrink-0" aria-hidden="true" />
+      <span className="truncate">{label}</span>
     </span>
   );
 }
@@ -144,8 +146,9 @@ export default function MealTileFace({ meal, rowLabelKey, flipKey, lock, pastEmp
           <span className="flex shrink-0 flex-col gap-1.5">
             <span className="flex min-w-0 items-center gap-1.5 text-body font-semibold text-ink">
               {shownLock && <LockChip lock={shownLock} />}
-              <span className={cn('truncate', missed && 'text-muted-foreground')}>
-                {t('planEditor.cell.kcal', { kcal: formatKcal(totals?.kcal ?? 0, i18n.language) })}
+              {/* min-w keeps the figure from being squeezed to nothing beside the chip; it still truncates when narrow. */}
+              <span className={cn('truncate', shownLock && 'min-w-9', missed && 'text-muted-foreground')}>
+                {t('planEditor.cell.kcal', { kcal: formatKcal(shownLock?.kcal ?? totals?.kcal ?? 0, i18n.language) })}
                 {itemCount > 1 && !shownLock && (
                   <span className="font-normal text-muted-foreground">
                     {' · '}

@@ -1905,7 +1905,7 @@
       "badge": "Konflikt offline synchronizace",
       "close": "Zavřít",
       "markReviewed": "Označit jako zkontrolované",
-      "openDay": "Otevřít {{day}}",
+      "openDay": "Otevřít: {{day}}",
       "saw": "{{name}} snědl(a)",
       "planNow": "Vaše změna",
       "notApplied": "neuplatněno",
@@ -1941,6 +1941,7 @@
       },
       "ghost": {
         "badge": "Odebráno z plánu",
+        "badgeShort": "Odebráno",
         "lead": "Toto jídlo ({{meal}}) jste odebrali, ale {{client}} ho snědl(a) offline.",
         "body": "Snězeno {{date}} v {{time}}. Jídlo zůstává v jídelním deníku; označení jako zkontrolované jen skryje toto upozornění.",
         "aria": "{{meal}} odebráno z plánu, snězeno",
@@ -2351,7 +2352,7 @@
     "locks": {
       "nothingPlanned": "Nic nenaplánováno",
       "pastBanner": {
-        "lead": "{{day}} {{date}} je v minulosti, jeho jídla jsou jen ke čtení.",
+        "lead": "{{date}}: tento den je v minulosti, jídla jsou jen ke čtení.",
         "body": "Jídla se zamknou, jakmile je {{client}} označí jako snězená nebo jakmile den uplyne. Vidíte, co {{client}} skutečně snědl(a)."
       },
       "addMealPast": "Do uplynulého dne nelze přidávat jídla.",
@@ -2382,7 +2383,7 @@
         "partlyShort": "{{eaten}}/{{total}} snězeno"
       },
       "reason": {
-        "past": "Uzamčeno · {{day}} už proběhl",
+        "past": "Uzamčeno · tento den už proběhl",
         "eaten": "Uzamčeno · klient z něj už jedl"
       },
       "kcalOf": "{{eaten}} z {{planned}} kcal",

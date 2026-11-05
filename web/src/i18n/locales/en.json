@@ -1892,6 +1892,7 @@
       },
       "ghost": {
         "badge": "Removed from plan",
+        "badgeShort": "Removed",
         "lead": "You removed this meal ({{meal}}), but {{client}} ate it offline.",
         "body": "Eaten on {{date}} at {{time}}. It stays in the meal log; Mark reviewed only clears this notice.",
         "aria": "{{meal}} removed from the plan, eaten",
@@ -2277,7 +2278,7 @@
     "locks": {
       "nothingPlanned": "Nothing planned",
       "pastBanner": {
-        "lead": "{{day}} {{date}} is in the past, so its meals are read-only.",
+        "lead": "{{date}} is in the past, so its meals are read-only.",
         "body": "Meals lock once {{client}} marks them eaten or their day has passed. You see what {{client}} actually ate."
       },
       "addMealPast": "Meals can't be added to a day that has passed.",
@@ -2308,7 +2309,7 @@
         "partlyShort": "{{eaten}}/{{total}} eaten"
       },
       "reason": {
-        "past": "Locked · {{day}} is in the past",
+        "past": "Locked · this day is in the past",
         "eaten": "Locked · the client has eaten from it"
       },
       "kcalOf": "{{eaten}} of {{planned}} kcal",

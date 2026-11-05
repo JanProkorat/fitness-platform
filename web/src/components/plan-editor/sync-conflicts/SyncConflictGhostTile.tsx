@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { ChevronRight, History, Lock, X } from 'lucide-react';
+import { ChevronRight, History, Lock, Trash2, X } from 'lucide-react';
 import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -99,38 +99,40 @@ export default function SyncConflictGhostTile({ ghost, placed, model, clientName
           aria-label={t('planEditor.syncConflicts.ghost.aria', { meal: kindLabel })}
           onClick={() => onOpenChange(!open)}
           className={cn(
-            'flex min-h-0 min-w-0 flex-col items-stretch justify-between gap-1 rounded-xl border border-dashed p-3 text-left outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/50',
+            'relative flex min-h-0 min-w-0 flex-col items-stretch justify-between gap-1 rounded-xl border border-dashed p-3 text-left outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/50',
             lockedTileSurfaceClass(eatenViewState(eaten)),
             placed && 'border-caution-ink/60 hover:border-caution-ink',
           )}
         >
-          <span className="flex items-center justify-between gap-1">
-            <span
-              className={cn(
-                'truncate text-label font-bold tracking-label uppercase',
-                placed ? 'text-caution-ink' : 'text-muted-foreground',
-              )}
-            >
-              {t('planEditor.syncConflicts.ghost.badge')}
-            </span>
-            {placed ? (
-              <History className="size-3.5 shrink-0 text-caution-ink" aria-hidden="true" />
-            ) : (
-              <Lock className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
-            )}
-          </span>
-          <span className="flex min-h-0 min-w-0 flex-1 flex-col gap-0.5 overflow-hidden">
+          {placed ? (
+            <History className="absolute top-3 right-3 size-3.5 text-caution-ink" aria-hidden="true" />
+          ) : (
+            <Lock className="absolute top-3 right-3 size-3.5 text-muted-foreground" aria-hidden="true" />
+          )}
+          <span className="flex min-h-0 min-w-0 flex-1 flex-col gap-0.5 overflow-hidden pr-5">
             {eaten.snapshot.slice(0, 2).map((item, index) => (
               <span key={`${item.itemId ?? ''}:${index}`} className="truncate text-copy font-semibold text-ink">
                 {item.name}
               </span>
             ))}
           </span>
-          {kcal > 0 && (
-            <span className="truncate text-body font-semibold text-ink">
-              {t('planEditor.cell.kcal', { kcal: formatKcal(kcal, i18n.language) })}
+          {/* The state sits in the bottom chip area, like the Eaten and Missed chips; nothing stands above the title. */}
+          <span className="flex min-w-0 items-center gap-1.5 text-body font-semibold text-ink">
+            <span
+              data-testid="ghost-removed-chip"
+              title={t('planEditor.syncConflicts.ghost.badge')}
+              className={cn(
+                'inline-flex min-w-0 items-center gap-1 rounded-full bg-card/70 px-2 py-0.5 text-meta font-semibold',
+                placed ? 'text-caution-ink' : 'text-muted-foreground',
+              )}
+            >
+              <Trash2 className="size-3 shrink-0" aria-hidden="true" />
+              <span className="truncate">{t('planEditor.syncConflicts.ghost.badgeShort')}</span>
             </span>
-          )}
+            {kcal > 0 && (
+              <span className="min-w-9 truncate">{t('planEditor.cell.kcal', { kcal: formatKcal(kcal, i18n.language) })}</span>
+            )}
+          </span>
         </button>
       </PopoverAnchor>
       {open && (

@@ -287,8 +287,6 @@ export default function MealBlock({
           )}
         </div>
 
-        {conflict && conflicts && <SyncConflictDayPanel placed={conflict} model={conflicts} eaten={info} />}
-
         {entries.length > 0 ? (
           <ul className="flex flex-col gap-2.5">
             {entries.map((entry, position) => (
@@ -332,6 +330,9 @@ export default function MealBlock({
             </p>
           )
         )}
+
+        {/* Below the eaten rows: the card shows what was eaten first, then the notice about the later change. */}
+        {conflict && conflicts && <SyncConflictDayPanel placed={conflict} model={conflicts} eaten={info} />}
 
         {frozen ? (
           shown.note && (

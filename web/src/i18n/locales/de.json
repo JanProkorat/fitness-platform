@@ -1891,6 +1891,7 @@
       },
       "ghost": {
         "badge": "Aus dem Plan entfernt",
+        "badgeShort": "Entfernt",
         "lead": "Sie haben diese Mahlzeit ({{meal}}) entfernt, aber {{client}} hat sie offline gegessen.",
         "body": "Gegessen am {{date}} um {{time}}. Sie bleibt im Mahlzeitenprotokoll; „Als geprüft markieren“ blendet nur diesen Hinweis aus.",
         "aria": "{{meal}} aus dem Plan entfernt, gegessen",
@@ -2276,7 +2277,7 @@
     "locks": {
       "nothingPlanned": "Nichts geplant",
       "pastBanner": {
-        "lead": "{{day}}, {{date}}, liegt in der Vergangenheit, daher sind die Mahlzeiten schreibgeschützt.",
+        "lead": "{{date}} liegt in der Vergangenheit, daher sind die Mahlzeiten schreibgeschützt.",
         "body": "Mahlzeiten werden gesperrt, sobald {{client}} sie als gegessen markiert oder der Tag vorbei ist. Sie sehen, was {{client}} tatsächlich gegessen hat."
       },
       "addMealPast": "Zu einem vergangenen Tag können keine Mahlzeiten hinzugefügt werden.",
@@ -2307,7 +2308,7 @@
         "partlyShort": "{{eaten}}/{{total}} gegessen"
       },
       "reason": {
-        "past": "Gesperrt · {{day}} liegt in der Vergangenheit",
+        "past": "Gesperrt · dieser Tag liegt in der Vergangenheit",
         "eaten": "Gesperrt · der Klient hat davon gegessen"
       },
       "kcalOf": "{{eaten}} von {{planned}} kcal",

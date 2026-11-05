@@ -134,7 +134,7 @@ export default function LockedMealPopover({
           </h3>
           <p className="flex items-center gap-1.5 text-body text-muted-foreground">
             <Lock className="size-3.5 shrink-0" aria-hidden="true" />
-            {pastDay ? t('planEditor.locks.reason.past', { day: dayLong }) : t('planEditor.locks.reason.eaten')}
+            {pastDay ? t('planEditor.locks.reason.past') : t('planEditor.locks.reason.eaten')}
           </p>
         </div>
         <button

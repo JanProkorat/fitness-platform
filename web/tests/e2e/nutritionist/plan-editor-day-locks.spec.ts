@@ -351,7 +351,13 @@ test.describe('plan editor Day view: locked meals', () => {
     await installStub(page, stub, fixture);
     await openDayView(page, fixture, 'Mon');
 
-    await expect(page.getByTestId('day-past-banner')).toContainText('is in the past');
+    const banner = page.getByTestId('day-past-banner');
+    await expect(banner).toContainText('is in the past');
+    // The formatted date already names the weekday, so the banner names it exactly once.
+    expect((await banner.innerText()).match(/\bMon(day)?\b/g)).toHaveLength(1);
+    // A past day's tab carries a lock, like the week view's header.
+    await expect(page.getByRole('tab', { name: /^Mon/ }).getByTestId('day-tab-lock')).toBeVisible();
+    await expect(page.getByRole('tab', { name: /^Tue/ }).getByTestId('day-tab-lock')).toBeVisible();
     const addMeal = page.getByTestId('day-add-meal');
     await expect(addMeal).toBeDisabled();
     await expect(addMeal).toHaveAttribute('title', "Meals can't be added to a day that has passed.");
@@ -375,6 +381,32 @@ test.describe('plan editor Day view: locked meals', () => {
     await expect(page.getByTestId('day-add-meal')).toBeDisabled();
   });
 
+  test('a locked week tile shows the eaten kcal after its chip', async ({ page }) => {
+    const stub = newStub({});
+    stub.locks = [mealLock(fixture, stub, { lockState: 'PartlyEaten', eatenItemIds: [fixture.foodItemId] })];
+    await installStub(page, stub, fixture);
+    await page.goto(`/clients/${CLIENT_PROFILE_ID}/nutrition/plans/${fixture.planId}`);
+    await expect(page.getByRole('heading', { name: PLAN_NAME })).toBeAttached();
+
+    const tile = page.getByTestId('meal-cell').filter({ has: page.getByTestId('meal-lock-chip') });
+    await expect(tile).toHaveCount(1);
+    // Only the ticked apple counts (80 kcal), not the 187 of the whole snapshot.
+    await expect(tile).toContainText('80 kcal');
+  });
+
+  test("today's tab reads Today and the days before it carry a lock", async ({ page }) => {
+    const now = new Date();
+    const isoWeekday = ((now.getUTCDay() + 6) % 7) + 1;
+    const monday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - (isoWeekday - 1)));
+    const stub = newStub({ startDate: monday.toISOString().slice(0, 10) });
+    await installStub(page, stub, fixture);
+    await openDayView(page, fixture, 'Mon');
+
+    await expect(page.getByTestId('day-tab-today')).toHaveCount(1);
+    await expect(page.getByTestId('day-tab-today')).toContainText('Today');
+    await expect(page.getByTestId('day-tab-lock')).toHaveCount(isoWeekday - 1);
+  });
+
   test('the notice on a conflicted card lists the plan items with their tags; Mark reviewed hides only the notice', async ({ page }) => {
     const stub = newStub({});
     stub.locks = [conflictedLock(fixture, stub)];
@@ -396,6 +428,14 @@ test.describe('plan editor Day view: locked meals', () => {
     await expect(rows.nth(1)).toHaveAttribute('data-status', 'removed');
     await expect(rows.nth(1)).toContainText('Removed');
     await expect(panel.getByTestId('conflict-totals')).toContainText('ate 187 kcal');
+    // Each plan row shows amount and kcal; a removed item's name is struck through.
+    await expect(rows.nth(0).getByTestId('conflict-item-amount')).toContainText('g');
+    await expect(rows.nth(0)).toContainText('kcal');
+    await expect(rows.nth(1).getByTestId('conflict-item-name')).toHaveCSS('text-decoration-line', 'line-through');
+    // The notice sits below the eaten item rows.
+    const itemBox = await card.getByTestId('meal-item').last().boundingBox();
+    const panelBox = await panel.boundingBox();
+    expect(panelBox?.y ?? 0).toBeGreaterThan((itemBox?.y ?? Infinity) + (itemBox?.height ?? 0) - 1);
 
     await panel.getByTestId('conflict-mark-reviewed').click();
     await expect(panel).toHaveCount(0);
