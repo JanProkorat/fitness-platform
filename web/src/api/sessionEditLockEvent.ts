@@ -6,7 +6,7 @@
  * auto-generated and write-locked.
  *
  * Source of truth:
- *   backend/FitnessPlatform.Application/Features/TrainingPlans/ (emitted at
+ *   backend/FormUp.Application/Features/TrainingPlans/ (emitted at
  *   call sites: StartWorkout, CompleteWorkout, Unlock/Relock, UpdateTrainingPlan,
  *   PublishTrainingWeek)
  *

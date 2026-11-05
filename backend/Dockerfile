@@ -5,8 +5,8 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0.103 AS build
 WORKDIR /src
 
 # Restore dependencies first (cache-friendly layer)
-COPY FitnessPlatform.Application/FitnessPlatform.Application.csproj FitnessPlatform.Application/
-RUN dotnet restore FitnessPlatform.Application/FitnessPlatform.Application.csproj
+COPY FormUp.Application/FormUp.Application.csproj FormUp.Application/
+RUN dotnet restore FormUp.Application/FormUp.Application.csproj
 
 # Copy everything else and publish
 COPY . .
@@ -18,9 +18,9 @@ COPY . .
 # the compiler as a filename, producing MSB3552. Pre-creating the Debug folder
 # lets the enumeration walk cleanly. The Release publish never writes to it.
 # Mirrors .github/workflows/backend.yml.
-RUN mkdir -p FitnessPlatform.Application/bin/Debug
+RUN mkdir -p FormUp.Application/bin/Debug
 
-RUN dotnet publish FitnessPlatform.Application/FitnessPlatform.Application.csproj \
+RUN dotnet publish FormUp.Application/FormUp.Application.csproj \
     -c Release \
     -o /app \
     /p:UseAppHost=false
@@ -47,4 +47,4 @@ COPY --from=build /https/aspnetapp.pfx /https/aspnetapp.pfx
 
 EXPOSE 8080
 
-ENTRYPOINT ["dotnet", "FitnessPlatform.Application.dll"]
+ENTRYPOINT ["dotnet", "FormUp.Application.dll"]

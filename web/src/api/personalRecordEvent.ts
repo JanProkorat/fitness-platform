@@ -6,7 +6,7 @@
  * auto-generated and write-locked.
  *
  * Source of truth:
- *   backend/FitnessPlatform.Application/Features/ClientTraining/PersonalRecordAchievedEvent.cs
+ *   backend/FormUp.Application/Features/ClientTraining/PersonalRecordAchievedEvent.cs
  *
  * SignalR event name: "personalrecordachieved"  (hub convention: lowercase)
  *

@@ -1,0 +1,55 @@
+using System.Security.Claims;
+using FastEndpoints;
+using FluentAssertions;
+using FormUp.Application.Domain.Constants;
+using FormUp.Application.Domain.Documents;
+using FormUp.Application.Domain.Enums;
+using FormUp.Application.Features.Exercises.CreateExercise;
+using FormUp.Tests.Endpoints;
+using MongoDB.Driver;
+using NSubstitute;
+
+namespace FormUp.Tests.Endpoints.Exercises;
+
+/// <summary>
+/// Tests for <see cref="CreateExerciseEndpoint"/>.
+/// </summary>
+public class CreateExerciseEndpointTests
+{
+    private readonly Guid _trainerId = Guid.NewGuid();
+
+    [Fact]
+    public async Task HandleAsync_ValidRequest_CreatesExercise()
+    {
+        var mongo = ExerciseTestHelpers.CreateMockMongo();
+        var ep = Factory.Create<CreateExerciseEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(
+                    EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
+            mongo);
+
+        var request = new CreateExerciseRequest
+        {
+            Name = "Custom Press",
+            MuscleGroups = [MuscleGroup.Chest, MuscleGroup.Triceps],
+            Equipment = ExerciseEquipment.Barbell,
+            Category = ExerciseCategory.Strength,
+            Difficulty = ExerciseDifficulty.Intermediate
+        };
+
+        await ep.HandleAsync(request, TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(201);
+
+        await mongo.Exercises.Received(1).InsertOneAsync(
+            Arg.Is<Exercise>(e =>
+                e.Name == "Custom Press" &&
+                e.Source == "custom" &&
+                e.IsCustom &&
+                e.TrainerId == _trainerId &&
+                e.Version == 1),
+            Arg.Any<InsertOneOptions>(),
+            Arg.Any<CancellationToken>());
+    }
+
+}

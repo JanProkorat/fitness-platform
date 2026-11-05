@@ -1,0 +1,425 @@
+using FormUp.Application.Domain.Documents;
+using FormUp.Application.Domain.Enums;
+using FormUp.Application.Domain.Extensions;
+using FormUp.Application.Domain.Interfaces;
+using FormUp.Application.Domain.Services;
+using FormUp.Application.Features.ClientTraining;
+using FormUp.Application.Infrastructure.Data.MongoDb;
+using MongoDB.Driver;
+
+namespace FormUp.Application.Infrastructure.Services;
+
+/// <summary>
+/// Calculates nutrition and training compliance scores, streaks, and weekly macro averages
+/// by querying meal logs, nutrition plans, training plans, and training completion records from MongoDB.
+/// </summary>
+public class ComplianceService : IComplianceService
+{
+    /// <summary>
+    /// MongoDB context for accessing collections.
+    /// </summary>
+    private readonly IMongoContext _mongo;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ComplianceService"/> class.
+    /// </summary>
+    /// <param name="mongo">MongoDB context.</param>
+    public ComplianceService(IMongoContext mongo)
+    {
+        _mongo = mongo;
+    }
+
+    /// <inheritdoc />
+    public async Task<ComplianceResult> CalculateComplianceAsync(
+        Guid clientId, DateTime from, DateTime to, CancellationToken ct, Guid? planAuthorUserId = null)
+    {
+        var nutritionPlans = await FindActivePlansAsync(clientId, planAuthorUserId, ct);
+        var trainingPlans = await FindActiveTrainingPlansAsync(clientId, planAuthorUserId, ct);
+
+        // ── Nutrition side ──────────────────────────────────────────────
+        int mealsPlanned = 0;
+        int mealsLogged = 0;
+        int mealsPartlyEaten = 0;
+        decimal mealsEatenShare = 0m;
+        decimal nutritionPercent = 0m;
+
+        if (nutritionPlans.Any(candidate => candidate.StartDate.HasValue))
+        {
+            for (var date = from.Date; date <= to.Date; date = date.AddDays(1))
+            {
+                var plan = ResolveNutritionPlan(nutritionPlans, date);
+                mealsPlanned += plan is null ? 0 : PlannedMealCounter.GetPlannedMealCountForDate(plan, date);
+            }
+
+            var meals = await LoadMergedMealsAsync(clientId, from.Date, to.Date, from, to.AddDays(1), nutritionPlans, ct);
+            mealsLogged = meals.Count(meal => meal.State == MealEatenState.Eaten);
+            mealsPartlyEaten = meals.Count(meal => meal.State == MealEatenState.PartlyEaten);
+            mealsEatenShare = meals.Sum(meal => meal.Share);
+
+            nutritionPercent = mealsPlanned == 0
+                ? 0m
+                : Math.Round(mealsEatenShare / mealsPlanned * 100, 1);
+        }
+
+        // ── Training side ───────────────────────────────────────────────
+        int trainingsPlanned = 0;
+        int trainingsCompleted = 0;
+        decimal trainingPercent = 0m;
+
+        if (trainingPlans.Any(candidate => candidate.StartDate.HasValue))
+        {
+            for (var date = from.Date; date <= to.Date; date = date.AddDays(1))
+            {
+                var trainingPlan = ResolveTrainingPlan(trainingPlans, date);
+                IReadOnlyList<TrainingSession> sessions =
+                    trainingPlan is null ? [] : PlannedSessionCounter.GetPlannedSessionsForDate(trainingPlan, date);
+                trainingsPlanned += sessions.Count;
+
+                foreach (var session in sessions)
+                {
+                    if (await IsSessionCompleteForDateAsync(clientId, session, date, ct))
+                        trainingsCompleted++;
+                }
+            }
+
+            trainingPercent = trainingsPlanned == 0
+                ? 0m
+                : Math.Round((decimal)trainingsCompleted / trainingsPlanned * 100, 1);
+        }
+
+        // ── Combined roll-up ────────────────────────────────────────────
+        // Weighted by plan presence: the plan with more scheduled items weighs more.
+        // If only one plan type is active, combined == that plan's percentage.
+        decimal combinedPercent;
+        var totalWeights = mealsPlanned + trainingsPlanned;
+
+        if (totalWeights == 0)
+        {
+            combinedPercent = 0m;
+        }
+        else
+        {
+            combinedPercent = Math.Round(
+                (mealsPlanned * nutritionPercent + trainingsPlanned * trainingPercent) / totalWeights, 1);
+        }
+
+        return new ComplianceResult
+        {
+            CompliancePercent = combinedPercent,
+            MealsPlanned = mealsPlanned,
+            MealsLogged = mealsLogged,
+            MealsPartlyEaten = mealsPartlyEaten,
+            MealsEatenShare = mealsEatenShare,
+            NutritionCompliancePercent = nutritionPercent,
+            TrainingsPlanned = trainingsPlanned,
+            TrainingsCompleted = trainingsCompleted,
+            TrainingCompliancePercent = trainingPercent
+        };
+    }
+
+    /// <inheritdoc />
+    public Task<int> CalculateStreakAsync(Guid clientId, CancellationToken ct)
+        => CalculateStreakInternalAsync(clientId, ComplianceDiscipline.Both, DateOnly.FromDateTime(DateTime.UtcNow), null, ct);
+
+    /// <inheritdoc />
+    public Task<int> CalculateStreakAsync(
+        Guid clientId, ComplianceDiscipline discipline, CancellationToken ct, Guid? planAuthorUserId = null)
+        => CalculateStreakInternalAsync(clientId, discipline, DateOnly.FromDateTime(DateTime.UtcNow), planAuthorUserId, ct);
+
+    /// <inheritdoc />
+    public Task<int> CalculateStreakAsync(
+        Guid clientId, DateOnly today, CancellationToken ct, Guid? planAuthorUserId = null)
+        => CalculateStreakInternalAsync(clientId, ComplianceDiscipline.Both, today, planAuthorUserId, ct);
+
+    /// <summary>
+    /// Shared implementation for every <c>CalculateStreakAsync</c> overload — walks backward from
+    /// <paramref name="today"/> rather than always re-deriving it from <see cref="DateTime.UtcNow"/>,
+    /// so a caller that has already resolved the client's local calendar day (#935) can anchor the
+    /// walk on it.
+    /// </summary>
+    private async Task<int> CalculateStreakInternalAsync(
+        Guid clientId, ComplianceDiscipline discipline, DateOnly today, Guid? planAuthorUserId, CancellationToken ct)
+    {
+        IReadOnlyList<NutritionPlan> nutritionPlans = discipline == ComplianceDiscipline.TrainingOnly
+            ? []
+            : await FindActivePlansAsync(clientId, planAuthorUserId, ct);
+
+        IReadOnlyList<TrainingPlan> trainingPlans = discipline == ComplianceDiscipline.NutritionOnly
+            ? []
+            : await FindActiveTrainingPlansAsync(clientId, planAuthorUserId, ct);
+
+        // Determine the floor: the earliest date any dated plan started a published week
+        DateTime? floorDate = null;
+
+        foreach (var plan in nutritionPlans.Where(candidate => candidate.StartDate.HasValue))
+        {
+            var earliest = plan.Weeks
+                .Where(w => w.Status == WeekStatus.Published)
+                .OrderBy(w => w.WeekNumber)
+                .FirstOrDefault();
+
+            if (earliest is not null)
+            {
+                var nutritionFloor = plan.StartDate!.Value.Date.AddDays((earliest.WeekNumber - 1) * 7);
+                floorDate = floorDate is null ? nutritionFloor : new DateTime(Math.Min(floorDate.Value.Ticks, nutritionFloor.Ticks));
+            }
+        }
+
+        foreach (var plan in trainingPlans.Where(candidate => candidate.StartDate.HasValue))
+        {
+            var earliest = plan.Weeks
+                .Where(w => w.Status == WeekStatus.Published)
+                .OrderBy(w => w.WeekNumber)
+                .FirstOrDefault();
+
+            if (earliest is not null)
+            {
+                var trainingFloor = plan.StartDate!.Value.Date.AddDays((earliest.WeekNumber - 1) * 7);
+                floorDate = floorDate is null ? trainingFloor : new DateTime(Math.Min(floorDate.Value.Ticks, trainingFloor.Ticks));
+            }
+        }
+
+        if (floorDate is null)
+            return 0;
+
+        var streak = 0;
+        var todayUtc = today.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+        var currentDate = todayUtc;
+
+        while (currentDate >= floorDate.Value)
+        {
+            var nutritionPlan = ResolveNutritionPlan(nutritionPlans, currentDate);
+            var nutritionPlanned = nutritionPlan is not null
+                ? PlannedMealCounter.GetPlannedMealCountForDate(nutritionPlan, currentDate)
+                : 0;
+
+            var trainingPlan = ResolveTrainingPlan(trainingPlans, currentDate);
+            IReadOnlyList<TrainingSession> trainingSessions = trainingPlan is not null
+                ? PlannedSessionCounter.GetPlannedSessionsForDate(trainingPlan, currentDate)
+                : [];
+
+            var trainingPlannedCount = trainingSessions.Count;
+
+            var nutritionActive = nutritionPlanned > 0;
+            var trainingActive = trainingPlannedCount > 0;
+
+            if (!nutritionActive && !trainingActive)
+            {
+                // Rest day / nothing planned — skip without breaking
+                currentDate = currentDate.AddDays(-1);
+                continue;
+            }
+
+            // Check nutrition compliance for this day (≥1 meal logged; a partly eaten meal counts)
+            bool nutritionDone = false;
+            if (nutritionActive)
+            {
+                var dayMeals = await LoadMergedMealsAsync(
+                    clientId, currentDate, currentDate, currentDate, currentDate.AddDays(1), nutritionPlans, ct);
+                nutritionDone = dayMeals.Any(meal => meal.State != MealEatenState.NotEaten);
+            }
+
+            // Check training compliance for this day (≥1 session fully complete — any-pattern)
+            bool trainingDone = false;
+            if (trainingActive)
+            {
+                foreach (var session in trainingSessions)
+                {
+                    if (await IsSessionCompleteForDateAsync(clientId, session, currentDate, ct))
+                    {
+                        trainingDone = true;
+                        break;
+                    }
+                }
+            }
+
+            // Lenient OR rule: a day counts if at least one active plan side was satisfied.
+            // Only-nutrition day: nutritionDone. Only-training day: trainingDone.
+            // Both active: nutritionDone OR trainingDone.
+            bool dayComplete = nutritionActive && trainingActive
+                ? nutritionDone || trainingDone
+                : nutritionActive ? nutritionDone : trainingDone;
+
+            if (dayComplete)
+            {
+                streak++;
+                currentDate = currentDate.AddDays(-1);
+            }
+            else if (currentDate == todayUtc)
+            {
+                // Today hasn't finished yet — don't break the streak, just skip today
+                currentDate = currentDate.AddDays(-1);
+            }
+            else
+            {
+                break;
+            }
+        }
+
+        return streak;
+    }
+
+    /// <inheritdoc />
+    public async Task<NutrientTotals> CalculateAverageMacrosAsync(
+        Guid clientId, DateTime from, DateTime to, CancellationToken ct)
+    {
+        var logFilter = Builders<MealLog>.Filter.Eq(l => l.ClientId, clientId)
+            & Builders<MealLog>.Filter.Gte(l => l.EatenAt, from)
+            & Builders<MealLog>.Filter.Lt(l => l.EatenAt, to.AddDays(1));
+
+        using var logCursor = await _mongo.MealLogs.FindAsync(logFilter, cancellationToken: ct);
+        var logs = await logCursor.ToListAsync(ct);
+
+        if (logs.Count == 0)
+            return new NutrientTotals { Kcal = 0, Protein = 0, Carbs = 0, Fat = 0, Fiber = 0 };
+
+        // Logs that passed the EatenAt range filter will have EatenAt set; fall back
+        // to LogDate for any photo-only docs that slip through (defensive coding).
+        var dailyTotals = logs
+            .GroupBy(l => (l.EatenAt ?? l.LogDate).Date)
+            .Select(group =>
+            {
+                var dayKcal = 0m;
+                var dayProtein = 0m;
+                var dayCarbs = 0m;
+                var dayFat = 0m;
+                var dayFiber = 0m;
+
+                foreach (var log in group)
+                {
+                    foreach (var food in log.FoodsEaten)
+                    {
+                        var factor = food.AmountGrams / 100m;
+                        dayKcal += food.NutrientValuePer100Grams.Kcal * factor;
+                        dayProtein += food.NutrientValuePer100Grams.Protein * factor;
+                        dayCarbs += food.NutrientValuePer100Grams.Carbs * factor;
+                        dayFat += food.NutrientValuePer100Grams.Fat * factor;
+                        dayFiber += (food.NutrientValuePer100Grams.Fiber ?? 0m) * factor;
+                    }
+                }
+
+                return new { Kcal = dayKcal, Protein = dayProtein, Carbs = dayCarbs, Fat = dayFat, Fiber = dayFiber };
+            })
+            .ToList();
+
+        var dayCount = dailyTotals.Count;
+
+        return new NutrientTotals
+        {
+            Kcal = Math.Round(dailyTotals.Sum(d => d.Kcal) / dayCount, 1),
+            Protein = Math.Round(dailyTotals.Sum(d => d.Protein) / dayCount, 1),
+            Carbs = Math.Round(dailyTotals.Sum(d => d.Carbs) / dayCount, 1),
+            Fat = Math.Round(dailyTotals.Sum(d => d.Fat) / dayCount, 1),
+            Fiber = Math.Round(dailyTotals.Sum(d => d.Fiber) / dayCount, 1)
+        };
+    }
+
+    /// <summary>
+    /// Loads the client's meal-log rows for the inclusive day range (by <c>LogDate</c>, with the
+    /// <c>EatenAt</c> fallback for legacy rows) and derives one state per plan meal per day. A partly
+    /// eaten row has no <c>EatenAt</c>, so an <c>EatenAt</c>-only range would never load it.
+    /// </summary>
+    private async Task<List<MergedMealLog>> LoadMergedMealsAsync(
+        Guid clientId, DateTime firstDay, DateTime lastDay, DateTime rangeStart, DateTime rangeEnd,
+        IReadOnlyList<NutritionPlan> plans, CancellationToken ct)
+    {
+        var filter = MealLogDayFilter.BuildClientRange(
+            clientId,
+            null,
+            DateTime.SpecifyKind(firstDay.Date, DateTimeKind.Utc),
+            DateTime.SpecifyKind(lastDay.Date, DateTimeKind.Utc),
+            rangeStart,
+            rangeEnd);
+
+        using var cursor = await _mongo.MealLogs.FindAsync(filter, cancellationToken: ct);
+        var rows = await cursor.ToListAsync(ct);
+
+        // The day a row belongs to wins over a stray EatenAt that fell into the range near midnight.
+        var inRange = rows.Where(row => MealLogMerger.DayOf(row) >= firstDay.Date && MealLogMerger.DayOf(row) <= lastDay.Date);
+
+        return MealLogMerger.Merge(
+            inRange,
+            (planId, day, mealId) =>
+            {
+                var plan = plans.FirstOrDefault(candidate => candidate.ExternalId == planId);
+                return plan is null ? null : NutritionPlanDayResolver.FindMeal(plan, day, mealId);
+            });
+    }
+
+    /// <summary>
+    /// Picks the plan whose window covers <paramref name="date"/>, so each evaluated day is scored
+    /// against the plan that actually schedules it. Window-only, like the dashboard's plan flags.
+    /// </summary>
+    private static NutritionPlan? ResolveNutritionPlan(IReadOnlyList<NutritionPlan> plans, DateTime date)
+        => PlanWindowResolver.ResolveCurrentPlanStrict(
+            plans, plan => plan.StartDate, plan => plan.Weeks.Count, DateOnly.FromDateTime(date));
+
+    /// <summary>
+    /// Training counterpart of <see cref="ResolveNutritionPlan"/>.
+    /// </summary>
+    private static TrainingPlan? ResolveTrainingPlan(IReadOnlyList<TrainingPlan> plans, DateTime date)
+        => PlanWindowResolver.ResolveCurrentPlanStrict(
+            plans, plan => plan.StartDate, plan => plan.Weeks.Count, DateOnly.FromDateTime(date));
+
+    /// <summary>
+    /// Loads every active nutrition plan for a client (optionally only one author's).
+    /// </summary>
+    private async Task<List<NutritionPlan>> FindActivePlansAsync(Guid clientId, Guid? planAuthorUserId, CancellationToken ct)
+    {
+        var filter = Builders<NutritionPlan>.Filter.Eq(p => p.ClientId, clientId)
+            & Builders<NutritionPlan>.Filter.Eq(p => p.Status, NutritionPlanStatus.Active);
+
+        if (planAuthorUserId is { } nutritionistId)
+        {
+            filter &= Builders<NutritionPlan>.Filter.Eq(p => p.NutritionistId, nutritionistId);
+        }
+
+        using var cursor = await _mongo.NutritionPlans.FindAsync(filter, cancellationToken: ct);
+        return await cursor.ToListAsync(ct);
+    }
+
+    /// <summary>
+    /// Loads every active training plan for a client (optionally only one author's).
+    /// </summary>
+    private async Task<List<TrainingPlan>> FindActiveTrainingPlansAsync(Guid clientId, Guid? planAuthorUserId, CancellationToken ct)
+    {
+        var filter = Builders<TrainingPlan>.Filter.Eq(p => p.ClientId, clientId)
+            & Builders<TrainingPlan>.Filter.Eq(p => p.Status, TrainingPlanStatus.Active);
+
+        if (planAuthorUserId is { } trainerId)
+        {
+            filter &= Builders<TrainingPlan>.Filter.Eq(p => p.TrainerId, trainerId);
+        }
+
+        using var cursor = await _mongo.TrainingPlans.FindAsync(filter, cancellationToken: ct);
+        return await cursor.ToListAsync(ct);
+    }
+
+    /// <summary>
+    /// Checks whether a session is complete for the given date. Reads the unified
+    /// <see cref="SessionExecution"/> collection (#841) — a session is done when its execution's
+    /// <c>Status</c> is <c>Completed</c> (either a finished live workout, or every exercise/section
+    /// marked complete via the checkbox flags). See <see cref="SessionExecutionExtensions.IsSessionComplete"/>.
+    /// </summary>
+    private async Task<bool> IsSessionCompleteForDateAsync(
+        Guid clientId, TrainingSession session, DateTime date, CancellationToken ct)
+    {
+        // Guard: a session with nothing programmed (no workouts, no standalone exercises) is never
+        // complete. Mirrors the SessionExecutionExtensions.IsSessionComplete guard (#857 phase 3a)
+        // — a workouts-only guard would wrongly return false for a session programmed with only
+        // standalone exercises, permanently excluding it from compliance/streak counts.
+        if (session.Workouts.Count == 0 && session.StandaloneExercises.Count == 0)
+        {
+            return false;
+        }
+
+        var filter = Builders<SessionExecution>.Filter.Eq(c => c.ClientId, clientId)
+                     & Builders<SessionExecution>.Filter.Eq(c => c.Date, date.Date)
+                     & Builders<SessionExecution>.Filter.Eq(c => c.SessionId, session.SessionId);
+
+        using var cursor = await _mongo.SessionExecutions.FindAsync(filter, cancellationToken: ct);
+        var execution = await cursor.FirstOrDefaultAsync(ct);
+
+        return execution is not null && execution.IsSessionComplete(session);
+    }
+}

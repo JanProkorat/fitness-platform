@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="FormUp.Application/FormUp.Application.csproj" />
+  <Project Path="FormUp.Tests/FormUp.Tests.csproj" />
+</Solution>

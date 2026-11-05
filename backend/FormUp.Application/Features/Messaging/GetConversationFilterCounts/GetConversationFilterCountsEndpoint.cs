@@ -1,0 +1,107 @@
+using System.Security.Claims;
+using FastEndpoints;
+using FormUp.Application.Domain.Constants;
+using FormUp.Application.Domain.Services;
+using FormUp.Application.Features.Messaging.Shared;
+using FormUp.Application.Infrastructure.Data;
+using FormUp.Application.Infrastructure.Data.MongoDb;
+using Microsoft.EntityFrameworkCore;
+
+namespace FormUp.Application.Features.Messaging.GetConversationFilterCounts;
+
+/// <summary>
+/// Returns the inbox filter dropdown's six chip counts for the authenticated professional.
+/// </summary>
+/// <remarks>
+/// Computed over the same live-roster population (clients with a conversation) and the same
+/// <see cref="ClientRosterFilterClassifier"/> facts <c>GetConversationsEndpoint</c>'s
+/// <c>filter</c> param uses (<see cref="ConversationRosterLoader"/>). The All count also includes
+/// conversations outside that roster, matching the All list. UnreadMessages also counts pre-link
+/// conversations (no link yet, not former). Trainer/Nutritionist only; a Client
+/// caller has no roster to classify.
+/// </remarks>
+/// <param name="db">Database context.</param>
+/// <param name="mongo">MongoDB context — plan-window lookups for the EndingSoon chip.</param>
+/// <param name="timeProvider">Clock abstraction — lets tests pin "now" deterministically.</param>
+public class GetConversationFilterCountsEndpoint(
+    IApplicationDbContext db,
+    IMongoContext mongo,
+    TimeProvider timeProvider) : EndpointWithoutRequest<GetConversationFilterCountsResponse>
+{
+    /// <inheritdoc />
+    public override void Configure()
+    {
+        Get("/conversations/filter-counts");
+        Roles(AppRoles.Trainer, AppRoles.Nutritionist);
+        Summary(s =>
+        {
+            s.Summary = "Get conversation filter chip counts";
+            s.Description = "Returns the six inbox filter chip counts over the caller's live " +
+                             "clients that already have a conversation (live links only, archived " +
+                             "links excluded; clients with no conversation yet are not counted). " +
+                             "Unread messages also count conversations of clients with no link yet " +
+                             "(pending requests and invites). " +
+                             "Independent of the archived display toggle.";
+            s.Responses[StatusCodes.Status200OK] = "The six chip counts.";
+            s.Responses[StatusCodes.Status401Unauthorized] = "No caller claim on the request.";
+            s.Responses[StatusCodes.Status404NotFound] = "Caller has no ProfessionalProfile.";
+        });
+    }
+
+    /// <inheritdoc />
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        var userId = User.FindFirstValue(AppClaims.UserId);
+
+        if (userId is null)
+        {
+            await Send.UnauthorizedAsync(ct);
+            return;
+        }
+
+        var userGuid = Guid.Parse(userId);
+
+        var professionalProfile = await db.ProfessionalProfiles
+            .AsNoTracking()
+            .FirstOrDefaultAsync(pp => pp.UserId == userGuid, ct);
+
+        if (professionalProfile is null)
+        {
+            await Send.NotFoundAsync(ct);
+            return;
+        }
+
+        var now = timeProvider.GetUtcNow().UtcDateTime;
+        var roster = await ConversationRosterLoader.LoadAsync(db, mongo, professionalProfile.Id, userGuid, now, ct);
+        var liveClientIds = roster.Select(r => r.ClientUserId).ToList();
+        var offRosterConversationCount = await db.Conversations
+            .AsNoTracking()
+            .Where(c => c.ProfessionalUserId == userGuid && !liveClientIds.Contains(c.ClientUserId))
+            .CountAsync(ct);
+
+        var preLinkUnreadCount = await PreLinkConversations
+            .WithUnreadMessages(db, userGuid)
+            .AsNoTracking()
+            .CountAsync(ct);
+
+        var counts = ClientRosterFilterClassifier.ComputeCounts(
+            roster,
+            r => r.UnreadMessageCount > 0,
+            r => r.ConversationMessageCount == 0,
+            r => r.HasNewCheckIn,
+            r => r.HasMissingCheckIn,
+            r => r.IsEndingSoon);
+
+        await Send.OkAsync(new GetConversationFilterCountsResponse
+        {
+            // All also includes conversations for clients whose link has ended (and clients
+            // otherwise absent from the live roster), matching GetConversationsEndpoint.
+            All = counts.All + offRosterConversationCount,
+            UnreadMessages = counts.UnreadMessages + preLinkUnreadCount,
+            NoMessages = counts.NoMessages,
+            NewCheckIns = counts.NewCheckIns,
+            MissingCheckIns = counts.MissingCheckIns,
+            EndingSoon = counts.EndingSoon,
+        }, ct);
+    }
+}

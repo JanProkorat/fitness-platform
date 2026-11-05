@@ -1,0 +1,12 @@
+namespace FormUp.Application.Features.TrainingPlanTemplates.GetTemplate;
+
+/// <summary>
+/// Request to fetch a single training plan template's full detail.
+/// </summary>
+public class GetTrainingPlanTemplateRequest
+{
+    /// <summary>
+    /// The template's public identifier (route parameter).
+    /// </summary>
+    public Guid TemplateId { get; set; }
+}

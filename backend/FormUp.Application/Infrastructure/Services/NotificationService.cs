@@ -1,0 +1,86 @@
+using System.Text.Json;
+using FormUp.Application.Domain.Constants;
+using FormUp.Application.Domain.Entities;
+using FormUp.Application.Domain.Enums;
+using FormUp.Application.Domain.Interfaces;
+using FormUp.Application.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
+
+namespace FormUp.Application.Infrastructure.Services;
+
+/// <summary>
+/// Creates notifications in PostgreSQL and sends push notifications to mobile devices.
+/// Resolves title/body from <see cref="NotificationTemplates"/> using the recipient's
+/// stored language (falls back to English) so notifications are localized regardless of
+/// which user/process triggered the notification (#788).
+/// </summary>
+public class NotificationService(IApplicationDbContext db, IPushNotificationService push) : INotificationService
+{
+    /// <inheritdoc />
+    public async Task<Notification> CreateAsync(
+        Guid recipientUserId,
+        NotificationType type,
+        IReadOnlyDictionary<string, string>? parameters = null,
+        string? variant = null,
+        CancellationToken ct = default)
+    {
+        var recipientLanguage = await db.Users
+            .AsNoTracking()
+            .Where(u => u.Id == recipientUserId)
+            .Select(u => u.Language)
+            .FirstOrDefaultAsync(ct);
+
+        var (title, body) = NotificationTemplates.Resolve(type, recipientLanguage, parameters, variant);
+
+        var notification = new Notification
+        {
+            RecipientUserId = recipientUserId,
+            Type = type,
+            Title = title,
+            Body = body,
+            Data = parameters is { Count: > 0 } ? JsonSerializer.Serialize(parameters) : null
+        };
+
+        db.Notifications.Add(notification);
+        await db.SaveChangesAsync(ct);
+
+        // Send push notification to the user's mobile devices. Uses the SAME resolved
+        // title/body as the in-app notification — the OS push banner renders before the
+        // app opens, so it must already be in the recipient's language at send time.
+        if (await IsPushEnabledAsync(recipientUserId, type, ct))
+        {
+            // The notification's own data (e.g. inviteId) rides along so a tapped push can deep-link;
+            // "type" is written last so a parameter can never override it.
+            var pushData = new Dictionary<string, string>(parameters ?? new Dictionary<string, string>())
+            {
+                ["type"] = type.ToString(),
+            };
+
+            await push.SendAsync(recipientUserId, title, body, pushData, ct);
+        }
+
+        return notification;
+    }
+
+    private static NotificationEvent? MapToPreferenceEvent(NotificationType type) => type switch
+    {
+        NotificationType.ClientRequestReceived => NotificationEvent.JoinRequest,
+        _ => null,
+    };
+
+    private async Task<bool> IsPushEnabledAsync(Guid recipientUserId, NotificationType type, CancellationToken ct)
+    {
+        if (MapToPreferenceEvent(type) is not { } preferenceEvent)
+        {
+            return true;
+        }
+
+        var saved = await db.NotificationPreferences
+            .AsNoTracking()
+            .Where(p => p.UserId == recipientUserId && p.Event == preferenceEvent)
+            .Select(p => (bool?)p.PushEnabled)
+            .FirstOrDefaultAsync(ct);
+
+        return saved ?? NotificationPreferenceDefaults.For(preferenceEvent).Push;
+    }
+}

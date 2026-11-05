@@ -1,0 +1,315 @@
+using FluentAssertions;
+using FormUp.Application.Domain.Services;
+
+namespace FormUp.Tests.Domain.Services;
+
+/// <summary>
+/// Unit tests for <see cref="PlanWindowResolver"/> — the date-window-aware "current plan"
+/// selector introduced for #780 (multiple sequential, non-overlapping plans per client).
+/// </summary>
+public class PlanWindowResolverTests
+{
+    private sealed record FakePlan(Guid Id, DateTime? StartDate, int WeekCount);
+
+    [Fact]
+    public void ResolveCurrentPlan_SinglePlanWithTodayInWindow_ReturnsIt()
+    {
+        var today = new DateTime(2026, 3, 10, 0, 0, 0, DateTimeKind.Utc);
+        var plan = new FakePlan(Guid.NewGuid(), new DateTime(2026, 3, 2, 0, 0, 0, DateTimeKind.Utc), 2);
+
+        var result = PlanWindowResolver.ResolveCurrentPlan(
+            [plan], p => p.StartDate, p => p.WeekCount, today);
+
+        result.Should().Be(plan);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ResolveCurrentPlan_TwoNonOverlappingPlans_ReturnsInWindowPlanRegardlessOfOrder(bool reversed)
+    {
+        var today = new DateTime(2026, 3, 10, 0, 0, 0, DateTimeKind.Utc);
+
+        // January plan — window fully elapsed by March.
+        var januaryPlan = new FakePlan(Guid.NewGuid(), new DateTime(2026, 1, 5, 0, 0, 0, DateTimeKind.Utc), 2);
+        // March plan — window contains "today".
+        var marchPlan = new FakePlan(Guid.NewGuid(), new DateTime(2026, 3, 2, 0, 0, 0, DateTimeKind.Utc), 2);
+
+        var candidates = reversed
+            ? new List<FakePlan> { marchPlan, januaryPlan }
+            : new List<FakePlan> { januaryPlan, marchPlan };
+
+        var result = PlanWindowResolver.ResolveCurrentPlan(
+            candidates, p => p.StartDate, p => p.WeekCount, today);
+
+        result.Should().Be(marchPlan, "the resolver must deterministically pick the in-window plan regardless of input order");
+    }
+
+    [Fact]
+    public void ResolveCurrentPlan_NoPlanWindowContainsToday_ReturnsNull()
+    {
+        var today = new DateTime(2026, 3, 10, 0, 0, 0, DateTimeKind.Utc);
+
+        var pastPlan = new FakePlan(Guid.NewGuid(), new DateTime(2026, 1, 5, 0, 0, 0, DateTimeKind.Utc), 2);
+        var futurePlan = new FakePlan(Guid.NewGuid(), new DateTime(2026, 5, 4, 0, 0, 0, DateTimeKind.Utc), 2);
+
+        var result = PlanWindowResolver.ResolveCurrentPlan(
+            [pastPlan, futurePlan], p => p.StartDate, p => p.WeekCount, today);
+
+        result.Should().BeNull("neither plan's window contains today — must surface the no-plan state, not an arbitrary plan");
+    }
+
+    /// <summary>
+    /// Legacy single-plan fallback: a plan predating the StartDate field has no window, but
+    /// when it's the client's ONLY same-type plan (the situation for every plan created before
+    /// #780 — the publish auto-archive kept it that way), it must still resolve as "current" so
+    /// existing legacy DatePublished-cycling logic downstream keeps working.
+    /// </summary>
+    [Fact]
+    public void ResolveCurrentPlan_SoleCandidateWithoutStartDate_ReturnsItAsLegacyFallback()
+    {
+        var today = new DateTime(2026, 3, 10, 0, 0, 0, DateTimeKind.Utc);
+        var unrangedPlan = new FakePlan(Guid.NewGuid(), null, 2);
+
+        var result = PlanWindowResolver.ResolveCurrentPlan(
+            [unrangedPlan], p => p.StartDate, p => p.WeekCount, today);
+
+        result.Should().Be(unrangedPlan);
+    }
+
+    /// <summary>
+    /// The legacy single-plan fallback must NOT apply once there is more than one candidate —
+    /// an unranged plan has no window to disambiguate against a sibling that does, so with two
+    /// candidates present it must never be favoured by default.
+    /// </summary>
+    [Fact]
+    public void ResolveCurrentPlan_UnrangedPlanAlongsideRangedSibling_NotSelectedWhenNeitherInWindow()
+    {
+        var today = new DateTime(2026, 3, 10, 0, 0, 0, DateTimeKind.Utc);
+        var unrangedPlan = new FakePlan(Guid.NewGuid(), null, 2);
+        // Ranged sibling whose window does NOT contain today either.
+        var pastPlan = new FakePlan(Guid.NewGuid(), new DateTime(2026, 1, 5, 0, 0, 0, DateTimeKind.Utc), 2);
+
+        var result = PlanWindowResolver.ResolveCurrentPlan(
+            [unrangedPlan, pastPlan], p => p.StartDate, p => p.WeekCount, today);
+
+        result.Should().BeNull("with >1 candidate, an unranged plan must not be favoured by default");
+    }
+
+    [Fact]
+    public void ResolveCurrentPlan_EmptyCandidateList_ReturnsNull()
+    {
+        var today = new DateTime(2026, 3, 10, 0, 0, 0, DateTimeKind.Utc);
+
+        var result = PlanWindowResolver.ResolveCurrentPlan(
+            Array.Empty<FakePlan>(), p => p.StartDate, p => p.WeekCount, today);
+
+        result.Should().BeNull();
+    }
+
+    [Fact]
+    public void ResolveCurrentPlanStrict_SolePlanWithoutStartDate_ReturnsNull()
+    {
+        // Unlike ResolveCurrentPlan's legacy single-candidate fallback, the strict resolver never
+        // treats an unranged sole candidate as current — this is what GetClientDashboardEndpoint
+        // now shares with GetClientsEndpoint for status derivation (#1094).
+        var today = DateOnly.FromDateTime(new DateTime(2026, 3, 10, 0, 0, 0, DateTimeKind.Utc));
+        var unrangedPlan = new FakePlan(Guid.NewGuid(), null, 2);
+
+        var result = PlanWindowResolver.ResolveCurrentPlanStrict(
+            [unrangedPlan], p => p.StartDate, p => p.WeekCount, today);
+
+        result.Should().BeNull();
+    }
+
+    [Fact]
+    public void ResolveCurrentPlanStrict_SinglePlanWithTodayInWindow_ReturnsIt()
+    {
+        var today = DateOnly.FromDateTime(new DateTime(2026, 3, 10, 0, 0, 0, DateTimeKind.Utc));
+        var plan = new FakePlan(Guid.NewGuid(), new DateTime(2026, 3, 2, 0, 0, 0, DateTimeKind.Utc), 2);
+
+        var result = PlanWindowResolver.ResolveCurrentPlanStrict(
+            [plan], p => p.StartDate, p => p.WeekCount, today);
+
+        result.Should().Be(plan);
+    }
+
+    [Fact]
+    public void ResolveCurrentPlanStrict_NoPlanWindowContainsToday_ReturnsNull()
+    {
+        var today = DateOnly.FromDateTime(new DateTime(2026, 3, 10, 0, 0, 0, DateTimeKind.Utc));
+
+        var pastPlan = new FakePlan(Guid.NewGuid(), new DateTime(2026, 1, 5, 0, 0, 0, DateTimeKind.Utc), 2);
+        var futurePlan = new FakePlan(Guid.NewGuid(), new DateTime(2026, 5, 4, 0, 0, 0, DateTimeKind.Utc), 2);
+
+        var result = PlanWindowResolver.ResolveCurrentPlanStrict(
+            [pastPlan, futurePlan], p => p.StartDate, p => p.WeekCount, today);
+
+        result.Should().BeNull();
+    }
+
+    [Fact]
+    public void IsWithinWindow_FirstDayOfWindow_ReturnsTrue()
+    {
+        var start = new DateTime(2026, 3, 2, 0, 0, 0, DateTimeKind.Utc);
+        var today = DateOnly.FromDateTime(start);
+
+        PlanWindowResolver.IsWithinWindow(start, 2, today).Should().BeTrue();
+    }
+
+    [Fact]
+    public void IsWithinWindow_LastDayOfWindow_ReturnsTrue()
+    {
+        // 2-week window: [Mar 2, Mar 16) — last valid day is Mar 15.
+        var start = new DateTime(2026, 3, 2, 0, 0, 0, DateTimeKind.Utc);
+        var lastDay = DateOnly.FromDateTime(start.AddDays(13));
+
+        PlanWindowResolver.IsWithinWindow(start, 2, lastDay).Should().BeTrue();
+    }
+
+    [Fact]
+    public void IsWithinWindow_DayAfterWindowEnds_ReturnsFalse()
+    {
+        // Half-open window: the day the next window would start is NOT included.
+        var start = new DateTime(2026, 3, 2, 0, 0, 0, DateTimeKind.Utc);
+        var dayAfterEnd = DateOnly.FromDateTime(start.AddDays(14));
+
+        PlanWindowResolver.IsWithinWindow(start, 2, dayAfterEnd).Should().BeFalse();
+    }
+
+    [Fact]
+    public void WindowsOverlap_IdenticalWindows_ReturnsTrue()
+    {
+        var start = new DateTime(2026, 3, 2, 0, 0, 0, DateTimeKind.Utc);
+
+        PlanWindowResolver.WindowsOverlap(start, 2, start, 2).Should().BeTrue();
+    }
+
+    [Fact]
+    public void WindowsOverlap_PartiallyOverlappingWindows_ReturnsTrue()
+    {
+        var aStart = new DateTime(2026, 3, 2, 0, 0, 0, DateTimeKind.Utc);
+        // B starts 1 week into A's 2-week window — overlaps the second week.
+        var bStart = aStart.AddDays(7);
+
+        PlanWindowResolver.WindowsOverlap(aStart, 2, bStart, 2).Should().BeTrue();
+    }
+
+    [Fact]
+    public void WindowsOverlap_AdjacentWindows_ReturnsFalse()
+    {
+        // A: [Mar 2, Mar 16). B starts exactly on Mar 16 (the day A's window ends) —
+        // half-open windows must NOT be considered overlapping.
+        var aStart = new DateTime(2026, 3, 2, 0, 0, 0, DateTimeKind.Utc);
+        var bStart = aStart.AddDays(14);
+
+        PlanWindowResolver.WindowsOverlap(aStart, 2, bStart, 2).Should().BeFalse();
+    }
+
+    [Fact]
+    public void WindowsOverlap_NonOverlappingWindows_ReturnsFalse()
+    {
+        var aStart = new DateTime(2026, 1, 5, 0, 0, 0, DateTimeKind.Utc);
+        var bStart = new DateTime(2026, 3, 2, 0, 0, 0, DateTimeKind.Utc);
+
+        PlanWindowResolver.WindowsOverlap(aStart, 2, bStart, 2).Should().BeFalse();
+    }
+
+    [Theory]
+    [InlineData("2026-03-01", true)]  // before the start: a plan not yet started counts
+    [InlineData("2026-03-02", true)]  // first day
+    [InlineData("2026-03-15", true)]  // last day of the 2-week window
+    [InlineData("2026-03-16", false)] // first day after the window
+    public void HasNotEnded_TwoWeekPlanStartingMarch2_FollowsTheHalfOpenWindow(string today, bool expected)
+    {
+        var start = new DateTime(2026, 3, 2, 0, 0, 0, DateTimeKind.Utc);
+
+        PlanWindowResolver.HasNotEnded(start, 2, DateOnly.Parse(today)).Should().Be(expected);
+    }
+
+    [Fact]
+    public void HasNotEnded_NoStartDate_ReturnsFalse()
+    {
+        PlanWindowResolver.HasNotEnded(null, 2, new DateOnly(2026, 3, 10)).Should().BeFalse();
+    }
+
+    [Theory]
+    [InlineData("2026-03-02", 3, true)]  // one week added
+    [InlineData("2026-03-09", 2, true)]  // start moved later
+    [InlineData("2026-03-02", 2, false)] // unchanged
+    [InlineData("2026-03-02", 1, false)] // shortened
+    [InlineData("2026-02-23", 2, false)] // start moved earlier
+    public void EndsLater_ComparesTheWindowEnds(string newStart, int newWeekCount, bool expected)
+    {
+        var oldStart = new DateTime(2026, 3, 2, 0, 0, 0, DateTimeKind.Utc);
+
+        PlanWindowResolver.EndsLater(oldStart, 2, DateTime.Parse(newStart), newWeekCount).Should().Be(expected);
+    }
+
+    [Fact]
+    public void EndsLater_ClearedStartDate_CountsAsExtending()
+    {
+        var oldStart = new DateTime(2026, 3, 2, 0, 0, 0, DateTimeKind.Utc);
+
+        PlanWindowResolver.EndsLater(oldStart, 2, null, 2).Should().BeTrue();
+    }
+
+    private sealed record UpcomingPlan(string Name, DateTime? StartDate, int WeekCount, bool HasPublishedWeek, DateTime DateCreated);
+
+    private static UpcomingPlan Upcoming(string name, DateTime? start, bool published = true, int createdDay = 1) =>
+        new(name, start, 2, published, new DateTime(2026, 1, createdDay, 0, 0, 0, DateTimeKind.Utc));
+
+    private static UpcomingPlan? ResolveUpcoming(DateTime today, params UpcomingPlan[] plans) =>
+        PlanWindowResolver.ResolveCurrentOrUpcomingPlan(
+            plans, p => p.StartDate, p => p.WeekCount, p => p.HasPublishedWeek, p => p.DateCreated, today);
+
+    private static readonly DateTime Today = new(2026, 3, 10, 0, 0, 0, DateTimeKind.Utc);
+
+    [Fact]
+    public void ResolveCurrentOrUpcomingPlan_CurrentPlanExists_WinsOverEarlierUpcoming()
+    {
+        var current = Upcoming("current", new DateTime(2026, 3, 9, 0, 0, 0, DateTimeKind.Utc));
+        var upcoming = Upcoming("upcoming", new DateTime(2026, 3, 30, 0, 0, 0, DateTimeKind.Utc));
+
+        ResolveUpcoming(Today, upcoming, current).Should().Be(current);
+    }
+
+    [Fact]
+    public void ResolveCurrentOrUpcomingPlan_SeveralUpcoming_ReturnsEarliestStart()
+    {
+        var later = Upcoming("later", new DateTime(2026, 4, 20, 0, 0, 0, DateTimeKind.Utc));
+        var earlier = Upcoming("earlier", new DateTime(2026, 3, 30, 0, 0, 0, DateTimeKind.Utc));
+
+        ResolveUpcoming(Today, later, earlier).Should().Be(earlier);
+    }
+
+    [Fact]
+    public void ResolveCurrentOrUpcomingPlan_SameStartDate_ReturnsMostRecentlyCreated()
+    {
+        var start = new DateTime(2026, 3, 30, 0, 0, 0, DateTimeKind.Utc);
+        var older = Upcoming("older", start, createdDay: 1);
+        var newer = Upcoming("newer", start, createdDay: 5);
+
+        ResolveUpcoming(Today, older, newer).Should().Be(newer);
+    }
+
+    [Fact]
+    public void ResolveCurrentOrUpcomingPlan_UpcomingWithoutPublishedWeek_IsSkipped()
+    {
+        var unpublished = Upcoming("unpublished", new DateTime(2026, 3, 16, 0, 0, 0, DateTimeKind.Utc), published: false);
+        var published = Upcoming("published", new DateTime(2026, 4, 20, 0, 0, 0, DateTimeKind.Utc));
+
+        ResolveUpcoming(Today, unpublished, published).Should().Be(published);
+    }
+
+    [Fact]
+    public void ResolveCurrentOrUpcomingPlan_StartingTodayIsCurrentNotUpcoming_AndPastOrUnrangedPlansAreNeverUpcoming()
+    {
+        var startsToday = Upcoming("today", Today);
+        ResolveUpcoming(Today, startsToday).Should().Be(startsToday);
+
+        var past = Upcoming("past", new DateTime(2026, 1, 5, 0, 0, 0, DateTimeKind.Utc));
+        var unranged = Upcoming("unranged", null);
+        ResolveUpcoming(Today, past, unranged).Should().BeNull();
+    }
+}

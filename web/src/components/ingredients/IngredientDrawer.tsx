@@ -51,7 +51,7 @@ const SELECT_CLASS =
  * `docs/design/ingredients/inventory.md`). The label is stored verbatim as
  * `CommonServings[0].Label`; display translates the key and falls back to the
  * raw string for legacy seed data whose label doesn't match any key.
- * Must mirror ServingUnits.cs (backend/FitnessPlatform.Application/Domain/Constants) key-for-key. */
+ * Must mirror ServingUnits.cs (backend/FormUp.Application/Domain/Constants) key-for-key. */
 export const UNIT_KEYS = [
   'portion',
   'piece',

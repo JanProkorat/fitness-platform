@@ -97,7 +97,7 @@ jobs:
       - name: Check for duplicate type names under Features/
         run: |
           duplicates=$(grep -rhoE "^(public|internal)( sealed)? (class|record|enum|interface) [A-Za-z0-9_]+" \
-            FitnessPlatform.Application/Features/ | awk '{print $NF}' | sort | uniq -d)
+            FormUp.Application/Features/ | awk '{print $NF}' | sort | uniq -d)
           if [ -n "$duplicates" ]; then
             echo "::error::Duplicate type name(s) found under Features/ — rename one side (domain-prefix pattern from #862/#889/#923) before this can merge. Covers public and internal declarations."
             echo "Colliding type name(s):"
@@ -123,7 +123,7 @@ jobs:
             ${{ runner.os }}-nuget-
 
       - name: Restore dependencies
-        run: dotnet restore FitnessPlatform.slnx
+        run: dotnet restore FormUp.slnx
 
       # Workaround for a Linux MSBuild bug in .NET SDK 10.0.103: the glob
       # evaluation for EmbeddedResource/Compile items enumerates the
@@ -136,11 +136,11 @@ jobs:
       # these dirs, so they remain empty.
       - name: Pre-create bin/Debug folders (Linux SDK glob workaround)
         run: |
-          mkdir -p FitnessPlatform.Application/bin/Debug
-          mkdir -p FitnessPlatform.Tests/bin/Debug
+          mkdir -p FormUp.Application/bin/Debug
+          mkdir -p FormUp.Tests/bin/Debug
 
       - name: Build solution
-        run: dotnet build FitnessPlatform.slnx --no-restore --configuration Release --verbosity minimal -bl:msbuild.binlog
+        run: dotnet build FormUp.slnx --no-restore --configuration Release --verbosity minimal -bl:msbuild.binlog
 
       - name: Upload MSBuild binlog on failure
         if: failure()
@@ -188,7 +188,7 @@ jobs:
 
       - name: Run tests — Endpoints
         shell: bash  # pipefail: keep the test exit code through tee
-        run: ./FitnessPlatform.Tests/bin/Release/net10.0/FitnessPlatform.Tests -namespace 'FitnessPlatform.Tests.Endpoints*' | tee test-chunk-1.txt
+        run: ./FormUp.Tests/bin/Release/net10.0/FormUp.Tests -namespace 'FormUp.Tests.Endpoints*' | tee test-chunk-1.txt
         env:
           POSTGRES_PASSWORD: test_password
           MONGO_PASSWORD: test_password
@@ -198,7 +198,7 @@ jobs:
 
       - name: Run tests — Services, Validators, Infrastructure
         shell: bash  # pipefail: keep the test exit code through tee
-        run: ./FitnessPlatform.Tests/bin/Release/net10.0/FitnessPlatform.Tests -namespace 'FitnessPlatform.Tests.Services*' -namespace 'FitnessPlatform.Tests.Validators*' -namespace 'FitnessPlatform.Tests.Infrastructure*' | tee test-chunk-2.txt
+        run: ./FormUp.Tests/bin/Release/net10.0/FormUp.Tests -namespace 'FormUp.Tests.Services*' -namespace 'FormUp.Tests.Validators*' -namespace 'FormUp.Tests.Infrastructure*' | tee test-chunk-2.txt
         env:
           POSTGRES_PASSWORD: test_password
           MONGO_PASSWORD: test_password
@@ -210,7 +210,7 @@ jobs:
       # construction" note. Every namespace not matched there runs here.
       - name: Run tests — remaining namespaces
         shell: bash  # pipefail: keep the test exit code through tee
-        run: ./FitnessPlatform.Tests/bin/Release/net10.0/FitnessPlatform.Tests -namespace- 'FitnessPlatform.Tests.Endpoints*' -namespace- 'FitnessPlatform.Tests.Services*' -namespace- 'FitnessPlatform.Tests.Validators*' -namespace- 'FitnessPlatform.Tests.Infrastructure*' | tee test-chunk-3.txt
+        run: ./FormUp.Tests/bin/Release/net10.0/FormUp.Tests -namespace- 'FormUp.Tests.Endpoints*' -namespace- 'FormUp.Tests.Services*' -namespace- 'FormUp.Tests.Validators*' -namespace- 'FormUp.Tests.Infrastructure*' | tee test-chunk-3.txt
         env:
           POSTGRES_PASSWORD: test_password
           MONGO_PASSWORD: test_password

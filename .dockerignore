@@ -24,7 +24,7 @@ mobile/.qa-cache/
 .vscode/
 
 # Test project (not needed in the runtime image)
-backend/FitnessPlatform.Tests/
+backend/FormUp.Tests/
 
 # Web and mobile packages — historically excluded because only backend
 # was built from the root context. The qa-playwright image (context=.,
