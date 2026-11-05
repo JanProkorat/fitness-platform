@@ -5463,6 +5463,11 @@
       "body": "Možná je neúplný, nebo patří k jinému účtu.",
       "note": "Po přihlášení si v Nastavení › Oznámení vyberete, které e-maily chcete dostávat.",
       "signIn": "Přihlásit se"
+    },
+    "failed": {
+      "title": "Něco se pokazilo",
+      "body": "Tento e-mail se teď nepodařilo vypnout. Zkuste to prosím za chvíli znovu.",
+      "retry": "Zkusit znovu"
     }
   },
   "entry": {

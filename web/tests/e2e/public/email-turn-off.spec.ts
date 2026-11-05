@@ -62,6 +62,30 @@ test('a 400 from the API shows the "doesn\'t work" card', async ({ page }) => {
   await expect(page.getByRole('heading', { name: "This link doesn't work" })).toBeVisible();
 });
 
+test('a 429 shows a retryable state, and "Try again" sends the turn-off request once more', async ({ page }) => {
+  let requests = 0;
+  await page.route(TURN_OFF_ROUTE, async (route) => {
+    requests += 1;
+    if (requests === 1) {
+      await route.fulfill({ status: 429, contentType: 'application/json', body: '{}' });
+      return;
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ email: 'coach@example.com', event: 'NewMessage' }),
+    });
+  });
+  await page.goto('/email-off?token=tok');
+
+  await expect(page.getByRole('heading', { name: 'Something went wrong' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: "This link doesn't work" })).toHaveCount(0);
+
+  await page.getByRole('button', { name: 'Try again' }).click();
+  await expect(page.getByRole('heading', { name: 'This email is off' })).toBeVisible();
+  expect(requests).toBe(2);
+});
+
 test('a link without a token shows the "doesn\'t work" card and sends nothing', async ({ page }) => {
   let requests = 0;
   await page.route(TURN_OFF_ROUTE, async (route) => {
