@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { BellIcon, BellOffIcon, InfoIcon, Link2OffIcon } from 'lucide-react';
 import { NotificationEvent, turnOffEmail, turnOnEmail } from '@/api/email-links';
 import type { EmailLinkTurnOffResponse } from '@/api/email-links';
@@ -46,24 +46,27 @@ export default function EmailTurnOffPage() {
     void queryClient.invalidateQueries({ queryKey: profileKeys.notificationPreferences });
   };
 
-  const turnOffMutation = useMutation({
-    mutationFn: (value: string) => turnOffEmail(value),
-    onSuccess: refreshPreferences,
+  // A query, not a mutation fired from an effect: under StrictMode the discarded first mount's mutation
+  // observer is gone when the request settles, so the surviving mount never sees the result. The query
+  // cache lives outside the mount, so both mounts share one entry and exactly one request goes out.
+  const turnOffQuery = useQuery({
+    queryKey: ['email-off', token],
+    queryFn: async () => {
+      // Non-null: this only runs when `enabled` (below) is true.
+      const data = await turnOffEmail(token as string);
+      refreshPreferences();
+      return data;
+    },
+    enabled: hasToken,
+    retry: false,
+    staleTime: Infinity,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
   const turnOnMutation = useMutation({
     mutationFn: (value: string) => turnOnEmail(value),
     onSuccess: refreshPreferences,
   });
-
-  // StrictMode runs effects twice in development; the ref survives that, so only one request goes out.
-  const sentRef = useRef(false);
-  useEffect(() => {
-    if (sentRef.current || !hasToken) {
-      return;
-    }
-    sentRef.current = true;
-    turnOffMutation.mutate(token);
-  }, [hasToken, token, turnOffMutation]);
 
   const shell = (children: ReactNode) => (
     <div className="relative flex min-h-screen items-center justify-center bg-background p-6">
@@ -128,12 +131,12 @@ export default function EmailTurnOffPage() {
       </>,
     );
 
-  if (!hasToken || turnOffMutation.isError) {
+  if (!hasToken || turnOffQuery.isError) {
     return invalidCard();
   }
 
-  if (turnOffMutation.isSuccess) {
-    const data = turnOnMutation.isSuccess ? turnOnMutation.data : turnOffMutation.data;
+  if (turnOffQuery.isSuccess) {
+    const data = turnOnMutation.isSuccess ? turnOnMutation.data : turnOffQuery.data;
     const isOn = turnOnMutation.isSuccess;
     const label = data.event ? t(`settings.notifications.events.${EVENT_LABEL_KEY[data.event]}.title`) : '';
     return shell(
