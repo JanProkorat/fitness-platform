@@ -74,6 +74,7 @@ public class EmailTemplateRendererNotificationTests
         subject.Should().NotBeNullOrWhiteSpace().And.NotContain("{{");
         html.Should().NotContain("{{").And.Contain(ActionUrl).And.Contain("Petra");
         html.Should().Contain($"lang=\"{language}\"");
+        html.Should().NotContain("letter-spacing:2px", "the small label above the heading was dropped");
     }
 
     [Theory]
