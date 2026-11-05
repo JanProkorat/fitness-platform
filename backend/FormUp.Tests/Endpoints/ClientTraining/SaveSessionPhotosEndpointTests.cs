@@ -74,7 +74,7 @@ public class SaveSessionPhotosEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, linkAuthorizationService ?? EndpointTestHelpers.CreateGrantingLinkAuthorizationService(), _logger, _blobStorage, TimeProvider.System);
+            mongo, db, _notifier, linkAuthorizationService ?? EndpointTestHelpers.CreateGrantingLinkAuthorizationService(), _logger, _blobStorage, new ImageUploadService(_blobStorage), TimeProvider.System);
 
     // ──────────────────────────────────────────────────────────────────────────
     // Happy-path: new log inserted
@@ -99,8 +99,8 @@ public class SaveSessionPhotosEndpointTests
             SessionId = sessionId,
             Photos =
             [
-                new SessionPhotoInput { BlobUrl = "https://minio.local/diary/sessions/s1/a.jpg" },
-                new SessionPhotoInput { BlobUrl = "https://minio.local/diary/sessions/s1/b.jpg" }
+                new SessionPhotoInput { BlobUrl = $"diary/sessions/{sessionId}/a.jpg" },
+                new SessionPhotoInput { BlobUrl = $"diary/sessions/{sessionId}/b.jpg" }
             ],
             Note = "Good session"
         }, TestContext.Current.CancellationToken);
@@ -132,8 +132,8 @@ public class SaveSessionPhotosEndpointTests
     {
         var sessionId = Guid.NewGuid();
         var plan = CreateActivePlan(sessionId);
-        const string urlA = "https://minio.local/diary/sessions/s1/a.jpg";
-        const string urlB = "https://minio.local/diary/sessions/s1/b.jpg";
+        const string urlA = "https://minio.local/legacy/a.jpg";
+        var urlB = $"diary/sessions/{sessionId}/b.jpg";
         var originalUploadedAt = DateTime.UtcNow.AddHours(-3);
 
         var existingLog = new SessionLog
@@ -200,7 +200,7 @@ public class SaveSessionPhotosEndpointTests
     {
         var sessionId = Guid.NewGuid();
         var plan = CreateActivePlan(sessionId);
-        const string blobUrl = "https://minio.local/diary/sessions/s1/photo.jpg";
+        var blobUrl = $"diary/sessions/{sessionId}/photo.jpg";
 
         // Pre-seed a PlanPhoto row for the same BlobUrl
         var existingPlanPhoto = new PlanPhoto
@@ -277,7 +277,7 @@ public class SaveSessionPhotosEndpointTests
         await ep.HandleAsync(new SaveSessionPhotosRequest
         {
             SessionId = sessionId,
-            Photos = [new SessionPhotoInput { BlobUrl = "https://minio.local/diary/sessions/s1/viewer.jpg" }],
+            Photos = [new SessionPhotoInput { BlobUrl = $"diary/sessions/{sessionId}/viewer.jpg" }],
             Note = null
         }, TestContext.Current.CancellationToken);
 
@@ -306,14 +306,14 @@ public class SaveSessionPhotosEndpointTests
         await ep.HandleAsync(new SaveSessionPhotosRequest
         {
             SessionId = sessionId,
-            Photos = [new SessionPhotoInput { BlobUrl = "https://minio.local/diary/sessions/s1/x.jpg", Note = "Great lift" }],
+            Photos = [new SessionPhotoInput { BlobUrl = $"diary/sessions/{sessionId}/x.jpg", Note = "Great lift" }],
             Note = null
         }, TestContext.Current.CancellationToken);
 
         ep.HttpContext.Response.StatusCode.Should().Be(204);
 
         db.PlanPhotos.Received(1).Add(Arg.Is<PlanPhoto>(p =>
-            p.BlobUrl == "https://minio.local/diary/sessions/s1/x.jpg" &&
+            p.BlobUrl == $"diary/sessions/{sessionId}/x.jpg" &&
             p.Category == PlanPhotoCategory.Training &&
             p.PlanType == PlanPhotoType.Training &&
             p.LinkId == sessionId &&
@@ -346,7 +346,7 @@ public class SaveSessionPhotosEndpointTests
         await ep.HandleAsync(new SaveSessionPhotosRequest
         {
             SessionId = sessionId,
-            Photos = [new SessionPhotoInput { BlobUrl = "https://minio.local/diary/sessions/s1/granted.jpg" }],
+            Photos = [new SessionPhotoInput { BlobUrl = $"diary/sessions/{sessionId}/granted.jpg" }],
             Note = null
         }, TestContext.Current.CancellationToken);
 
@@ -381,7 +381,7 @@ public class SaveSessionPhotosEndpointTests
         await ep.HandleAsync(new SaveSessionPhotosRequest
         {
             SessionId = sessionId,
-            Photos = [new SessionPhotoInput { BlobUrl = "https://minio.local/diary/sessions/s1/denied.jpg" }],
+            Photos = [new SessionPhotoInput { BlobUrl = $"diary/sessions/{sessionId}/denied.jpg" }],
             Note = null
         }, TestContext.Current.CancellationToken);
 
