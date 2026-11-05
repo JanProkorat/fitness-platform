@@ -182,6 +182,9 @@ public class FinalizePlanPhotoEndpoint(
 
         await db.SaveChangesAsync(ct);
 
+        // A free-form progress photo opens or extends the coaches' grouped email burst (best-effort).
+        await ProgressPhotoBurst.QueueAsync(db, logger, photo, clientProfile.PublicId, ct);
+
         // Gate both broadcasts below on the professional's CURRENT link capability, not mere
         // plan authorship (F6 residual): professionalUserId is resolved from a permanent plan
         // field, but the underlying ClientProfessionalLink is not — a professional whose

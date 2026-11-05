@@ -269,6 +269,7 @@ public sealed partial class EmailTemplateRenderer(IConfiguration configuration)
                 break;
             case NotificationEvent.ProgressPhotosSubmitted:
                 values["PhotoLead"] = PhotoLead(clientName, values, lang);
+                values["PhotoPreheader"] = PhotoPreheader(IsFreeForm(values), clientName, lang);
                 break;
             case NotificationEvent.WorkoutFinished:
                 values["WorkoutLead"] = string.Join(" · ", new[]
@@ -423,12 +424,54 @@ public sealed partial class EmailTemplateRenderer(IConfiguration configuration)
         };
     }
 
+    private static bool IsFreeForm(IReadOnlyDictionary<string, string> values) =>
+        values.GetValueOrDefault(NotificationEmailWorkItem.FreeFormKey) == "true";
+
+    private static int PhotoCount(IReadOnlyDictionary<string, string> values) =>
+        int.TryParse(values.GetValueOrDefault(NotificationEmailWorkItem.PhotoCountKey), out var parsed) ? parsed : 0;
+
+    // Free-form progress photos arrive without a request, so the copy names no request and no date.
+    private static string FreeFormPhotoLead(string clientName, int count, string language) =>
+        language switch
+        {
+            "cs" => count == 1
+                ? $"{clientName} · 1 nová fotka pokroku"
+                : count is >= 2 and <= 4 ? $"{clientName} · {count} nové fotky pokroku" : $"{clientName} · {count} nových fotek pokroku",
+            "de" => count == 1
+                ? $"{clientName} · 1 neues Fortschrittsfoto"
+                : $"{clientName} · {count} neue Fortschrittsfotos",
+            _ => count == 1
+                ? $"{clientName} · 1 new progress photo"
+                : $"{clientName} · {count} new progress photos"
+        };
+
+    // The value is HTML-encoded when substituted, so the name goes in as plain text.
+    private static string PhotoPreheader(bool freeForm, string clientName, string language) =>
+        (freeForm, language) switch
+        {
+            (true, "cs") => $"Nové fotky pokroku od: {clientName}.",
+            (true, "de") => $"Neue Fortschrittsfotos von {clientName}.",
+            (true, _) => $"New progress photos from {clientName}.",
+            (false, "cs") => $"Nové fotky od: {clientName} jako odpověď na vaši žádost.",
+            (false, "de") => $"Neue Fotos von {clientName} als Antwort auf Ihre Anfrage.",
+            _ => $"New photos from {clientName}, in reply to your request."
+        };
+
     private static string PhotoLead(string clientName, IReadOnlyDictionary<string, string> values, string language)
     {
-        var count = int.TryParse(values.GetValueOrDefault(NotificationEmailWorkItem.PhotoCountKey), out var parsed) ? parsed : 0;
+        var count = PhotoCount(values);
+
+        if (IsFreeForm(values))
+        {
+            return FreeFormPhotoLead(clientName, count, language);
+        }
+
+        // Czech agrees the verb with the number: odeslána 1 fotka, odeslány 2-4 fotky, odesláno 5 fotek.
         var summary = language switch
         {
-            "cs" => count == 1 ? "1 fotku" : count is >= 2 and <= 4 ? $"{count} fotky" : $"{count} fotek",
+            "cs" => count == 1
+                ? "odeslána 1 fotka"
+                : count is >= 2 and <= 4 ? $"odeslány {count} fotky" : $"odesláno {count} fotek",
             "de" => count == 1 ? "1 Foto" : $"{count} Fotos",
             _ => count == 1 ? "1 photo" : $"{count} photos"
         };
@@ -444,7 +487,7 @@ public sealed partial class EmailTemplateRenderer(IConfiguration configuration)
 
         return language switch
         {
-            "cs" => $"{clientName} · odesláno {summary}. " + (hasDate ? $"Odpověď na vaši žádost z {requestDate}." : "Odpověď na vaši žádost o fotky."),
+            "cs" => $"{clientName} · {summary}. " + (hasDate ? $"Odpověď na vaši žádost z {requestDate}." : "Odpověď na vaši žádost o fotky."),
             "de" => $"{clientName} · {summary} gesendet. " + (hasDate ? $"Antwort auf Ihre Anfrage vom {requestDate}." : "Antwort auf Ihre Fotoanfrage."),
             _ => $"{clientName} · {summary} sent. " + (hasDate ? $"In reply to your request from {requestDate}." : "In reply to your photo request.")
         };

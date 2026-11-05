@@ -43,6 +43,9 @@ public sealed record NotificationEmailWorkItem(
     /// <summary>Photos: the date of the coach's request as <c>yyyy-MM-dd</c>; the renderer localizes it. Optional.</summary>
     public const string RequestDateKey = "RequestDate";
 
+    /// <summary>Photos: <c>true</c> when the photos are free-form progress photos sent without a request. Optional.</summary>
+    public const string FreeFormKey = "FreeForm";
+
     /// <summary>Workout: the session name. Optional.</summary>
     public const string SessionNameKey = "SessionName";
 

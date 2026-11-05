@@ -12,6 +12,7 @@ public static class NotificationEmailGrouping
         new Dictionary<NotificationEvent, (TimeSpan Quiet, TimeSpan Max)>
         {
             [NotificationEvent.NewMessage] = (TimeSpan.FromMinutes(5), TimeSpan.FromMinutes(15)),
+            [NotificationEvent.ProgressPhotosSubmitted] = (TimeSpan.FromMinutes(10), TimeSpan.FromMinutes(30)),
         };
 
     /// <summary>
