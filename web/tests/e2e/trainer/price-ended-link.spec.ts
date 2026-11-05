@@ -107,7 +107,8 @@ test.describe('ended link price save', () => {
     await expect(toastTitle('Could not save the price.')).toHaveCount(0);
     // The aria-live region repeats toast copy; a generic error must not appear there either.
     await expect(page.getByText('Could not save the price.')).toHaveCount(0);
-    // Ended view: the price form is replaced.
+    // Ended view: shown in place of the price form, not a blank or error page.
+    await expect(page.getByTestId('collaboration-ended')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Save price' })).toHaveCount(0);
     await expect(packageSelect).toHaveCount(0);
   });
