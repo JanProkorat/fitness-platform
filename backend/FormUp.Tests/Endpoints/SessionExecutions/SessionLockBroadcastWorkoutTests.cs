@@ -281,7 +281,8 @@ public class SessionLockBroadcastWorkoutTests
             StubComplianceService(),
             EndpointTestHelpers.CreateGrantingLinkAuthorizationService(),
             Substitute.For<ILogger<CompleteWorkoutEndpoint>>(),
-            new MockDbBuilder().Build(), TimeProvider.System);
+            new MockDbBuilder().Build(), TimeProvider.System,
+            Substitute.For<INotificationService>(), Substitute.For<INotificationEmailSender>());
 
         // Act
         await ep.HandleAsync(
@@ -341,7 +342,8 @@ public class SessionLockBroadcastWorkoutTests
             StubComplianceService(),
             WorkoutLogTestHelpers.CreateDenyingLinkAuthorizationService(),
             Substitute.For<ILogger<CompleteWorkoutEndpoint>>(),
-            new MockDbBuilder().Build(), TimeProvider.System);
+            new MockDbBuilder().Build(), TimeProvider.System,
+            Substitute.For<INotificationService>(), Substitute.For<INotificationEmailSender>());
 
         // Act
         await ep.HandleAsync(
@@ -394,7 +396,8 @@ public class SessionLockBroadcastWorkoutTests
             StubComplianceService(),
             EndpointTestHelpers.CreateGrantingLinkAuthorizationService(),
             Substitute.For<ILogger<CompleteWorkoutEndpoint>>(),
-            new MockDbBuilder().Build(), TimeProvider.System);
+            new MockDbBuilder().Build(), TimeProvider.System,
+            Substitute.For<INotificationService>(), Substitute.For<INotificationEmailSender>());
 
         // Act
         await ep.HandleAsync(
@@ -433,7 +436,8 @@ public class SessionLockBroadcastWorkoutTests
             StubComplianceService(),
             EndpointTestHelpers.CreateGrantingLinkAuthorizationService(),
             Substitute.For<ILogger<CompleteWorkoutEndpoint>>(),
-            new MockDbBuilder().Build(), TimeProvider.System);
+            new MockDbBuilder().Build(), TimeProvider.System,
+            Substitute.For<INotificationService>(), Substitute.For<INotificationEmailSender>());
 
         // Act
         await ep.HandleAsync(

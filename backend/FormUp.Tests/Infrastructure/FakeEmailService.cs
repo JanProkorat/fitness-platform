@@ -103,6 +103,19 @@ public class FakeEmailService : IEmailService
     }
 
     /// <summary>
+    /// Notification emails sent to one recipient, after the background queue has gone idle. Waiting for
+    /// the queue to drain first makes a "nothing was sent" assertion mean the worker had its chance.
+    /// </summary>
+    /// <param name="queue">The host's background email queue.</param>
+    /// <param name="userId">The recipient's user id.</param>
+    public async Task<IReadOnlyList<NotificationEmailWorkItem>> NotificationsForAsync(IBackgroundEmailQueue queue, Guid userId)
+    {
+        await WaitForAsync(() => queue.PendingCount == 0);
+
+        return SentNotifications.Where(item => item.UserId == userId).ToList();
+    }
+
+    /// <summary>
     /// Makes <see cref="SendNotificationEmailAsync"/> throw for the given recipient only.
     /// </summary>
     public void FailNotificationsFor(Guid userId)
