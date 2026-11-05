@@ -456,6 +456,46 @@ export function addMealToDay(
   });
 }
 
+/**
+ * Puts the server's stored copy of a meal back into its stored week and day: replaces the meal in place when
+ * that day holds it, otherwise inserts it, and removes it from any other day it was moved to. Everything else
+ * stays as it is. Unchanged when the stored week or day is not in the document.
+ */
+export function restoreStoredMeal(
+  doc: EditorDocument,
+  stored: EditorMeal,
+  weekNumber: number,
+  dayOfWeek: number,
+): EditorDocument {
+  const hasTarget = doc.weeks.some(
+    (week) => week.weekNumber === weekNumber && week.days.some((day) => day.dayOfWeek === dayOfWeek),
+  );
+  if (!hasTarget) {
+    return doc;
+  }
+  return {
+    ...doc,
+    weeks: doc.weeks.map((week) => ({
+      ...week,
+      days: week.days.map((day) => {
+        const index = day.meals.findIndex((meal) => meal.mealId === stored.mealId);
+        if (week.weekNumber !== weekNumber || day.dayOfWeek !== dayOfWeek) {
+          return index === -1
+            ? day
+            : { ...day, meals: renumber(day.meals.filter((meal) => meal.mealId !== stored.mealId)) };
+        }
+        const meals = [...day.meals];
+        if (index === -1) {
+          insertByKind(meals, stored);
+        } else {
+          meals[index] = stored;
+        }
+        return { ...day, meals: renumber(meals) };
+      }),
+    })),
+  };
+}
+
 export function removeMeal(doc: EditorDocument, weekIndex: number, dayOfWeek: number, mealId: string): EditorDocument {
   return updateDay(doc, weekIndex, dayOfWeek, (day) => ({
     ...day,

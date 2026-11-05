@@ -116,6 +116,33 @@ export function sameFingerprint(left: readonly unknown[], right: readonly unknow
   return left.length === right.length && left.every((value, index) => value === right[index]);
 }
 
+/** The server's stored copy of a meal with the week and day it is stored in. */
+export interface StoredMeal {
+  meal: EditorMeal;
+  weekNumber: number;
+  dayOfWeek: number;
+}
+
+/** Finds a meal in the server's document; undefined when it is not there. */
+export function findStoredMeal(stored: EditorDocument, mealId: string): StoredMeal | undefined {
+  for (const week of stored.weeks) {
+    for (const day of week.days) {
+      const meal = day.meals.find((candidate) => candidate.mealId === mealId);
+      if (meal) {
+        return { meal, weekNumber: week.weekNumber, dayOfWeek: day.dayOfWeek };
+      }
+    }
+  }
+  return undefined;
+}
+
+/** Puts the rejected meal back as the server stores it; null when there is nothing to restore or the data is not fresh. */
+export const RestoreRejectedContext = createContext<(() => void) | null>(null);
+
+export function useRestoreRejected(): (() => void) | null {
+  return useContext(RestoreRejectedContext);
+}
+
 export const LockRejectionContext = createContext<LockRejection | null>(null);
 
 export function useLockRejection(): LockRejection | null {
@@ -208,7 +235,13 @@ export function dayHasLock(
  * Puts every locked meal and every past day's meals back as they were in `previous`, whatever `next` did to them.
  * The server refuses such edits with a 409; this keeps the browser's document from ever holding one.
  */
-export function keepLocked(locks: PlanMealLocks, next: EditorDocument, previous: EditorDocument): EditorDocument {
+export function keepLocked(
+  locks: PlanMealLocks,
+  next: EditorDocument,
+  previous: EditorDocument,
+  /** The one meal a restore of the server's stored copy may change; every other meal stays guarded. */
+  restoredMealId?: string,
+): EditorDocument {
   if (next === previous) {
     return next;
   }
@@ -223,9 +256,26 @@ export function keepLocked(locks: PlanMealLocks, next: EditorDocument, previous:
         return nextDay;
       }
       if (isPastDay(locks, nextWeek.weekNumber, nextDay.dayOfWeek)) {
-        return nextDay.meals === previousDay.meals ? nextDay : { ...nextDay, meals: previousDay.meals };
+        if (nextDay.meals === previousDay.meals) {
+          return nextDay;
+        }
+        if (restoredMealId === undefined) {
+          return { ...nextDay, meals: previousDay.meals };
+        }
+        // Past day: everything reverts except the restored meal, which takes the restore's version (or goes away).
+        const incoming = nextDay.meals.find((meal) => meal.mealId === restoredMealId);
+        const kept = previousDay.meals.flatMap((meal) =>
+          meal.mealId !== restoredMealId ? [meal] : incoming ? [incoming] : [],
+        );
+        const meals =
+          incoming && !previousDay.meals.some((meal) => meal.mealId === restoredMealId)
+            ? [...kept.slice(0, Math.max(incoming.order - 1, 0)), incoming, ...kept.slice(Math.max(incoming.order - 1, 0))]
+            : kept;
+        return { ...nextDay, meals };
       }
-      const lockedBefore = previousDay.meals.filter((meal) => locks.meals.get(meal.mealId)?.locked === true);
+      const lockedBefore = previousDay.meals.filter(
+        (meal) => meal.mealId !== restoredMealId && locks.meals.get(meal.mealId)?.locked === true,
+      );
       if (lockedBefore.length === 0) {
         return nextDay;
       }

@@ -2266,8 +2266,11 @@
       "dayLocked": "{{day}} liegt in der Vergangenheit und ist gesperrt",
       "close": "Schließen",
       "rowLocked": "Diese Zeile enthält gegessene Mahlzeiten oder Mahlzeiten aus der Vergangenheit und kann nicht entfernt werden.",
-      "mealLockedError": "Eine Mahlzeit wurde in der Zwischenzeit gegessen oder gesperrt, daher wurde der Plan nicht gespeichert. Ihre Änderungen sind noch da: Korrigieren Sie die markierte Mahlzeit und speichern Sie erneut.",
-      "pastDayLockedError": "In der Zwischenzeit ist ein Tag vergangen, dem keine Mahlzeiten mehr hinzugefügt werden können. Der Plan wurde nicht gespeichert. Ihre Änderungen sind noch da: Korrigieren Sie die markierte Mahlzeit und speichern Sie erneut.",
+      "mealLockedError": "Eine Mahlzeit wurde in der Zwischenzeit gegessen oder gesperrt, daher wurde der Plan nicht gespeichert. Ihre Änderungen sind noch da.",
+      "pastDayLockedError": "In der Zwischenzeit ist ein Tag vergangen, dem keine Mahlzeiten mehr hinzugefügt werden können. Der Plan wurde nicht gespeichert. Ihre Änderungen sind noch da.",
+      "restore": "Wiederherstellen, was der Klient gegessen hat",
+      "fixOutlined": "Korrigieren Sie die markierte Mahlzeit und speichern Sie erneut.",
+      "fixRemoved": "Stellen Sie die entfernte Mahlzeit wieder her und speichern Sie erneut.",
       "legend": {
         "label": "Mahlzeitenfarben",
         "eaten": "Gegessen",

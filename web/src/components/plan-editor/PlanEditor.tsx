@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AutoScroller, Feedback, KeyboardSensor, PointerSensor } from '@dnd-kit/dom';
 import { move } from '@dnd-kit/helpers';
@@ -30,8 +30,10 @@ import MealLockLegend from '@/components/plan-editor/MealLockLegend';
 import {
   dayHasLock,
   isPastDay,
+  findStoredMeal,
   keepLocked,
   LockRejectionContext,
+  RestoreRejectedContext,
   mealLockView,
   MealLocksContext,
   rejectionFingerprint,
@@ -120,6 +122,7 @@ import {
   removeLastWeek,
   removeMealRow,
   reorderMealItems,
+  restoreStoredMeal,
   rowMeal,
   setDayNote,
   weekHasItems,
@@ -228,6 +231,8 @@ interface Props {
   lockRejection?: LockRejection | null;
   /** Called when the coach changes, moves or deletes the rejected meal. */
   onClearLockRejection?: () => void;
+  /** The server's current copy of the plan, for restoring the rejected meal; null or absent while it is being refetched. */
+  storedDocument?: EditorDocument | null;
   saveState: PlanEditorSaveState;
   /** Persists the document; resolves with the server's copy, or null when the save failed. */
   onSave: (doc: EditorDocument) => Promise<EditorDocument | null>;
@@ -401,6 +406,7 @@ export default function PlanEditor({
   mealLocks,
   lockRejection = null,
   onClearLockRejection,
+  storedDocument = null,
   saveState,
   onSave,
   onReload,
@@ -437,6 +443,28 @@ export default function PlanEditor({
       onClearLockRejection?.();
     }
   }, [doc, lockRejection, onClearLockRejection]);
+  // Restore: one undoable edit that puts the server's copy of the rejected meal back. `keepLocked` lets this one meal
+  // through (the refetch has marked it locked), and only for this edit.
+  const storedRejected = useMemo(
+    () => (storedDocument && lockRejection?.mealId ? findStoredMeal(storedDocument, lockRejection.mealId) : undefined),
+    [storedDocument, lockRejection],
+  );
+  const restoreRejected = useMemo(() => {
+    if (!storedRejected || !lockRejection?.mealId) {
+      return null;
+    }
+    const { meal, weekNumber, dayOfWeek: storedDay } = storedRejected;
+    const mealId = lockRejection.mealId;
+    if (!doc.weeks.some((candidate) => candidate.weekNumber === weekNumber)) {
+      return null;
+    }
+    return () =>
+      rawEdit((current) => {
+        const next = restoreStoredMeal(current, meal, weekNumber, storedDay);
+        return locksRef.current ? keepLocked(locksRef.current, next, current, mealId) : next;
+      });
+  }, [storedRejected, lockRejection, doc.weeks, rawEdit]);
+  const rejectedInDocument = lockRejection ? rejectionFingerprint(doc, lockRejection)[0] !== undefined : false;
   const targets = doc.targets;
   const dailyKcalTarget = targets.kcal;
   const [weekIndex, setWeekIndex] = useState(0);
@@ -1518,6 +1546,7 @@ export default function PlanEditor({
     <SyncConflictsContext.Provider value={conflictsModel}>
     <MealLocksContext.Provider value={locks}>
     <LockRejectionContext.Provider value={lockRejection}>
+    <RestoreRejectedContext.Provider value={restoreRejected}>
     <PopoverBoundaryContext.Provider value={scrollArea}>
     <DragDropProvider
       sensors={DRAG_SENSORS}
@@ -1721,7 +1750,21 @@ export default function PlanEditor({
               className="flex flex-wrap items-center gap-3 rounded-xl border border-error bg-error-soft px-4 py-3 text-body text-error"
             >
               <AlertTriangle className="size-4 shrink-0" aria-hidden="true" />
-              <span className="min-w-0 flex-1">{saveState.message}</span>
+              <span className="min-w-0 flex-1">
+                {saveState.message}
+                {lockRejection && (rejectedInDocument || restoreRejected) && (
+                  <>
+                    {' '}
+                    {t(rejectedInDocument ? 'planEditor.locks.fixOutlined' : 'planEditor.locks.fixRemoved')}
+                  </>
+                )}
+              </span>
+              {/* A deleted meal has no tile to carry the action, so it sits here. */}
+              {lockRejection && !rejectedInDocument && restoreRejected && (
+                <Button type="button" variant="destructive" size="sm" onClick={restoreRejected}>
+                  {t('planEditor.locks.restore')}
+                </Button>
+              )}
               {saveState.status === 'conflict' && (
                 <Button type="button" variant="destructive" size="sm" onClick={onReload}>
                   {t('planEditor.conflict.reload')}
@@ -1901,6 +1944,7 @@ export default function PlanEditor({
       </Dialog>
     </DragDropProvider>
     </PopoverBoundaryContext.Provider>
+    </RestoreRejectedContext.Provider>
     </LockRejectionContext.Provider>
     </MealLocksContext.Provider>
     </SyncConflictsContext.Provider>

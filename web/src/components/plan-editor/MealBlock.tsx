@@ -29,7 +29,14 @@ import {
   setMealNote,
   setRecipeServings,
 } from '@/components/plan-editor/plan-editor-ops';
-import { isRejectedTile, mealLockView, useLockRejection, useMealLocks } from '@/components/plan-editor/meal-locks';
+import { Button } from '@/components/ui/button';
+import {
+  isRejectedTile,
+  mealLockView,
+  useLockRejection,
+  useMealLocks,
+  useRestoreRejected,
+} from '@/components/plan-editor/meal-locks';
 import SyncConflictDayPanel from '@/components/plan-editor/sync-conflicts/SyncConflictDayPanel';
 import { useSyncConflicts } from '@/components/plan-editor/sync-conflicts/SyncConflictsContext';
 import { MAX_NOTE_LENGTH, type EditorMeal } from '@/components/plan-editor/plan-editor-types';
@@ -87,6 +94,7 @@ export default function MealBlock({
   const conflict = conflicts?.forMeal(weekIndex, meal.mealId);
   const locks = useMealLocks();
   const rejected = isRejectedTile(useLockRejection(), meal.mealId, weekIndex + 1, dayOfWeek);
+  const restore = useRestoreRejected();
   // A locked meal reads like a read-only one: it neither moves nor takes a drop, and its controls are gone.
   const locked = locks ? mealLockView(locks, meal.mealId, weekIndex + 1, dayOfWeek).locked : false;
   const frozen = readOnly || locked;
@@ -175,6 +183,22 @@ export default function MealBlock({
             >
               {t('planEditor.day.percentOfDay', { percent: Math.round((totals.kcal / dayKcal) * 100) })}
             </span>
+          )}
+          {rejected && restore && (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              data-testid="meal-restore"
+              className="ml-auto"
+              onPointerDown={(event) => event.stopPropagation()}
+              onClick={(event) => {
+                event.stopPropagation();
+                restore();
+              }}
+            >
+              {t('planEditor.locks.restore')}
+            </Button>
           )}
           {!frozen && (
             <span className="ml-auto flex items-center gap-1">

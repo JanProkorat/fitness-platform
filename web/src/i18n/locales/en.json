@@ -2267,8 +2267,11 @@
       "dayLocked": "{{day}} is in the past and locked",
       "close": "Close",
       "rowLocked": "This row has meals that are eaten or in the past, so it can't be removed.",
-      "mealLockedError": "A meal was eaten or locked while you were editing, so the plan wasn't saved. Your edits are still here: fix the outlined meal and save again.",
-      "pastDayLockedError": "A day passed while you were editing and meals can't be added to it. The plan wasn't saved. Your edits are still here: fix the outlined meal and save again.",
+      "mealLockedError": "A meal was eaten or locked while you were editing, so the plan wasn't saved. Your edits are still here.",
+      "pastDayLockedError": "A day passed while you were editing and meals can't be added to it. The plan wasn't saved. Your edits are still here.",
+      "restore": "Restore what the client ate",
+      "fixOutlined": "Fix the outlined meal and save again.",
+      "fixRemoved": "Restore the removed meal and save again.",
       "legend": {
         "label": "Meal colours",
         "eaten": "Eaten",

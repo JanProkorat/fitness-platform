@@ -15,9 +15,11 @@ import {
   isRejectedTile,
   useLockRejection,
   useMealLocks,
+  useRestoreRejected,
   type MealLockView,
 } from '@/components/plan-editor/meal-locks';
 import MealRowInsertLine from '@/components/plan-editor/MealRowInsertLine';
+import { Button } from '@/components/ui/button';
 import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Textarea } from '@/components/ui/textarea';
 import { usePopoverBoundary } from '@/components/plan-editor/PopoverBoundary';
@@ -125,6 +127,7 @@ function MealCell({
   const boundary = usePopoverBoundary();
   const locked = lock?.locked ?? false;
   const rejected = isRejectedTile(useLockRejection(), meal?.mealId, weekIndex + 1, dayOfWeek);
+  const restore = useRestoreRejected();
   const { ref: dropRef, isDropTarget } = useDroppable({
     id: `cell:${weekIndex}:${dayOfWeek}:${rowIndex}`,
     data: { weekIndex, dayOfWeek, rowIndex },
@@ -216,7 +219,7 @@ function MealCell({
               'cursor-grab hover:-translate-y-px hover:shadow-raised-hover active:cursor-grabbing motion-reduce:hover:translate-y-0',
             selected && 'border-solid border-ink ring-2 ring-ink',
             // The tile the server refused to save: a ring, so nothing shifts.
-            rejected && 'border-solid border-error ring-2 ring-error',
+            rejected && 'relative border-solid border-error ring-2 ring-error',
             // While the contents slide, this slot shows another meal's, so only a source that stays put is dimmed.
             isDragging && cellDrag?.mode !== 'move' && 'opacity-50',
             band === 'source' && !labelMoving && 'opacity-50',
@@ -238,6 +241,30 @@ function MealCell({
             pastEmpty={pastDay && shownCount === 0}
           />
           {conflict && <ConflictBadge className="absolute top-2 right-2 size-5" />}
+          {rejected && restore && (
+            // A span, not a nested button; it overlays the tile's bottom edge so the tile does not grow.
+            <Button asChild size="sm" variant="outline" className="absolute inset-x-2 bottom-2 h-auto min-h-0 py-1 text-meta">
+              <span
+                role="button"
+                tabIndex={0}
+                data-testid="meal-restore"
+                onPointerDown={(event) => event.stopPropagation()}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  restore();
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    restore();
+                  }
+                }}
+              >
+                <span className="truncate">{t('planEditor.locks.restore')}</span>
+              </span>
+            </Button>
+          )}
         </button>
       </PopoverAnchor>
       {detailOpen && (
