@@ -3,11 +3,14 @@ import { useMutation } from '@tanstack/react-query';
 import { deleteAccount } from '@/api/settings';
 import { useAuthStore } from '@/stores/auth';
 
-/** Deletes the account, then signs out. A failure leaves the user signed in. */
+/**
+ * Deletes the account, then signs out and forgets the user's unsent offline writes (the server no longer has an
+ * account to take them). A failure leaves the user signed in.
+ */
 export function useDeleteAccount() {
   const mutation = useMutation({
     mutationFn: deleteAccount,
-    onSuccess: () => useAuthStore.getState().logout(),
+    onSuccess: () => useAuthStore.getState().logout({ discardOutbox: true }),
   });
 
   return {
