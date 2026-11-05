@@ -38,7 +38,7 @@ public class OfflineSyncConflictDto
     /// <summary>Meal kind at sync time.</summary>
     public MealKind MealKind { get; set; }
 
-    /// <summary>False when the meal had left the plan, so no meal log was written.</summary>
+    /// <summary>False when the meal had left the plan and the client sent no seen items, so no meal log was written.</summary>
     public bool MealLogged { get; set; }
 
     /// <summary>When the client performed the action offline (UTC).</summary>
@@ -88,6 +88,9 @@ public class OfflineSyncConflictDto
 /// </summary>
 public class SeenMealItemDto
 {
+    /// <summary>Plan item id of the item; matches the item tags on the plan's meal lock.</summary>
+    public Guid ItemId { get; set; }
+
     /// <summary>Whether the item was a food or a recipe.</summary>
     public SeenMealItemKind Kind { get; set; }
 
@@ -103,13 +106,30 @@ public class SeenMealItemDto
     /// <summary>Energy the client showed, in kcal.</summary>
     public decimal Kcal { get; set; }
 
+    /// <summary>Protein the client showed, in grams.</summary>
+    public decimal Protein { get; set; }
+
+    /// <summary>Carbohydrates the client showed, in grams.</summary>
+    public decimal Carbs { get; set; }
+
+    /// <summary>Fat the client showed, in grams.</summary>
+    public decimal Fat { get; set; }
+
+    /// <summary>Fibre the client showed, in grams.</summary>
+    public decimal Fibre { get; set; }
+
     /// <summary>Maps the stored item to the DTO.</summary>
     public static SeenMealItemDto FromDocument(SeenMealItem item) => new()
     {
+        ItemId = item.ItemId,
         Kind = item.Kind,
         RefId = item.RefId,
         Name = item.Name,
         Amount = item.Amount,
         Kcal = item.Kcal,
+        Protein = item.Protein,
+        Carbs = item.Carbs,
+        Fat = item.Fat,
+        Fibre = item.Fibre,
     };
 }

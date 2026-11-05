@@ -24,6 +24,45 @@ public static class PlanMealLockResolver
         DayDate(startDate, weekNumber, dayOfWeek) is { } date && date < clientToday;
 
     /// <summary>
+    /// <see cref="Resolve"/> plus one locked entry for each logged meal that is no longer in the plan,
+    /// flagged <see cref="PlanMealLock.IsRemovedFromPlan"/>. For coach reads only: the save path works
+    /// on stored meals and must not see these.
+    /// </summary>
+    public static List<PlanMealLock> ResolveIncludingRemoved(NutritionPlan plan, IReadOnlyCollection<MealLog> logs, DateOnly clientToday)
+    {
+        var locks = Resolve(plan, logs, clientToday);
+        var planMealIds = locks.Select(mealLock => mealLock.Meal.MealId).ToHashSet();
+
+        var removedByMeal = MealLogMerger
+            .Merge(logs.Where(log => !planMealIds.Contains(log.MealId)), (_, _, _) => null)
+            .Where(merged => merged.State != MealEatenState.NotEaten)
+            .GroupBy(merged => merged.MealId)
+            .Select(group => group.OrderByDescending(merged => merged.State).ThenByDescending(merged => merged.DayUtc).First());
+
+        foreach (var merged in removedByMeal)
+        {
+            var kind = merged.Rows.Select(row => row.MealKind).FirstOrDefault(rowKind => rowKind is not null) ?? default;
+            var date = DateOnly.FromDateTime(merged.DayUtc);
+            var daysSinceStart = plan.StartDate is { } startDate ? (merged.DayUtc.Date - startDate.Date).Days : -1;
+            var (weekNumber, dayOfWeek) = daysSinceStart >= 0
+                ? (daysSinceStart / 7 + 1, daysSinceStart % 7 + 1)
+                : (1, ((int)date.DayOfWeek + 6) % 7 + 1);
+
+            locks.Add(new PlanMealLock(
+                new PlanMeal { MealId = merged.MealId, Kind = kind },
+                weekNumber,
+                dayOfWeek,
+                date,
+                merged.State == MealEatenState.Eaten ? MealLockState.Eaten : MealLockState.PartlyEaten,
+                merged.EatenItemIds.ToList(),
+                MealItemEatenState.SnapshotOf(merged.Rows),
+                IsRemovedFromPlan: true));
+        }
+
+        return locks;
+    }
+
+    /// <summary>
     /// One verdict per stored meal. When a meal has log rows on several days, the most eaten state
     /// wins, the latest day on a tie.
     /// </summary>

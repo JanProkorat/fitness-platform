@@ -79,6 +79,44 @@ public class PlanMealLockResolverTests
     }
 
     [Fact]
+    public void ResolveIncludingRemoved_LoggedMealNoLongerInThePlan_IsALockedEatenEntryOnTheLogDay()
+    {
+        var plan = PlanWithMeal(new DateTime(2026, 11, 2, 0, 0, 0, DateTimeKind.Utc), 1, 1, out var planMeal);
+        var removedMealId = Guid.NewGuid();
+        var itemId = Guid.NewGuid();
+        var logDay = new DateTime(2026, 11, 11, 0, 0, 0, DateTimeKind.Utc);
+        var log = PlanTestHelpers.CreateMealLog(
+            plan.ExternalId, removedMealId, logDay, eatenAt: logDay.AddHours(12));
+        log.MealKind = MealKind.Dinner;
+        log.EatenItemIds = [itemId];
+        log.EatenSnapshot = [new EatenMealItem { ItemId = itemId, Name = "Soup", Kcal = 200 }];
+
+        var locks = PlanMealLockResolver.ResolveIncludingRemoved(plan, [log], Today);
+
+        locks.Should().HaveCount(2);
+        var removed = locks.Single(entry => entry.IsRemovedFromPlan);
+        removed.Meal.MealId.Should().Be(removedMealId);
+        removed.Meal.Kind.Should().Be(MealKind.Dinner);
+        removed.State.Should().Be(MealLockState.Eaten);
+        removed.IsLocked.Should().BeTrue();
+        removed.Date.Should().Be(new DateOnly(2026, 11, 11));
+        (removed.WeekNumber, removed.DayOfWeek).Should().Be((2, 3));
+        removed.EatenSnapshot.Should().ContainSingle().Which.Name.Should().Be("Soup");
+        locks.Single(entry => !entry.IsRemovedFromPlan).Meal.MealId.Should().Be(planMeal.MealId);
+    }
+
+    [Fact]
+    public void Resolve_LoggedMealNoLongerInThePlan_IsLeftOutSoTheSavePathNeverSeesIt()
+    {
+        var plan = PlanWithMeal(new DateTime(2026, 11, 2, 0, 0, 0, DateTimeKind.Utc), 1, 1, out _);
+        var log = PlanTestHelpers.CreateMealLog(
+            plan.ExternalId, Guid.NewGuid(), new DateTime(2026, 11, 3, 0, 0, 0, DateTimeKind.Utc),
+            eatenAt: new DateTime(2026, 11, 3, 12, 0, 0, DateTimeKind.Utc));
+
+        PlanMealLockResolver.Resolve(plan, [log], Today).Should().ContainSingle(entry => !entry.IsRemovedFromPlan);
+    }
+
+    [Fact]
     public void Resolve_MealLoggedOnSeveralDays_TakesTheMostEatenState()
     {
         var plan = PlanWithMeal(new DateTime(2026, 11, 2, 0, 0, 0, DateTimeKind.Utc), 1, 5, out var meal);

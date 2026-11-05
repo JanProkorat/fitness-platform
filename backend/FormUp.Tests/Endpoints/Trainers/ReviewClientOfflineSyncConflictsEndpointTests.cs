@@ -11,6 +11,7 @@ using FormUp.Application.Infrastructure.Data.MongoDb;
 using FormUp.Tests.Builders;
 using FormUp.Tests.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
+using MongoDB.Bson;
 using MongoDB.Driver;
 
 namespace FormUp.Tests.Endpoints.Trainers;
@@ -181,6 +182,31 @@ public class ReviewClientOfflineSyncConflictsEndpointTests(FitnessApiFactory fac
         var again = await ReviewAllAsync(coach, client.PublicId, planId);
         (await again.Content.ReadFromJsonAsync<ReviewAllClientOfflineSyncConflictsResponse>(Json, Ct))!
             .ReviewedCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Review_AndReviewAll_LeaveThePlanVersionAndTheMealLogUnchanged()
+    {
+        var (coach, client) = await SeedLinkedPairAsync();
+        var seeded = await MealItemPlanSeeder.SeedAsync(factory, client.UserId);
+        await MealItemPlanSeeder.SetNutritionistAsync(factory, seeded.PlanId, coach.UserId);
+        await MealItemPlanSeeder.InsertLogAsync(
+            factory, client.UserId, seeded, DateTime.UtcNow, seeded.FoodAId, seeded.FoodBId, seeded.RecipeId);
+        var single = await InsertConflictAsync(client.UserId, coach.UserId, seeded.PlanId);
+        var rest = await InsertConflictAsync(client.UserId, coach.UserId, seeded.PlanId);
+        var planBefore = await MealItemPlanSeeder.LoadPlanAsync(factory, seeded);
+        var logBefore = (await MealItemPlanSeeder.LoadLogsAsync(factory, client.UserId, seeded.MealId)).Single();
+
+        (await ReviewAsync(coach, client.PublicId, single)).StatusCode.Should().Be(HttpStatusCode.NoContent);
+        (await ReviewAllAsync(coach, client.PublicId, seeded.PlanId)).StatusCode.Should().Be(HttpStatusCode.OK);
+
+        (await LoadAsync(single)).ReviewedAt.Should().NotBeNull();
+        (await LoadAsync(rest)).ReviewedAt.Should().NotBeNull();
+        var planAfter = await MealItemPlanSeeder.LoadPlanAsync(factory, seeded);
+        planAfter.Version.Should().Be(planBefore.Version);
+        planAfter.ToJson().Should().Be(planBefore.ToJson());
+        var logAfter = (await MealItemPlanSeeder.LoadLogsAsync(factory, client.UserId, seeded.MealId)).Single();
+        logAfter.ToJson().Should().Be(logBefore.ToJson());
     }
 
     [Fact]

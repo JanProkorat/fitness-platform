@@ -74,7 +74,7 @@ public class OfflineSyncConflict
     [BsonRepresentation(BsonType.String)]
     public MealKind MealKind { get; set; }
 
-    /// <summary>Whether a meal log was written for the action (false when the meal was removed).</summary>
+    /// <summary>Whether a meal log was written for the action (false when the meal was removed and the client sent no seen items).</summary>
     [BsonElement("mealLogged")]
     public bool MealLogged { get; set; }
 

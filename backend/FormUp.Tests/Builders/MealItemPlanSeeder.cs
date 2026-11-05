@@ -148,6 +148,56 @@ public static class MealItemPlanSeeder
             meal.Recipes.RemoveAll(recipe => recipe.ItemId == itemId);
         }));
 
+    /// <summary>
+    /// Stamps the meal with <paramref name="planVersion"/> as its last change and moves the plan to
+    /// that version, as a coach save that edited the meal would.
+    /// </summary>
+    public static Task StampMealChangeAsync(FitnessApiFactory factory, SeededItemMeal seeded, int planVersion) =>
+        MutatePlanAsync(factory, seeded.PlanId, plan =>
+        {
+            plan.Version = planVersion;
+            ForEachMeal(plan, seeded.MealId, meal => meal.ChangedAtPlanVersion = planVersion);
+        });
+
+    /// <summary>
+    /// Removes the meal from every day and records the removal at <paramref name="planVersion"/>, as a
+    /// coach save that deleted it would.
+    /// </summary>
+    public static Task RemoveMealAsync(FitnessApiFactory factory, SeededItemMeal seeded, int planVersion) =>
+        MutatePlanAsync(factory, seeded.PlanId, plan =>
+        {
+            plan.Version = planVersion;
+            plan.RemovedMeals.Add(new RemovedPlanMeal
+            {
+                MealId = seeded.MealId,
+                Kind = MealKind.Lunch,
+                WeekNumber = 1,
+                DayOfWeek = 1,
+                RemovedAtPlanVersion = planVersion,
+                RemovedAt = DateTime.UtcNow,
+            });
+
+            foreach (var day in plan.Weeks.SelectMany(week => week.Days))
+            {
+                day.Meals.RemoveAll(meal => meal.MealId == seeded.MealId);
+            }
+        });
+
+    /// <summary>Drops the plan's removed-meal records, as the pruning of a later save would.</summary>
+    public static Task ClearRemovedMealsAsync(FitnessApiFactory factory, SeededItemMeal seeded) =>
+        MutatePlanAsync(factory, seeded.PlanId, plan => plan.RemovedMeals.Clear());
+
+    /// <summary>Loads the stored plan.</summary>
+    public static async Task<NutritionPlan> LoadPlanAsync(FitnessApiFactory factory, SeededItemMeal seeded)
+    {
+        using var scope = factory.Services.CreateScope();
+        var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+
+        return await mongo.NutritionPlans
+            .Find(p => p.ExternalId == seeded.PlanId)
+            .FirstAsync(TestContext.Current.CancellationToken);
+    }
+
     private static void ForEachMeal(NutritionPlan plan, Guid mealId, Action<PlanMeal> edit)
     {
         foreach (var meal in plan.Weeks.SelectMany(week => week.Days).SelectMany(day => day.Meals).Where(meal => meal.MealId == mealId))

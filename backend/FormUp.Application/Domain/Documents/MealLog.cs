@@ -1,3 +1,4 @@
+using FormUp.Application.Domain.Enums;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 
@@ -93,6 +94,15 @@ public class MealLog
     [BsonElement("note")]
     [BsonIgnoreIfNull]
     public string? Note { get; set; }
+
+    /// <summary>
+    /// Kind of the meal when the row was written. Lets a meal the coach has since removed from the plan
+    /// still be placed. Null on rows written before this field existed.
+    /// </summary>
+    [BsonElement("mealKind")]
+    [BsonRepresentation(BsonType.String)]
+    [BsonIgnoreIfNull]
+    public MealKind? MealKind { get; set; }
 
     /// <summary>
     /// The <c>NutritionPlan.Version</c> the client saw when it logged this meal offline.

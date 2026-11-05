@@ -53,7 +53,7 @@ public class LogMealEatenEndpoint(
             s.Summary = "Log a meal as eaten";
             s.Description = "Records that the client has eaten a specific meal from their active nutrition plan. "
                 + "An offline-synced request whose plan snapshot is stale is still recorded and flagged in the body.";
-            s.Responses[StatusCodes.Status201Created] = "Meal logged; syncConflict flags a collision with a plan change, and mealLogged is false when the meal left the plan";
+            s.Responses[StatusCodes.Status201Created] = "Meal logged; syncConflict flags a collision with a plan change; a meal that left the plan is still logged from the items the client saw, and mealLogged is false only when it left the plan and the request carried no seen items";
             s.Responses[StatusCodes.Status400BadRequest] = "Invalid request";
             s.Responses[StatusCodes.Status401Unauthorized] = "Missing or unreadable caller claim";
             s.Responses[StatusCodes.Status404NotFound] = "No such meal in the client's plans";
@@ -124,13 +124,25 @@ public class LogMealEatenEndpoint(
                 return;
             }
 
+            // What the client ate is what it saw; with no seen items there is nothing to snapshot, so
+            // no log is written and only the conflict records the action.
+            var logRemovedMeal = req.SeenMealItems is { Count: > 0 };
+
+            if (logRemovedMeal)
+            {
+                await WriteMealLogAsync(
+                    req, removed.Value.Plan.ExternalId, removed.Value.Kind, null, clientId, now, todayLocalUtc,
+                    windowStartUtc, windowEndUtc, ct);
+            }
+
             conflict = NewConflict(
                 removed.Value.Plan, removed.Value.Kind, removed.Value.ChangedAtPlanVersion, req, clientId,
-                OfflineSyncConflictKind.MealRemoved, mealLogged: false, now, todayLocalUtc);
+                OfflineSyncConflictKind.MealRemoved, logRemovedMeal, now, todayLocalUtc);
         }
         else
         {
-            await WriteMealLogAsync(req, plan, meal, clientId, now, todayLocalUtc, windowStartUtc, windowEndUtc, ct);
+            await WriteMealLogAsync(
+                req, plan.ExternalId, meal.Kind, meal, clientId, now, todayLocalUtc, windowStartUtc, windowEndUtc, ct);
 
             if (req.BasedOnPlanVersion is { } basedOn && meal.ChangedAtPlanVersion > basedOn)
             {
@@ -294,15 +306,19 @@ public class LogMealEatenEndpoint(
             : LogMealEatenResponse.FromConflict(conflict.Kind, conflict.MealLogged);
     }
 
+    /// <summary>
+    /// Writes or revives the day's log row for the meal. <paramref name="meal"/> is the live plan meal,
+    /// or null for a meal that has left the plan (the request's seen items are then the only source).
+    /// </summary>
     private async Task WriteMealLogAsync(
-        LogMealEatenRequest req, NutritionPlan plan, PlanMeal meal, Guid clientId, DateTime now,
+        LogMealEatenRequest req, Guid planId, MealKind mealKind, PlanMeal? meal, Guid clientId, DateTime now,
         DateTime todayLocalUtc, DateTime windowStartUtc, DateTime windowEndUtc, CancellationToken ct)
     {
         // Same lookup as SaveMealPhotos: a photo-only row kept by an unmark (or created by a
         // photo save) is revived instead of duplicated, so one meal has one row per day.
         var existingFilter = Builders<MealLog>.Filter.And(
             Builders<MealLog>.Filter.Eq(l => l.ClientId, clientId),
-            Builders<MealLog>.Filter.Eq(l => l.PlanId, plan.ExternalId),
+            Builders<MealLog>.Filter.Eq(l => l.PlanId, planId),
             Builders<MealLog>.Filter.Eq(l => l.MealId, req.MealId),
             Builders<MealLog>.Filter.Or(
                 Builders<MealLog>.Filter.Eq(l => l.LogDate, todayLocalUtc),
@@ -316,18 +332,22 @@ public class LogMealEatenEndpoint(
         var note = string.IsNullOrWhiteSpace(req.Note) ? null : req.Note.Trim();
 
         // An offline request carries the items the client saw; they are what was eaten, even when the
-        // live plan has moved on. An online request snapshots the live meal.
-        var snapshot = req.SeenMealItems is { Count: > 0 }
-            ? req.SeenMealItems.Select(ToEatenItem).ToList()
-            : MealItemEatenState.BuildSnapshot(meal);
+        // live plan has moved on. A request without them (online, or a legacy queue) snapshots the live
+        // meal and keeps its foods in FoodsEaten.
+        var hasSeenItems = req.SeenMealItems is { Count: > 0 };
+        var snapshot = hasSeenItems
+            ? req.SeenMealItems!.Select(ToEatenItem).ToList()
+            : meal is null ? [] : MealItemEatenState.BuildSnapshot(meal);
+        List<MealFood> foodsEaten = hasSeenItems || meal is null ? [] : meal.Foods;
 
         if (existingLog is null)
         {
             var mealLog = new MealLog
             {
                 ClientId = clientId,
-                PlanId = plan.ExternalId,
+                PlanId = planId,
                 MealId = req.MealId,
+                MealKind = mealKind,
                 // LogDate is the CLIENT's local calendar day (#935) — todayLocalUtc, not now.Date
                 // (the server's UTC day), so a meal logged near local midnight is filed under the
                 // day the client's own Today card shows. EatenAt stays the true UTC instant.
@@ -335,7 +355,7 @@ public class LogMealEatenEndpoint(
                 EatenAt = now,
                 EatenItemIds = snapshot.Select(item => item.ItemId).ToList(),
                 EatenSnapshot = snapshot,
-                FoodsEaten = meal.Foods,
+                FoodsEaten = foodsEaten,
                 Photos = (req.PhotoBlobUrls ?? [])
                     .Select(url => new MealPhoto { BlobUrl = url, UploadedAt = now })
                     .ToList(),
@@ -369,12 +389,14 @@ public class LogMealEatenEndpoint(
             .Set(l => l.EatenAt, now)
             .Set(l => l.EatenItemIds, eatenItemIds)
             .Set(l => l.LogDate, todayLocalUtc)
-            .Set(l => l.FoodsEaten, meal.Foods)
+            .Set(l => l.MealKind, mealKind)
             .Set(l => l.Photos, photos);
 
         if (writeSnapshot)
         {
-            update = update.Set(l => l.EatenSnapshot, snapshot);
+            update = update
+                .Set(l => l.EatenSnapshot, snapshot)
+                .Set(l => l.FoodsEaten, foodsEaten);
         }
 
         if (note is not null)

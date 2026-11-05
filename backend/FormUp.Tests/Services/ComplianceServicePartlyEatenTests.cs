@@ -1,4 +1,7 @@
+using FormUp.Application.Domain.Documents;
+using FormUp.Application.Domain.Enums;
 using FormUp.Application.Domain.Interfaces;
+using FormUp.Application.Infrastructure.Data.MongoDb;
 using FormUp.Tests.Builders;
 using FormUp.Tests.Infrastructure;
 using FluentAssertions;
@@ -135,6 +138,63 @@ public class ComplianceServicePartlyEatenTests(FitnessApiFactory factory)
 
         result.MealsEatenShare.Should().BeApproximately(1m / 3m, 0.0001m);
         result.MealsPartlyEaten.Should().Be(1);
+    }
+
+    private async Task InsertSnapshotLogAsync(Guid clientUserId, SeededItemMeal seeded, params Guid[] snapshotItemIds)
+    {
+        using var scope = factory.Services.CreateScope();
+        var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+
+        await mongo.MealLogs.InsertOneAsync(
+            new MealLog
+            {
+                ClientId = clientUserId,
+                PlanId = seeded.PlanId,
+                MealId = seeded.MealId,
+                MealKind = MealKind.Lunch,
+                LogDate = MealItemPlanSeeder.Today,
+                EatenAt = DateTime.UtcNow,
+                EatenItemIds = snapshotItemIds.ToList(),
+                EatenSnapshot = snapshotItemIds.Select(itemId => new EatenMealItem { ItemId = itemId, Name = "Seen", Kcal = 100m }).ToList(),
+            },
+            cancellationToken: TestContext.Current.CancellationToken);
+    }
+
+    [Fact]
+    public async Task Compliance_MealEatenThenRemovedFromThePlan_CountsAsPlannedAndEatenNotOverOneHundredPercent()
+    {
+        var clientId = Guid.NewGuid();
+        var seeded = await MealItemPlanSeeder.SeedAsync(factory, clientId);
+        await InsertSnapshotLogAsync(clientId, seeded, seeded.FoodAId, seeded.FoodBId, seeded.RecipeId);
+        await MealItemPlanSeeder.RemoveMealAsync(factory, seeded, planVersion: 2);
+
+        var result = await ComplianceAsync(clientId);
+
+        result.MealsPlanned.Should().Be(1, "the removed meal was eaten, so it joins the planned count");
+        result.MealsLogged.Should().Be(1);
+        result.MealsEatenShare.Should().Be(1m);
+        result.NutritionCompliancePercent.Should().Be(100m);
+    }
+
+    [Fact]
+    public async Task Compliance_MealEatenOfflineThenChangedByTheCoach_ScoresAsEatenByTheClientVersion()
+    {
+        var clientId = Guid.NewGuid();
+        var seeded = await MealItemPlanSeeder.SeedAsync(factory, clientId);
+        var droppedByCoach = Guid.NewGuid();
+        // The client ate the foods, the recipe and an item the coach has since dropped; the coach then
+        // removed food B and the recipe from the live meal.
+        await InsertSnapshotLogAsync(clientId, seeded, seeded.FoodAId, seeded.FoodBId, seeded.RecipeId, droppedByCoach);
+        await MealItemPlanSeeder.RemoveItemAsync(factory, seeded, seeded.FoodBId);
+        await MealItemPlanSeeder.RemoveItemAsync(factory, seeded, seeded.RecipeId);
+
+        var result = await ComplianceAsync(clientId);
+
+        result.MealsPlanned.Should().Be(1);
+        result.MealsLogged.Should().Be(1, "every item the client saw is eaten, whatever the live meal holds");
+        result.MealsPartlyEaten.Should().Be(0);
+        result.MealsEatenShare.Should().Be(1m);
+        result.NutritionCompliancePercent.Should().Be(100m);
     }
 
     [Fact]

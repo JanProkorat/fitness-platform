@@ -94,7 +94,21 @@ public class GetPlanEndpoint(
 
         var clientTimeZone = await db.ResolveClientTimeZoneAsync(plan.ClientId, ct);
         response.ClientToday = ClientLocalDateResolver.ResolveLocalDate(timeProvider.GetUtcNow().UtcDateTime, clientTimeZone);
-        response.MealLocks = PlanMealLockResolver.Resolve(plan, mealLogs, response.ClientToday)
+
+        // Conflicts are read only after the ownership gate above, and by plan AND client, never by meal id alone.
+        var conflictFilter = Builders<OfflineSyncConflict>.Filter.Eq(c => c.PlanId, plan.ExternalId)
+                             & Builders<OfflineSyncConflict>.Filter.Eq(c => c.ClientId, plan.ClientId);
+        var conflictCursor = await mongo.OfflineSyncConflicts.FindAsync(conflictFilter, cancellationToken: ct);
+        var conflictByMeal = (await conflictCursor.ToListAsync(ct))
+            .GroupBy(conflict => conflict.MealId)
+            .ToDictionary(
+                group => group.Key,
+                group => group
+                    .OrderBy(conflict => conflict.ReviewedAt.HasValue)
+                    .ThenByDescending(conflict => conflict.DateCreated)
+                    .First());
+
+        response.MealLocks = PlanMealLockResolver.ResolveIncludingRemoved(plan, mealLogs, response.ClientToday)
             .Select(mealLock => new MealLockDto
             {
                 MealId = mealLock.Meal.MealId,
@@ -104,10 +118,78 @@ public class GetPlanEndpoint(
                 IsLocked = mealLock.IsLocked,
                 LockState = mealLock.State,
                 EatenItemIds = mealLock.EatenItemIds.ToList(),
-                EatenSnapshot = mealLock.IsLocked ? mealLock.EatenSnapshot?.ToList() : null
+                EatenSnapshot = mealLock.IsLocked ? mealLock.EatenSnapshot?.ToList() : null,
+                IsRemovedFromPlan = mealLock.IsRemovedFromPlan,
+                MealKind = mealLock.Meal.Kind,
+                Conflict = mealLock.IsLocked && conflictByMeal.TryGetValue(mealLock.Meal.MealId, out var conflict)
+                    ? ToConflictDto(conflict, plan.Version, mealLock.IsRemovedFromPlan ? null : mealLock.Meal)
+                    : null
             })
             .ToList();
 
         await Send.OkAsync(response, ct);
+    }
+
+    private static MealLockConflictDto ToConflictDto(OfflineSyncConflict conflict, int currentPlanVersion, PlanMeal? coachMeal) => new()
+    {
+        ConflictId = conflict.ExternalId,
+        Kind = conflict.Kind,
+        BasedOnPlanVersion = conflict.BasedOnPlanVersion,
+        CurrentPlanVersion = currentPlanVersion,
+        Reviewed = conflict.ReviewedAt.HasValue,
+        ItemTags = BuildItemTags(coachMeal, conflict.SeenItems)
+    };
+
+    /// <summary>
+    /// Tags each item that differs between what the client saw and the coach's current meal. A null
+    /// meal (removed from the plan) tags every seen item as removed.
+    /// </summary>
+    private static List<MealItemConflictTagDto> BuildItemTags(PlanMeal? coachMeal, IReadOnlyCollection<SeenMealItem> seenItems)
+    {
+        if (seenItems.Count == 0)
+        {
+            return [];
+        }
+
+        var coachItems = coachMeal is null
+            ? new Dictionary<Guid, EatenMealItem>()
+            : MealItemEatenState.BuildSnapshot(coachMeal).ToDictionary(item => item.ItemId);
+        var seenIds = seenItems.Select(item => item.ItemId).ToHashSet();
+        var tags = new List<MealItemConflictTagDto>();
+
+        foreach (var seen in seenItems)
+        {
+            if (!coachItems.TryGetValue(seen.ItemId, out var coachItem))
+            {
+                tags.Add(new MealItemConflictTagDto { ItemId = seen.ItemId, Tag = MealItemConflictTag.Removed });
+            }
+            else if (DiffersFromCoachItem(seen, coachItem))
+            {
+                tags.Add(new MealItemConflictTagDto { ItemId = seen.ItemId, Tag = MealItemConflictTag.Changed });
+            }
+        }
+
+        tags.AddRange(coachItems.Keys
+            .Where(itemId => !seenIds.Contains(itemId))
+            .Select(itemId => new MealItemConflictTagDto { ItemId = itemId, Tag = MealItemConflictTag.Added }));
+
+        return tags;
+    }
+
+    /// <summary>
+    /// Whether the seen item is a different food, amount or nutrient set. Nutrients tolerate rounding
+    /// differences between the client's display values and the stored ones.
+    /// </summary>
+    private static bool DiffersFromCoachItem(SeenMealItem seen, EatenMealItem coach)
+    {
+        const decimal tolerance = 0.5m;
+
+        return seen.RefId != coach.RefId
+               || seen.Amount != coach.Amount
+               || Math.Abs(seen.Kcal - coach.Kcal) > tolerance
+               || Math.Abs(seen.Protein - coach.Protein) > tolerance
+               || Math.Abs(seen.Carbs - coach.Carbs) > tolerance
+               || Math.Abs(seen.Fat - coach.Fat) > tolerance
+               || Math.Abs(seen.Fibre - coach.Fibre) > tolerance;
     }
 }
