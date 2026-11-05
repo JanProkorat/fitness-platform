@@ -8,7 +8,8 @@ import { NotificationEvent, turnOffEmail, turnOnEmail } from '@/api/email-links'
 import type { EmailLinkTurnOffResponse } from '@/api/email-links';
 import { profileKeys } from '@/api/profile';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import Wordmark from '@/components/brand/Wordmark';
+import { Card, CardContent, CardDescription, CardTitle } from '@/components/ui/card';
 
 /** Same labels as Settings > Notifications (`settings.notifications.events.<key>.title`). */
 const EVENT_LABEL_KEY: Record<NotificationEvent, string> = {
@@ -69,20 +70,16 @@ export default function EmailTurnOffPage() {
   });
 
   const shell = (children: ReactNode) => (
-    <div className="relative flex min-h-screen items-center justify-center bg-background p-6">
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0 [background:radial-gradient(120%_70%_at_50%_0%,var(--color-sunken)_0%,transparent_60%)]"
-      />
-      <Card className="relative" data-testid="email-turn-off">
-        <CardHeader>
-          <span className="flex size-7.5 items-center justify-center rounded-md bg-marker text-caption font-bold tracking-wide text-on-dark">
-            {t('entry.brandMark')}
-          </span>
-          <span>{t('entry.brand')}</span>
-        </CardHeader>
-        {children}
-      </Card>
+    <div className="email-page-wash flex min-h-screen flex-col bg-background">
+      <header className="flex h-19 shrink-0 items-center px-4 sm:px-10 lg:px-16">
+        <Wordmark to="/" />
+      </header>
+      <main className="flex flex-1 items-center justify-center px-6 pb-19">
+        <Card data-testid="email-turn-off">{children}</Card>
+      </main>
+      <footer className="flex h-14 shrink-0 items-center justify-center text-caption text-muted-foreground">
+        {t('emailOff.footer')}
+      </footer>
     </div>
   );
 
