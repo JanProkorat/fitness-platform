@@ -2,13 +2,12 @@ import { queryClient } from '@/lib/queryClient';
 import { classifyFailure, describeFailure } from '@/lib/outbox/classify';
 import { describeEntry, recordSyncOutcome } from '@/lib/outbox/label';
 import { invalidationKeys, sendEntry } from '@/lib/outbox/send';
+import { OUTBOX_MAX_AGE_MS } from '@/lib/outbox/types';
 import type { OutboxKind } from '@/lib/outbox/types';
 import { useAuthStore } from '@/stores/auth';
 import { useOutboxStore } from '@/stores/outbox';
 
-const DAY_MS = 24 * 60 * 60 * 1000;
-/** The server rejects anything older, so an older entry is dropped on the device. */
-export const OUTBOX_MAX_AGE_MS = 7 * DAY_MS;
+export { OUTBOX_MAX_AGE_MS };
 const BACKOFF_BASE_MS = 30_000;
 const BACKOFF_MAX_MS = 5 * 60_000;
 
@@ -35,13 +34,15 @@ function startBackoff(wait: 'none' | 'rateLimit' | 'backoff'): void {
 /**
  * Sends the queued writes strictly in order, one at a time. Single-flight: a call while one is running does
  * nothing. Runs only for a signed-in session that already holds an access token, and stops as soon as that
- * session ends, so one user's writes never go out under another user's token.
+ * session ends, so one user's writes never go out under another user's token. Only the session user's own queue
+ * is ever read here.
  */
 export async function drainOutbox(): Promise<void> {
   if (running) return;
   const auth = useAuthStore.getState();
-  if (!auth.isAuthenticated || !auth.accessToken) return;
+  if (!auth.isAuthenticated || !auth.accessToken || !auth.sessionUserId) return;
   const generation = auth.sessionGeneration;
+  const owner = auth.sessionUserId;
   if (generation !== trackedGeneration) {
     trackedGeneration = generation;
     nextAttemptAt = 0;
@@ -50,7 +51,13 @@ export async function drainOutbox(): Promise<void> {
   }
   const alive = (): boolean => {
     const state = useAuthStore.getState();
-    return state.isAuthenticated && state.sessionGeneration === generation;
+    // The queue in memory must still belong to the session user, or nothing is sent.
+    return (
+      state.isAuthenticated &&
+      state.sessionGeneration === generation &&
+      state.sessionUserId === owner &&
+      useOutboxStore.getState().ownerUserId === owner
+    );
   };
 
   running = true;
