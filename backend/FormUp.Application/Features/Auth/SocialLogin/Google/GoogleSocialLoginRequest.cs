@@ -22,4 +22,10 @@ public class GoogleSocialLoginRequest
     /// Empty or absent means Client. Ignored when the Google identity is already linked to an account.
     /// </summary>
     public List<string> Roles { get; set; } = [];
+
+    /// <summary>
+    /// Art. 9 health-data consent. Must be <c>true</c> when a new Client account is created and
+    /// must be absent for a coach sign-up. Ignored when the Google identity is already linked.
+    /// </summary>
+    public bool? HealthDataConsent { get; set; }
 }

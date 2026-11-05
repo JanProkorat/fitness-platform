@@ -42,4 +42,32 @@ public class SocialLoginRolesValidationWiringTests(FitnessApiFactory factory)
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
         (await response.Content.ReadAsStringAsync(Ct)).Should().Contain(SocialSignUpRoles.InvalidRoleMessage);
     }
+
+    [Fact]
+    public async Task GoogleSocialLogin_CoachWithHealthDataConsent_Returns400BeforeHandler()
+    {
+        using var http = factory.CreateClient();
+
+        var response = await http.PostAsJsonAsync(
+            "/auth/social/google",
+            new { idToken = "token", nonce = "nonce", roles = new[] { "Trainer" }, healthDataConsent = true },
+            Ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await response.Content.ReadAsStringAsync(Ct)).Should().Contain(SocialSignUpRoles.CoachHealthDataConsentMessage);
+    }
+
+    [Fact]
+    public async Task AppleSocialLogin_CoachWithHealthDataConsent_Returns400BeforeHandler()
+    {
+        using var http = factory.CreateClient();
+
+        var response = await http.PostAsJsonAsync(
+            "/auth/social/apple",
+            new { identityToken = "token", nonce = "nonce", roles = new[] { "Nutritionist" }, healthDataConsent = true },
+            Ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await response.Content.ReadAsStringAsync(Ct)).Should().Contain(SocialSignUpRoles.CoachHealthDataConsentMessage);
+    }
 }
