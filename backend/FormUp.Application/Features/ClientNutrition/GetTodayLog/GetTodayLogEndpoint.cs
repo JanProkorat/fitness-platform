@@ -150,10 +150,13 @@ public class GetTodayLogEndpoint(IMongoContext mongo, IApplicationDbContext db, 
         {
             planMeals.TryGetValue(log.MealId, out var planMeal);
             var eatenIds = MealItemEatenState.EffectiveEatenIds(log, planMeal);
-            var state = MealItemEatenState.StateOf(planMeal, eatenIds, log.EatenAt is not null);
-            var totals = state == MealEatenState.PartlyEaten && planMeal is not null
-                ? MealItemEatenState.EatenTotals(planMeal, eatenIds)
-                : planMeal?.MealTotals ?? CalculateTotals(log.FoodsEaten);
+            var state = MealItemEatenState.StateOf(
+                MealItemEatenState.ItemIds(log, planMeal), eatenIds, log.EatenAt is not null);
+            // A snapshot row reports what was eaten from its own snapshot, whatever the live plan says now.
+            var totals = MealItemEatenState.SnapshotTotals(log.EatenSnapshot, eatenIds)
+                         ?? (state == MealEatenState.PartlyEaten && planMeal is not null
+                             ? MealItemEatenState.EatenTotals(planMeal, eatenIds)
+                             : planMeal?.MealTotals ?? CalculateTotals(log.FoodsEaten));
 
             return new TodayMealLogDto
             {

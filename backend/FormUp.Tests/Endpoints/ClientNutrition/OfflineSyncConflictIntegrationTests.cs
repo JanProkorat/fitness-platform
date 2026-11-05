@@ -76,8 +76,16 @@ public class OfflineSyncConflictIntegrationTests(FitnessApiFactory factory)
 
     private static List<SeenMealItemRequest> SeenItems() =>
     [
-        new() { Kind = SeenMealItemKind.Food, RefId = Guid.NewGuid(), Name = "Rice", Amount = 150m, Kcal = 195m },
-        new() { Kind = SeenMealItemKind.Recipe, RefId = Guid.NewGuid(), Name = "Chili", Amount = 1m, Kcal = 420m },
+        new()
+        {
+            ItemId = Guid.NewGuid(), Kind = SeenMealItemKind.Food, RefId = Guid.NewGuid(), Name = "Rice", Amount = 150m,
+            Kcal = 195m, Protein = 4m, Carbs = 42m, Fat = 0.5m, Fibre = 1m,
+        },
+        new()
+        {
+            ItemId = Guid.NewGuid(), Kind = SeenMealItemKind.Recipe, RefId = Guid.NewGuid(), Name = "Chili", Amount = 1m,
+            Kcal = 420m, Protein = 30m, Carbs = 40m, Fat = 12m, Fibre = 9m,
+        },
     ];
 
     private static async Task<LogMealEatenResponse> ReadAsync(HttpResponseMessage response) =>

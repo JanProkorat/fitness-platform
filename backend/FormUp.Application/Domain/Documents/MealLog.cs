@@ -64,6 +64,15 @@ public class MealLog
     public List<Guid> EatenItemIds { get; set; } = [];
 
     /// <summary>
+    /// The meal's items as they stood when the row first got an eaten item. When set, the row's item
+    /// set, eaten state and eaten totals come from here instead of the live plan meal. Null on rows
+    /// written before snapshots existed and on photo-only rows; cleared when nothing is eaten any more.
+    /// </summary>
+    [BsonElement("eatenSnapshot")]
+    [BsonIgnoreIfNull]
+    public List<EatenMealItem>? EatenSnapshot { get; set; }
+
+    /// <summary>
     /// Snapshot of foods actually consumed (may differ from plan).
     /// </summary>
     [BsonElement("foodsEaten")]

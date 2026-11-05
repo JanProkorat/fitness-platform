@@ -161,7 +161,8 @@ internal sealed class GetWeekMealLogEndpoint(
         var eatenIds = rows
             .SelectMany(r => MealItemEatenState.EffectiveEatenIds(r, planMeal))
             .ToHashSet();
-        var state = MealItemEatenState.StateOf(planMeal, eatenIds, rows.Any(r => r.EatenAt.HasValue));
+        var state = MealItemEatenState.StateOf(
+            MealItemEatenState.ItemIds(rows, planMeal), eatenIds, rows.Any(r => r.EatenAt.HasValue));
         var eatenAt = state == MealEatenState.Eaten
             ? rows.Where(r => r.EatenAt.HasValue).Select(r => r.EatenAt).Min()
             : null;

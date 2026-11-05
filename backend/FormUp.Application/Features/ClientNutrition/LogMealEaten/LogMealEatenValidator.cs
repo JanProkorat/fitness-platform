@@ -40,10 +40,15 @@ public class LogMealEatenValidator : Validator<LogMealEatenRequest>
             .ChildRules(item =>
             {
                 item.RuleFor(i => i.Kind).IsInEnum();
+                item.RuleFor(i => i.ItemId).NotEmpty();
                 item.RuleFor(i => i.RefId).NotEmpty();
                 item.RuleFor(i => i.Name).NotEmpty().MaximumLength(200);
                 item.RuleFor(i => i.Amount).InclusiveBetween(0m, 10000m);
                 item.RuleFor(i => i.Kcal).InclusiveBetween(0m, 20000m);
+                item.RuleFor(i => i.Protein).InclusiveBetween(0m, 5000m);
+                item.RuleFor(i => i.Carbs).InclusiveBetween(0m, 5000m);
+                item.RuleFor(i => i.Fat).InclusiveBetween(0m, 5000m);
+                item.RuleFor(i => i.Fibre).InclusiveBetween(0m, 5000m);
             })
             .When(x => x.SeenMealItems is not null);
 
