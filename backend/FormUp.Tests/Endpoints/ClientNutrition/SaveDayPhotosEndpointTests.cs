@@ -96,7 +96,7 @@ public class SaveDayPhotosEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, linkAuthorizationService ?? EndpointTestHelpers.CreateGrantingLinkAuthorizationService(), _logger, _blobStorage, TimeProvider.System);
+            mongo, db, _notifier, linkAuthorizationService ?? EndpointTestHelpers.CreateGrantingLinkAuthorizationService(), _logger, _blobStorage, new ImageUploadService(_blobStorage), TimeProvider.System);
 
     // ──────────────────────────────────────────────────────────────────────────
     // Replace-semantics happy-path tests
@@ -120,8 +120,8 @@ public class SaveDayPhotosEndpointTests
             {
                 Photos =
                 [
-                    new DayPhotoInput { BlobUrl = "https://minio.local/plan-photos/p1.jpg", Category = DayPhotoCategory.Progress },
-                    new DayPhotoInput { BlobUrl = "https://minio.local/plan-photos/p2.jpg", Category = DayPhotoCategory.Food }
+                    new DayPhotoInput { BlobUrl = $"plan-photos/{plan.ExternalId}/p1.jpg", Category = DayPhotoCategory.Progress },
+                    new DayPhotoInput { BlobUrl = $"plan-photos/{plan.ExternalId}/p2.jpg", Category = DayPhotoCategory.Food }
                 ],
                 Note = note
             },
@@ -174,7 +174,7 @@ public class SaveDayPhotosEndpointTests
         await ep.HandleAsync(
             new SaveDayPhotosRequest
             {
-                Photos = [new DayPhotoInput { BlobUrl = "https://minio.local/new.jpg", Category = DayPhotoCategory.Progress }],
+                Photos = [new DayPhotoInput { BlobUrl = $"plan-photos/{plan.ExternalId}/new.jpg", Category = DayPhotoCategory.Progress }],
                 Note = "new note"
             },
             TestContext.Current.CancellationToken);
@@ -258,8 +258,8 @@ public class SaveDayPhotosEndpointTests
             {
                 Photos =
                 [
-                    new DayPhotoInput { BlobUrl = "https://minio.local/a.jpg", Note = "Morning selfie", Category = DayPhotoCategory.Progress },
-                    new DayPhotoInput { BlobUrl = "https://minio.local/b.jpg", Note = null, Category = DayPhotoCategory.Food }
+                    new DayPhotoInput { BlobUrl = $"plan-photos/{plan.ExternalId}/a.jpg", Note = "Morning selfie", Category = DayPhotoCategory.Progress },
+                    new DayPhotoInput { BlobUrl = $"plan-photos/{plan.ExternalId}/b.jpg", Note = null, Category = DayPhotoCategory.Food }
                 ],
                 Note = null
             },
@@ -269,10 +269,10 @@ public class SaveDayPhotosEndpointTests
 
         insertedLog.Should().NotBeNull();
         insertedLog!.Photos.Should().HaveCount(2);
-        insertedLog.Photos[0].BlobUrl.Should().Be("https://minio.local/a.jpg");
+        insertedLog.Photos[0].BlobUrl.Should().Be($"plan-photos/{plan.ExternalId}/a.jpg");
         insertedLog.Photos[0].Note.Should().Be("Morning selfie");
         insertedLog.Photos[0].Category.Should().Be(DayPhotoCategory.Progress);
-        insertedLog.Photos[1].BlobUrl.Should().Be("https://minio.local/b.jpg");
+        insertedLog.Photos[1].BlobUrl.Should().Be($"plan-photos/{plan.ExternalId}/b.jpg");
         insertedLog.Photos[1].Note.Should().BeNull();
         insertedLog.Photos[1].Category.Should().Be(DayPhotoCategory.Food);
     }
@@ -283,7 +283,7 @@ public class SaveDayPhotosEndpointTests
         var plan = PlanTestHelpers.CreatePlan(clientId: _clientId, status: NutritionPlanStatus.Active);
 
         const string urlA = "https://minio.local/plan-photos/photoA.jpg";
-        const string urlB = "https://minio.local/plan-photos/photoB.jpg";
+        var urlB = $"plan-photos/{plan.ExternalId}/photoB.jpg";
         var originalUploadedAt = DateTime.UtcNow.AddHours(-5);
 
         var existingLog = new DayLog
@@ -381,7 +381,7 @@ public class SaveDayPhotosEndpointTests
                 [
                     new DayPhotoInput
                     {
-                        BlobUrl = "https://minio.local/plan-photos/note-photo.jpg",
+                        BlobUrl = $"plan-photos/{plan.ExternalId}/note-photo.jpg",
                         Note = "My note",
                         Category = DayPhotoCategory.Progress
                     }
@@ -394,7 +394,7 @@ public class SaveDayPhotosEndpointTests
         ep.HttpContext.Response.StatusCode.Should().Be(204);
 
         db.PlanPhotos.Received(1).Add(Arg.Is<PlanPhoto>(p =>
-            p.BlobUrl == "https://minio.local/plan-photos/note-photo.jpg" &&
+            p.BlobUrl == $"plan-photos/{plan.ExternalId}/note-photo.jpg" &&
             p.Description == "My note" &&
             p.Category == PlanPhotoCategory.Body));
     }
@@ -431,7 +431,7 @@ public class SaveDayPhotosEndpointTests
         await ep.HandleAsync(
             new SaveDayPhotosRequest
             {
-                Photos = [new DayPhotoInput { BlobUrl = "https://minio.local/plan-photos/food.jpg", Category = DayPhotoCategory.Food }],
+                Photos = [new DayPhotoInput { BlobUrl = $"plan-photos/{plan.ExternalId}/food.jpg", Category = DayPhotoCategory.Food }],
             },
             TestContext.Current.CancellationToken);
 
@@ -461,7 +461,7 @@ public class SaveDayPhotosEndpointTests
         await ep.HandleAsync(
             new SaveDayPhotosRequest
             {
-                Photos = [new DayPhotoInput { BlobUrl = "https://minio.local/plan-photos/body.jpg", Category = DayPhotoCategory.Progress }],
+                Photos = [new DayPhotoInput { BlobUrl = $"plan-photos/{plan.ExternalId}/body.jpg", Category = DayPhotoCategory.Progress }],
             },
             TestContext.Current.CancellationToken);
 
@@ -624,7 +624,7 @@ public class SaveDayPhotosEndpointTests
         await ep.HandleAsync(
             new SaveDayPhotosRequest
             {
-                Photos = [new DayPhotoInput { BlobUrl = "https://minio.local/plan-photos/denied.jpg", Category = DayPhotoCategory.Progress }],
+                Photos = [new DayPhotoInput { BlobUrl = $"plan-photos/{plan.ExternalId}/denied.jpg", Category = DayPhotoCategory.Progress }],
                 Note = null
             },
             TestContext.Current.CancellationToken);

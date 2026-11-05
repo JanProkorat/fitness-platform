@@ -76,7 +76,7 @@ export default function InviteReviewDrawer({ requestId, open, onOpenChange }: Pr
               ) : (
                 <>
                   <p data-testid="invite-review-unavailable" className="text-body text-muted-foreground">
-                    {requestsQuery.isError ? t('common.loadError') : t('inviteReview.unavailable')}
+                    {requestsQuery.isError ? t('common.dataLoadError') : t('inviteReview.unavailable')}
                   </p>
                   {requestsQuery.isError && (
                     <Button type="button" variant="outline" size="sm" className="w-fit" onClick={() => void requestsQuery.refetch()}>

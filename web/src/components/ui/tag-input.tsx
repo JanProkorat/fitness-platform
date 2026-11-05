@@ -13,6 +13,10 @@ interface TagInputProps {
   className?: string
   invalid?: boolean
   "aria-describedby"?: string
+  /** Pending text of the box. Pass with `onDraftChange` to let the parent own and flush it. */
+  draft?: string
+  /** Called on every edit of the pending text. */
+  onDraftChange?: (draft: string) => void
 }
 
 /** Chip list with a trailing text box: Enter adds, x removes, Backspace on an empty box removes the last chip. */
@@ -25,8 +29,17 @@ function TagInput({
   className,
   invalid,
   "aria-describedby": describedBy,
+  draft: draftProp,
+  onDraftChange,
 }: TagInputProps) {
-  const [draft, setDraft] = React.useState("")
+  const [innerDraft, setInnerDraft] = React.useState("")
+  const controlled = draftProp !== undefined
+  const draft = controlled ? draftProp : innerDraft
+
+  function setDraft(next: string) {
+    if (!controlled) setInnerDraft(next)
+    onDraftChange?.(next)
+  }
   const inputRef = React.useRef<HTMLInputElement>(null)
 
   function commit() {

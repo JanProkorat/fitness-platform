@@ -45,7 +45,7 @@ export default function IngredientsGrid({
   if (isError) {
     return (
       <div className="flex flex-col items-center gap-3 py-10 text-center">
-        <p className="text-body text-muted-foreground">{t('common.loadError')}</p>
+        <p className="text-body text-muted-foreground">{t('common.dataLoadError')}</p>
         <Button type="button" variant="outline" size="sm" onClick={onRetry}>
           {t('ingredients.retry')}
         </Button>

@@ -181,7 +181,9 @@ export function useStagedPictures(): StagedPictures {
 
 /**
  * Uploads staged pictures one after another — the main first, then the extras.
- * A failed picture does not stop the rest; returns how many failed.
+ * With no staged main, the first extra becomes the main picture. A failed picture
+ * does not stop the rest (a failed promoted main is not retried with the next extra);
+ * returns how many failed.
  */
 export async function uploadStagedPictures(
   staged: StagedState,
@@ -189,14 +191,16 @@ export async function uploadStagedPictures(
   uploadGallery: (file: File) => Promise<void>,
 ): Promise<number> {
   let failed = 0;
-  if (staged.main) {
+  const main = staged.main ?? staged.extras[0];
+  const gallery = staged.main ? staged.extras : staged.extras.slice(1);
+  if (main) {
     try {
-      await uploadMain(staged.main.file);
+      await uploadMain(main.file);
     } catch {
       failed += 1;
     }
   }
-  for (const picture of staged.extras) {
+  for (const picture of gallery) {
     try {
       await uploadGallery(picture.file);
     } catch {

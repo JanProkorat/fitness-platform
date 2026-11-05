@@ -36,6 +36,8 @@ namespace FormUp.Application.Features.ClientTraining.SaveSessionPhotos;
 /// <param name="blobStorage">Blob storage service — normalises each submitted BlobUrl to its
 /// canonical stored form before persisting, so an echoed short-lived read URL cannot become the
 /// permanently stored value (F9 follow-up).</param>
+/// <param name="imageUploadService">Image upload service — confirms each new photo URL sits under
+/// this session's <c>diary/sessions/{sessionId}/</c> folder issued by the session-photo upload-URL endpoint.</param>
 /// <param name="timeProvider">Clock abstraction (#955) — lets tests pin the "now" instant deterministically.</param>
 public class SaveSessionPhotosEndpoint(
     IMongoContext mongo,
@@ -44,6 +46,7 @@ public class SaveSessionPhotosEndpoint(
     IClientLinkAuthorizationService linkAuthorizationService,
     ILogger<SaveSessionPhotosEndpoint> logger,
     IBlobStorageService blobStorage,
+    IImageUploadService imageUploadService,
     TimeProvider timeProvider)
     : Endpoint<SaveSessionPhotosRequest>
 {
@@ -61,6 +64,9 @@ public class SaveSessionPhotosEndpoint(
                 "Existing photo URLs that are re-submitted keep their original UploadedAt " +
                 "timestamp; new URLs receive the current UTC time. Pass an empty Photos list " +
                 "to remove all photos. Creates the log entry if it does not exist yet.";
+            s.Responses[StatusCodes.Status204NoContent] = "Photos saved";
+            s.Responses[StatusCodes.Status400BadRequest] = "Invalid request, or a photo URL is not a blob URL from this session's upload folder (INVALID_BLOB_URL)";
+            s.Responses[StatusCodes.Status404NotFound] = "No active plan covers today, or the session is not in it";
         });
     }
 
@@ -107,13 +113,6 @@ public class SaveSessionPhotosEndpoint(
             return;
         }
 
-        var normalizedPhotos = await NormalizePhotoUrlsOrRespondAsync(req.Photos, ct);
-        if (normalizedPhotos is null)
-        {
-            return;
-        }
-
-        var now = DateTime.UtcNow;
         // SessionLog.LogDate is the CLIENT's local calendar day (#935), already resolved above
         // as todayLocalUtc — not now.Date (the server's UTC day).
         var todayUtc = todayLocalUtc;
@@ -127,6 +126,15 @@ public class SaveSessionPhotosEndpoint(
 
         var existingCursor = await mongo.SessionLogs.FindAsync(logFilter, cancellationToken: ct);
         var existingLog = await existingCursor.FirstOrDefaultAsync(ct);
+
+        var normalizedPhotos = await NormalizePhotoUrlsOrRespondAsync(
+            req.Photos, req.SessionId, existingLog?.Photos ?? [], ct);
+        if (normalizedPhotos is null)
+        {
+            return;
+        }
+
+        var now = DateTime.UtcNow;
 
         // Build the replacement photo list, preserving UploadedAt for unchanged URLs
         // and persisting the per-photo Note caption from the request.
@@ -259,17 +267,32 @@ public class SaveSessionPhotosEndpoint(
 
     /// <summary>
     /// Normalises every submitted <see cref="SessionPhotoInput.BlobUrl"/> to its canonical stored
-    /// form before it reaches any Mongo/DB write — see
-    /// <see cref="IBlobStorageService.NormalizeToCanonicalUrl"/>. A client may echo back the
-    /// short-lived DisplayUrl issued by GetTodaySession (or, from an app build that predates the
-    /// identity/presentation split, a value that used to BE the permanent BlobUrl); without this
-    /// the signed query string would become the permanently stored value. Returns <c>null</c>
-    /// when any submitted URL cannot be recognised as a blob storage URL — a 400 has already
-    /// been written in that case.
+    /// form (see <see cref="IBlobStorageService.NormalizeToCanonicalUrl"/>, so an echoed signed
+    /// read URL never becomes the stored value) and checks it belongs to this session. A URL is
+    /// accepted when it sits directly under <c>diary/sessions/{sessionId}/</c>, or when it is
+    /// already stored on the existing session log (photos saved before the folder check existed).
+    /// Returns <c>null</c> when any URL is rejected — a 400 has already been written and nothing
+    /// persisted.
     /// </summary>
     private async Task<List<SessionPhotoInput>?> NormalizePhotoUrlsOrRespondAsync(
-        List<SessionPhotoInput> inputs, CancellationToken ct)
+        List<SessionPhotoInput> inputs,
+        Guid sessionId,
+        List<SessionPhoto> existingPhotos,
+        CancellationToken ct)
     {
+        var knownUrls = new HashSet<string>(StringComparer.Ordinal);
+
+        foreach (var existing in existingPhotos)
+        {
+            knownUrls.Add(existing.BlobUrl);
+
+            var canonicalExisting = blobStorage.NormalizeToCanonicalUrl(existing.BlobUrl);
+            if (canonicalExisting is not null)
+            {
+                knownUrls.Add(canonicalExisting);
+            }
+        }
+
         var normalized = new List<SessionPhotoInput>(inputs.Count);
 
         foreach (var input in inputs)
@@ -279,6 +302,15 @@ public class SaveSessionPhotosEndpoint(
             {
                 await this.SendProblemAsync(400, ErrorCodes.InvalidBlobUrl,
                     "Photo URL is not a recognised blob storage URL.", ct);
+                return null;
+            }
+
+            if (!knownUrls.Contains(canonicalBlobUrl) &&
+                !imageUploadService.IsValidBlobUrlUnderSubPath(
+                    ImageUploadScope.Diary, $"sessions/{sessionId}", canonicalBlobUrl))
+            {
+                await this.SendProblemAsync(400, ErrorCodes.InvalidBlobUrl,
+                    "Photo URL does not belong to this session.", ct);
                 return null;
             }
 

@@ -172,7 +172,7 @@ test.describe('inbox client-request card (#1100, #1547)', () => {
 
     // A declined proposal means no live link: the panel falls back to "not a client", never a load error.
     await expect(page.getByTestId('not-a-client-panel')).toBeVisible();
-    await expect(page.getByText('Failed to load the plan')).toHaveCount(0);
+    await expect(page.getByText("Couldn't load the data")).toHaveCount(0);
     await expect(requestedRow.getByTestId('inbox-row-chip')).toHaveCount(0);
 
     // A fresh visit reads the same state back from the server.

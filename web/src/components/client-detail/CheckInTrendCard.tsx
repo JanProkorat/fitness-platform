@@ -61,7 +61,7 @@ export default function CheckInTrendCard({ clientUserId }: Props) {
 
       {!historyQuery.isPending && historyQuery.isError && (
         <div className="flex flex-col items-start gap-2">
-          <p className="text-meta text-muted-foreground">{t('common.loadError')}</p>
+          <p className="text-meta text-muted-foreground">{t('common.dataLoadError')}</p>
           <Button type="button" variant="outline" size="sm" onClick={() => void historyQuery.refetch()}>
             {t('clients.retry')}
           </Button>

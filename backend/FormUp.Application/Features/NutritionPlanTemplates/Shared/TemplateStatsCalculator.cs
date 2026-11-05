@@ -24,7 +24,8 @@ public static class TemplateStatsCalculator
     }
 
     /// <summary>
-    /// Computes the stats over the non-empty days (days with at least one meal) of the given days.
+    /// Computes the stats over the non-empty days of the given days. A day is non-empty when at least
+    /// one of its meals has a food or a recipe; meal rows with neither do not count.
     /// </summary>
     /// <param name="days">All days across all weeks.</param>
     /// <param name="macroCalculator">Meal-totals calculator.</param>
@@ -33,7 +34,7 @@ public static class TemplateStatsCalculator
         IEnumerable<PlanDay> days,
         IMacroCalculatorService macroCalculator)
     {
-        var nonEmptyDays = days.Where(day => day.Meals.Count > 0).ToList();
+        var nonEmptyDays = days.Where(day => day.Meals.Any(meal => meal.Foods.Count + meal.Recipes.Count > 0)).ToList();
 
         if (nonEmptyDays.Count == 0)
         {
