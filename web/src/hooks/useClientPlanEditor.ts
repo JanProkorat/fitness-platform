@@ -19,7 +19,8 @@ import {
 } from '@/components/plan-editor/plan-editor-mapping';
 import { weekHasItems } from '@/components/plan-editor/plan-editor-ops';
 import { DAYS_PER_WEEK, type EditorDocument, type WeekStatus } from '@/components/plan-editor/plan-editor-types';
-import { getApiErrorMessage, getErrorStatus, getRfc7807ErrorCode, showApiError } from '@/lib/api-errors';
+import { parseLockRejection, type LockRejection } from '@/components/plan-editor/meal-locks';
+import { getApiErrorMessage, getErrorStatus, getProblemBody, getRfc7807ErrorCode, showApiError } from '@/lib/api-errors';
 import { useToastStore } from '@/stores/toast';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -104,7 +105,7 @@ export function isClosedPlan(plan: GetPlanResponse): boolean {
  * map and the conflict state. The loaded copy is captured once, so a background refetch never changes the
  * version the next save is checked against; every save and publish response replaces it.
  */
-export function useClientPlanEditor(loadedPlan: GetPlanResponse, clientId: string, onReload: () => void) {
+export function useClientPlanEditor(loadedPlan: GetPlanResponse, clientId: string) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const planId = loadedPlan.planId ?? '';
@@ -115,6 +116,8 @@ export function useClientPlanEditor(loadedPlan: GetPlanResponse, clientId: strin
   // Set when a template was applied in the browser; the next save tells the server to keep locked meals and past days.
   const preserveNextSaveRef = useRef(false);
   const [saveState, setSaveState] = useState<PlanEditorSaveState>({ status: 'idle' });
+  // The tile the server refused to save; the editor outlines it until the coach changes that meal or a save succeeds.
+  const [lockRejection, setLockRejection] = useState<LockRejection | null>(null);
 
   const saveMutation = useMutation({
     mutationFn: (request: UpdatePlanRequest) => savePlanFromEditor(planId, request),
@@ -129,6 +132,7 @@ export function useClientPlanEditor(loadedPlan: GetPlanResponse, clientId: strin
     const document = toPlanEditorDocument(response);
     planRef.current = response;
     lastSavedRef.current = document;
+    setLockRejection(null);
     setPlan(response);
     void queryClient.invalidateQueries({ queryKey: ['nutrition-plan-detail', planId] });
     void queryClient.invalidateQueries({ queryKey: ['client-plans', clientId] });
@@ -140,11 +144,14 @@ export function useClientPlanEditor(loadedPlan: GetPlanResponse, clientId: strin
     if (getErrorStatus(error) === 409) {
       const code = getRfc7807ErrorCode(error);
       if (code === 'MEAL_LOCKED' || code === 'PAST_DAY_LOCKED') {
-        // The plan moved on under the editor (a meal was eaten, midnight passed): say so and show the server's week.
+        // The plan moved on under the editor (a meal was eaten, midnight passed). The coach's edits stay: say what
+        // happened, outline the refused tile and refresh the lock data; the coach fixes it and saves again.
         const message = t(code === 'MEAL_LOCKED' ? 'planEditor.locks.mealLockedError' : 'planEditor.locks.pastDayLockedError');
-        setSaveState({ status: 'conflict', message });
+        setSaveState({ status: 'error', message });
+        setLockRejection(parseLockRejection(getProblemBody(error)));
         useToastStore.getState().addToast(message, 'error');
-        onReload();
+        // Safe: the editor keeps its own document and `loadedPlan` is captured once, so this only refreshes the lock verdicts.
+        void queryClient.invalidateQueries({ queryKey: ['nutrition-plan-detail', planId] });
         return;
       }
       setSaveState({ status: 'conflict', message: t('planEditor.conflict.message') });
@@ -285,6 +292,8 @@ export function useClientPlanEditor(loadedPlan: GetPlanResponse, clientId: strin
   return {
     initial,
     saveState,
+    lockRejection,
+    clearLockRejection: () => setLockRejection(null),
     save,
     primaryAction,
     weekStatus,

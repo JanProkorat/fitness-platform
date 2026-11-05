@@ -43,6 +43,85 @@ export function lockedTileSurfaceClass(state: MealLockState): string {
   }
 }
 
+/** The tile the server named when it refused a save with MEAL_LOCKED or PAST_DAY_LOCKED. */
+export interface LockRejection {
+  /** Null only when a meal added to a past day carried no id; the day is outlined then. */
+  mealId: string | null;
+  weekNumber: number;
+  /** 1 to 7, Monday = 1. */
+  dayOfWeek: number;
+}
+
+/** Reads the lock 409's extension members from a ProblemDetails body; null when they are missing or malformed. */
+export function parseLockRejection(body: Record<string, unknown> | null): LockRejection | null {
+  if (!body) {
+    return null;
+  }
+  const { mealId, weekNumber, dayOfWeek } = body;
+  if (
+    typeof weekNumber !== 'number' ||
+    typeof dayOfWeek !== 'number' ||
+    !Number.isInteger(weekNumber) ||
+    !Number.isInteger(dayOfWeek) ||
+    dayOfWeek < 1 ||
+    dayOfWeek > 7
+  ) {
+    return null;
+  }
+  if (mealId !== null && mealId !== undefined && typeof mealId !== 'string') {
+    return null;
+  }
+  return { mealId: mealId ?? null, weekNumber, dayOfWeek };
+}
+
+/** Whether a tile (identified by its meal, week number and weekday) is the rejected one. */
+export function isRejectedTile(
+  rejection: LockRejection | null,
+  mealId: string | undefined,
+  weekNumber: number,
+  dayOfWeek: number,
+): boolean {
+  if (!rejection) {
+    return false;
+  }
+  if (rejection.mealId !== null) {
+    return mealId === rejection.mealId;
+  }
+  return mealId !== undefined && rejection.weekNumber === weekNumber && rejection.dayOfWeek === dayOfWeek;
+}
+
+/**
+ * What an edit of the rejected meal changes: the meal object (a new one after every edit) and where it sits.
+ * Two fingerprints differ exactly when the coach touched that meal, moved it or deleted it.
+ */
+export function rejectionFingerprint(doc: EditorDocument, rejection: LockRejection): readonly unknown[] {
+  if (rejection.mealId === null) {
+    const day = doc.weeks
+      .find((week) => week.weekNumber === rejection.weekNumber)
+      ?.days.find((candidate) => candidate.dayOfWeek === rejection.dayOfWeek);
+    return [day?.meals];
+  }
+  for (const week of doc.weeks) {
+    for (const day of week.days) {
+      const meal = day.meals.find((candidate) => candidate.mealId === rejection.mealId);
+      if (meal) {
+        return [meal, week.weekNumber, day.dayOfWeek];
+      }
+    }
+  }
+  return [undefined];
+}
+
+export function sameFingerprint(left: readonly unknown[], right: readonly unknown[]): boolean {
+  return left.length === right.length && left.every((value, index) => value === right[index]);
+}
+
+export const LockRejectionContext = createContext<LockRejection | null>(null);
+
+export function useLockRejection(): LockRejection | null {
+  return useContext(LockRejectionContext);
+}
+
 export const MealLocksContext = createContext<PlanMealLocks | null>(null);
 
 export function useMealLocks(): PlanMealLocks | null {

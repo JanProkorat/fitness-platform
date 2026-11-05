@@ -43,6 +43,8 @@ function LoadedClientPlanEditor({ plan, clientId, clientName, firstName, lastNam
   const {
     initial,
     saveState,
+    lockRejection,
+    clearLockRejection,
     save,
     primaryAction,
     weekStatus,
@@ -54,7 +56,7 @@ function LoadedClientPlanEditor({ plan, clientId, clientName, firstName, lastNam
     finishPlan,
     lifecycleBusy,
     markTemplateApplied,
-  } = useClientPlanEditor(plan, clientId, onReload);
+  } = useClientPlanEditor(plan, clientId);
   // Read from the page's live plan, not the editor's adopted copy: a save response carries no lock data.
   const mealLocks = useMemo(
     () => buildPlanMealLocks(plan, firstName || clientName),
@@ -187,6 +189,8 @@ function LoadedClientPlanEditor({ plan, clientId, clientName, firstName, lastNam
         ended ? <PlanEndedBanner disabled={host.busy || lifecycleBusy} onFinish={() => setFinishOpen(true)} /> : null
       }
       saveState={saveState}
+      lockRejection={lockRejection}
+      onClearLockRejection={clearLockRejection}
       onSave={save}
       onReload={onReload}
     />

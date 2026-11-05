@@ -2341,8 +2341,8 @@
       "dayLocked": "{{day}}: den už proběhl a je uzamčen",
       "close": "Zavřít",
       "rowLocked": "V tomto řádku jsou snězená jídla nebo jídla z minulosti, proto ho nelze odebrat.",
-      "mealLockedError": "Jídlo bylo mezitím snězeno nebo uzamčeno, proto se plán neuložil. Týden byl znovu načten ze serveru.",
-      "pastDayLockedError": "Mezitím uplynul den a nelze do něj přidávat jídla. Plán se neuložil, týden byl znovu načten.",
+      "mealLockedError": "Jídlo bylo mezitím snězeno nebo uzamčeno, proto se plán neuložil. Vaše úpravy zůstaly: opravte označené jídlo a uložte znovu.",
+      "pastDayLockedError": "Mezitím uplynul den a nelze do něj přidávat jídla. Plán se neuložil. Vaše úpravy zůstaly: opravte označené jídlo a uložte znovu.",
       "legend": {
         "label": "Barvy jídel",
         "eaten": "Snězeno",

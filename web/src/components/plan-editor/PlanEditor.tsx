@@ -31,9 +31,13 @@ import {
   dayHasLock,
   isPastDay,
   keepLocked,
+  LockRejectionContext,
   mealLockView,
   MealLocksContext,
+  rejectionFingerprint,
+  sameFingerprint,
   slotDate,
+  type LockRejection,
   type PlanMealLocks,
 } from '@/components/plan-editor/meal-locks';
 import MealPicker from '@/components/plan-editor/MealPicker';
@@ -220,6 +224,10 @@ interface Props {
   syncConflicts?: PlanEditorSyncConflicts;
   /** The server's lock verdicts of a client plan; only the client plan editor passes them. */
   mealLocks?: PlanMealLocks | null;
+  /** The tile a refused save named; outlined until the coach changes that meal. Only the client plan editor passes it. */
+  lockRejection?: LockRejection | null;
+  /** Called when the coach changes, moves or deletes the rejected meal. */
+  onClearLockRejection?: () => void;
   saveState: PlanEditorSaveState;
   /** Persists the document; resolves with the server's copy, or null when the save failed. */
   onSave: (doc: EditorDocument) => Promise<EditorDocument | null>;
@@ -391,6 +399,8 @@ export default function PlanEditor({
   allowWeekRemoval,
   syncConflicts,
   mealLocks,
+  lockRejection = null,
+  onClearLockRejection,
   saveState,
   onSave,
   onReload,
@@ -411,6 +421,22 @@ export default function PlanEditor({
       }, coalesceKey),
     [rawEdit],
   );
+  // The outline drops the moment an edit (or undo) changes the rejected meal's content or place, with no new save needed.
+  const rejectionBaseline = useRef<{ rejection: LockRejection; fingerprint: readonly unknown[] } | null>(null);
+  useEffect(() => {
+    if (!lockRejection) {
+      rejectionBaseline.current = null;
+      return;
+    }
+    const fingerprint = rejectionFingerprint(doc, lockRejection);
+    const baseline = rejectionBaseline.current;
+    if (baseline?.rejection !== lockRejection) {
+      rejectionBaseline.current = { rejection: lockRejection, fingerprint };
+    } else if (!sameFingerprint(baseline.fingerprint, fingerprint)) {
+      rejectionBaseline.current = null;
+      onClearLockRejection?.();
+    }
+  }, [doc, lockRejection, onClearLockRejection]);
   const targets = doc.targets;
   const dailyKcalTarget = targets.kcal;
   const [weekIndex, setWeekIndex] = useState(0);
@@ -1491,6 +1517,7 @@ export default function PlanEditor({
   return (
     <SyncConflictsContext.Provider value={conflictsModel}>
     <MealLocksContext.Provider value={locks}>
+    <LockRejectionContext.Provider value={lockRejection}>
     <PopoverBoundaryContext.Provider value={scrollArea}>
     <DragDropProvider
       sensors={DRAG_SENSORS}
@@ -1874,6 +1901,7 @@ export default function PlanEditor({
       </Dialog>
     </DragDropProvider>
     </PopoverBoundaryContext.Provider>
+    </LockRejectionContext.Provider>
     </MealLocksContext.Provider>
     </SyncConflictsContext.Provider>
   );

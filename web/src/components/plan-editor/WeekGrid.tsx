@@ -12,6 +12,8 @@ import {
   isToday,
   lockedTileSurfaceClass,
   mealLockView,
+  isRejectedTile,
+  useLockRejection,
   useMealLocks,
   type MealLockView,
 } from '@/components/plan-editor/meal-locks';
@@ -122,6 +124,7 @@ function MealCell({
   const { t } = useTranslation();
   const boundary = usePopoverBoundary();
   const locked = lock?.locked ?? false;
+  const rejected = isRejectedTile(useLockRejection(), meal?.mealId, weekIndex + 1, dayOfWeek);
   const { ref: dropRef, isDropTarget } = useDroppable({
     id: `cell:${weekIndex}:${dayOfWeek}:${rowIndex}`,
     data: { weekIndex, dayOfWeek, rowIndex },
@@ -181,6 +184,7 @@ function MealCell({
           data-conflict={conflict ? conflict.id : undefined}
           data-lock={locked && lock ? lock.state : undefined}
           data-past={pastDay ? 'true' : undefined}
+          data-lock-rejected={rejected ? 'true' : undefined}
           aria-pressed={selected}
           aria-expanded={meal && itemCount > 0 ? detailOpen : undefined}
           aria-label={t('planEditor.cell.label', { day: t(`planEditor.days.${dayOfWeek}`), row: rowIndex + 1 })}
@@ -211,6 +215,8 @@ function MealCell({
             draggable &&
               'cursor-grab hover:-translate-y-px hover:shadow-raised-hover active:cursor-grabbing motion-reduce:hover:translate-y-0',
             selected && 'border-solid border-ink ring-2 ring-ink',
+            // The tile the server refused to save: a ring, so nothing shifts.
+            rejected && 'border-solid border-error ring-2 ring-error',
             // While the contents slide, this slot shows another meal's, so only a source that stays put is dimmed.
             isDragging && cellDrag?.mode !== 'move' && 'opacity-50',
             band === 'source' && !labelMoving && 'opacity-50',

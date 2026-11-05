@@ -29,7 +29,7 @@ import {
   setMealNote,
   setRecipeServings,
 } from '@/components/plan-editor/plan-editor-ops';
-import { mealLockView, useMealLocks } from '@/components/plan-editor/meal-locks';
+import { isRejectedTile, mealLockView, useLockRejection, useMealLocks } from '@/components/plan-editor/meal-locks';
 import SyncConflictDayPanel from '@/components/plan-editor/sync-conflicts/SyncConflictDayPanel';
 import { useSyncConflicts } from '@/components/plan-editor/sync-conflicts/SyncConflictsContext';
 import { MAX_NOTE_LENGTH, type EditorMeal } from '@/components/plan-editor/plan-editor-types';
@@ -86,6 +86,7 @@ export default function MealBlock({
   const conflicts = useSyncConflicts();
   const conflict = conflicts?.forMeal(weekIndex, meal.mealId);
   const locks = useMealLocks();
+  const rejected = isRejectedTile(useLockRejection(), meal.mealId, weekIndex + 1, dayOfWeek);
   // A locked meal reads like a read-only one: it neither moves nor takes a drop, and its controls are gone.
   const locked = locks ? mealLockView(locks, meal.mealId, weekIndex + 1, dayOfWeek).locked : false;
   const frozen = readOnly || locked;
@@ -130,6 +131,7 @@ export default function MealBlock({
       data-landing={landing ? 'true' : undefined}
       data-drop-target={dropMode}
       data-conflict={conflict ? conflict.id : undefined}
+      data-lock-rejected={rejected ? 'true' : undefined}
       tabIndex={readOnly ? undefined : 0}
       aria-label={kindLabel}
       onClick={onSelect}
@@ -146,6 +148,7 @@ export default function MealBlock({
         draggable && !isDragging && 'hover:-translate-y-px hover:shadow-raised-hover motion-reduce:hover:translate-y-0',
         conflict && 'border-caution-ink',
         selected && 'ring-2 ring-ink ring-inset',
+        rejected && 'border-error ring-2 ring-error ring-inset',
         isDropTarget && !isDragging && 'border-nutrition bg-nutrition-soft',
         dropMode !== undefined && 'border-dashed border-nutrition bg-nutrition-soft',
         landing && 'border-nutrition ring-2 ring-nutrition',
