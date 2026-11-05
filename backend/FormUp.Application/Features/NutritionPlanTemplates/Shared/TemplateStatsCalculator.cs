@@ -29,7 +29,7 @@ public static class TemplateStatsCalculator
     /// </summary>
     /// <param name="days">All days across all weeks.</param>
     /// <param name="macroCalculator">Meal-totals calculator.</param>
-    /// <returns>Most common meal count (ties resolve to the smaller) and whole-kcal average; both null when no day has a meal.</returns>
+    /// <returns>Most common meal count (ties resolve to the smaller) and whole-kcal average; both null when no day has a food or recipe.</returns>
     public static (int? MealsPerDay, decimal? AvgKcalPerDay) Compute(
         IEnumerable<PlanDay> days,
         IMacroCalculatorService macroCalculator)
