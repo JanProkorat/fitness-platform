@@ -74,6 +74,8 @@ export function lockedTileSurfaceClass(state: MealLockState): string {
       return 'border-success-ink/30 bg-success-soft shadow-none';
     case MealLockState.PartlyEaten:
       return 'border-caution-ink/40 bg-caution-soft shadow-none';
+    case MealLockState.Missed:
+      return 'border-error/30 bg-error-soft shadow-none';
     default:
       return 'border-line bg-muted shadow-none';
   }

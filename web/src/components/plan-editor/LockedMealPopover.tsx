@@ -188,7 +188,10 @@ export default function LockedMealPopover({
                 <span className="sr-only">{t('planEditor.locks.item.eaten')}</span>
               </span>
             ) : (
-              <span className="size-6 shrink-0 rounded-full border-2 border-line" aria-hidden="true" />
+              <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-error text-card">
+                <X className="size-3.5" aria-hidden="true" />
+                <span className="sr-only">{t('planEditor.locks.item.notEaten')}</span>
+              </span>
             )}
             <div className="flex min-w-0 flex-1 flex-col">
               <span className="truncate text-copy font-semibold text-ink">{row.name}</span>

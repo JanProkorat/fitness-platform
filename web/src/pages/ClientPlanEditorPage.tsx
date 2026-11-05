@@ -19,6 +19,7 @@ import { buildPlanMealLocks } from '@/components/plan-editor/meal-locks';
 import CopyMealsDialog from '@/components/plan-templates/CopyMealsDialog';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useClientNutritionRealtime } from '@/hooks/useClientNutritionRealtime';
 import { isClosedPlan, toPlanEditorDocument, useClientPlanEditor } from '@/hooks/useClientPlanEditor';
 import { useClientPlanOfflineSyncConflicts, useReviewOfflineSyncConflicts } from '@/hooks/useClientOfflineSyncConflicts';
 import { getErrorStatus } from '@/lib/api-errors';
@@ -251,6 +252,8 @@ export default function ClientPlanEditorPage() {
     queryFn: () => apiClient.getClientDashboardEndpoint(clientId),
     enabled: Boolean(clientId),
   });
+  // Refetches the plan when the client logs a meal, so lock states update; edits live in the editor's own copy.
+  useClientNutritionRealtime(clientId);
 
   if (planQuery.isError) {
     const status = getErrorStatus(planQuery.error);
