@@ -89,7 +89,13 @@ function CertificateRow({ item, index, titleError, onChange, onRemove }: Certifi
   );
 }
 
-export default function ExpertiseSection() {
+interface ExpertiseSectionProps {
+  /** Pending text of the specializations and languages boxes, owned by the form so Save can flush it. */
+  drafts: { specializations: string; languages: string };
+  onDraftChange: (field: 'specializations' | 'languages', value: string) => void;
+}
+
+export default function ExpertiseSection({ drafts, onDraftChange }: ExpertiseSectionProps) {
   const { t } = useTranslation();
   const {
     control,
@@ -110,6 +116,8 @@ export default function ExpertiseSection() {
           >
             <TagInput
               id="profile-specializations"
+              draft={drafts.specializations}
+              onDraftChange={(value) => onDraftChange('specializations', value)}
               value={field.value}
               onChange={field.onChange}
               placeholder={t('profile.addSpecialization')}
@@ -133,6 +141,8 @@ export default function ExpertiseSection() {
           >
             <TagInput
               id="profile-languages"
+              draft={drafts.languages}
+              onDraftChange={(value) => onDraftChange('languages', value)}
               value={field.value}
               onChange={field.onChange}
               placeholder={t('profile.addLanguage')}
