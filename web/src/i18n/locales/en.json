@@ -5254,6 +5254,31 @@
     "weekCountRequired": "Enter a number of weeks.",
     "weekCountRange": "Number of weeks must be between 1 and 52."
   },
+  "emailOff": {
+    "loading": "Turning off this email…",
+    "account": "Account",
+    "emailLabel": "Email",
+    "settings": "Notification settings",
+    "off": {
+      "title": "This email is off",
+      "body": "You won't get “{{event}}” emails any more. The notification still shows in the app.",
+      "note": "Only this email is off. Your other notification emails stay as they are.",
+      "turnOn": "Turn back on",
+      "working": "Turning on…",
+      "turnOnFailed": "Couldn't turn it back on."
+    },
+    "on": {
+      "title": "This email is on again",
+      "body": "We'll send “{{event}}” emails again.",
+      "note": "You can change every notification email in Settings › Notifications."
+    },
+    "invalid": {
+      "title": "This link doesn't work",
+      "body": "It may be incomplete, or it belongs to another account.",
+      "note": "Sign in to choose which emails you get in Settings › Notifications.",
+      "signIn": "Sign in"
+    }
+  },
   "entry": {
     "brand": "Form Up",
     "login": {
