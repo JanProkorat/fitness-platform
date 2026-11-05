@@ -2260,6 +2260,49 @@
       "message": "Diese Vorlage wurde seit dem Öffnen woanders geändert. Ihre Änderungen bleiben hier erhalten, nichts wurde überschrieben. Beim Neuladen der aktuellen Version gehen Ihre Änderungen verloren.",
       "reload": "Aktuelle Version laden"
     },
+    "locks": {
+      "nothingPlanned": "Nichts geplant",
+      "today": "Heute",
+      "dayLocked": "{{day}} liegt in der Vergangenheit und ist gesperrt",
+      "close": "Schließen",
+      "rowLocked": "Diese Zeile enthält gegessene Mahlzeiten oder Mahlzeiten aus der Vergangenheit und kann nicht entfernt werden.",
+      "mealLockedError": "Eine Mahlzeit wurde in der Zwischenzeit gegessen oder gesperrt, daher wurde der Plan nicht gespeichert. Ihre Änderungen sind noch da.",
+      "pastDayLockedError": "In der Zwischenzeit ist ein Tag vergangen, dem keine Mahlzeiten mehr hinzugefügt werden können. Der Plan wurde nicht gespeichert. Ihre Änderungen sind noch da.",
+      "restore": "Wiederherstellen, was der Klient gegessen hat",
+      "fixOutlined": "Korrigieren Sie die markierte Mahlzeit und speichern Sie erneut.",
+      "fixRemoved": "Stellen Sie die entfernte Mahlzeit wieder her und speichern Sie erneut.",
+      "legend": {
+        "label": "Mahlzeitenfarben",
+        "eaten": "Gegessen",
+        "partlyEaten": "Teilweise gegessen",
+        "missed": "Verpasst",
+        "locked": "Gesperrt"
+      },
+      "state": {
+        "eaten": "Gegessen",
+        "missed": "Verpasst",
+        "partly": "{{eaten}} von {{total}} gegessen",
+        "partlyShort": "{{eaten}}/{{total}} gegessen"
+      },
+      "reason": {
+        "past": "Gesperrt · {{day}} liegt in der Vergangenheit",
+        "eaten": "Gesperrt · der Klient hat davon gegessen"
+      },
+      "kcalOf": "{{eaten}} von {{planned}} kcal",
+      "percent": "{{percent}} %",
+      "eatenAt": "Gegessen um {{time}}",
+      "eatenMacros": "Gegessen",
+      "item": {
+        "eaten": "Gegessen",
+        "notEaten": "Nicht gegessen",
+        "recipe": "Rezept · {{amount}}×",
+        "food": "Zutat · {{amount}} g"
+      },
+      "yourNote": "Ihre Notiz",
+      "snapshotNote": "So gespeichert, wie es {{name}} gegessen hat. Spätere Planänderungen ändern daran nichts.",
+      "lockedNote": "Diese Mahlzeit ist gesperrt und kann nicht geändert werden.",
+      "openDay": "{{day}} öffnen"
+    },
     "leave": {
       "title": "Ohne Speichern verlassen?",
       "body": "Sie haben ungespeicherte Änderungen. Wenn Sie jetzt gehen, gehen sie verloren.",

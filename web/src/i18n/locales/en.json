@@ -2261,6 +2261,49 @@
       "message": "This template was changed somewhere else since you opened it. Your edits are kept here and nothing was overwritten. Reload to get the latest version (this discards your edits).",
       "reload": "Reload latest"
     },
+    "locks": {
+      "nothingPlanned": "Nothing planned",
+      "today": "Today",
+      "dayLocked": "{{day}} is in the past and locked",
+      "close": "Close",
+      "rowLocked": "This row has meals that are eaten or in the past, so it can't be removed.",
+      "mealLockedError": "A meal was eaten or locked while you were editing, so the plan wasn't saved. Your edits are still here.",
+      "pastDayLockedError": "A day passed while you were editing and meals can't be added to it. The plan wasn't saved. Your edits are still here.",
+      "restore": "Restore what the client ate",
+      "fixOutlined": "Fix the outlined meal and save again.",
+      "fixRemoved": "Restore the removed meal and save again.",
+      "legend": {
+        "label": "Meal colours",
+        "eaten": "Eaten",
+        "partlyEaten": "Partly eaten",
+        "missed": "Missed",
+        "locked": "Locked"
+      },
+      "state": {
+        "eaten": "Eaten",
+        "missed": "Missed",
+        "partly": "{{eaten}} of {{total}} eaten",
+        "partlyShort": "{{eaten}}/{{total}} eaten"
+      },
+      "reason": {
+        "past": "Locked · {{day}} is in the past",
+        "eaten": "Locked · the client has eaten from it"
+      },
+      "kcalOf": "{{eaten}} of {{planned}} kcal",
+      "percent": "{{percent}} %",
+      "eatenAt": "Eaten {{time}}",
+      "eatenMacros": "Eaten",
+      "item": {
+        "eaten": "Eaten",
+        "notEaten": "Not eaten",
+        "recipe": "Recipe · {{amount}}×",
+        "food": "Ingredient · {{amount}} g"
+      },
+      "yourNote": "Your note",
+      "snapshotNote": "Saved as {{name}} ate it. Later plan changes don't change it.",
+      "lockedNote": "This meal is locked and can't be changed.",
+      "openDay": "Open {{day}}"
+    },
     "leave": {
       "title": "Leave without saving?",
       "body": "You have unsaved changes. If you leave now they are lost.",

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -15,10 +15,11 @@ import PlanActionsMenu, { DeletePlanDialog, FinishPlanDialog } from '@/component
 import PlanEndedBanner from '@/components/client-plan-editor/PlanEndedBanner';
 import TemplatesLibraryTab from '@/components/client-plan-editor/TemplatesLibraryTab';
 import PlanEditor from '@/components/plan-editor/PlanEditor';
+import { buildPlanMealLocks } from '@/components/plan-editor/meal-locks';
 import CopyMealsDialog from '@/components/plan-templates/CopyMealsDialog';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { isClosedPlan, useClientPlanEditor } from '@/hooks/useClientPlanEditor';
+import { isClosedPlan, toPlanEditorDocument, useClientPlanEditor } from '@/hooks/useClientPlanEditor';
 import { useClientPlanOfflineSyncConflicts, useReviewOfflineSyncConflicts } from '@/hooks/useClientOfflineSyncConflicts';
 import { getErrorStatus } from '@/lib/api-errors';
 import { useToastStore } from '@/stores/toast';
@@ -31,10 +32,21 @@ interface LoadedProps {
   lastName?: string;
   onboarding?: OnboardingDataDto;
   onReload: () => void;
+  /** False while the plan is being refetched: its lock data and stored meals are about to change. */
+  planFresh: boolean;
 }
 
 /** Hosts the shared plan editor for one loaded client plan. Mounted once per load, so edits stay local. */
-function LoadedClientPlanEditor({ plan, clientId, clientName, firstName, lastName, onboarding, onReload }: LoadedProps) {
+function LoadedClientPlanEditor({
+  plan,
+  clientId,
+  clientName,
+  firstName,
+  lastName,
+  onboarding,
+  onReload,
+  planFresh,
+}: LoadedProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -42,6 +54,8 @@ function LoadedClientPlanEditor({ plan, clientId, clientName, firstName, lastNam
   const {
     initial,
     saveState,
+    lockRejection,
+    clearLockRejection,
     save,
     primaryAction,
     weekStatus,
@@ -52,7 +66,15 @@ function LoadedClientPlanEditor({ plan, clientId, clientName, firstName, lastNam
     deletePlan,
     finishPlan,
     lifecycleBusy,
+    markTemplateApplied,
   } = useClientPlanEditor(plan, clientId);
+  // Read from the page's live plan, not the editor's adopted copy: a save response carries no lock data.
+  const mealLocks = useMemo(
+    () => buildPlanMealLocks(plan, firstName || clientName),
+    [plan, firstName, clientName],
+  );
+  // The server's copy of the plan for "Restore"; withheld while a refetch is under way so a stale meal is never restored.
+  const storedDocument = useMemo(() => (planFresh ? toPlanEditorDocument(plan) : null), [plan, planFresh]);
   const backToNutrition = () => navigate(`/clients/${clientId}/nutrition`);
 
   const planId = plan.planId ?? '';
@@ -102,6 +124,7 @@ function LoadedClientPlanEditor({ plan, clientId, clientName, firstName, lastNam
           onApply={slot.onApply}
         />
       )}
+      mealLocks={mealLocks}
       readOnly={isClosedPlan(plan)}
       readOnlyNotice={t('clientPlanEditor.readOnly')}
       breadcrumb={{
@@ -130,6 +153,7 @@ function LoadedClientPlanEditor({ plan, clientId, clientName, firstName, lastNam
             weekStatus={weekStatus}
             onboarding={onboarding}
             clientFirstName={firstName || clientName}
+            onTemplateApplied={markTemplateApplied}
           />
         ),
       }}
@@ -178,6 +202,9 @@ function LoadedClientPlanEditor({ plan, clientId, clientName, firstName, lastNam
         ended ? <PlanEndedBanner disabled={host.busy || lifecycleBusy} onFinish={() => setFinishOpen(true)} /> : null
       }
       saveState={saveState}
+      lockRejection={lockRejection}
+      onClearLockRejection={clearLockRejection}
+      storedDocument={storedDocument}
       onSave={save}
       onReload={onReload}
     />
@@ -268,6 +295,7 @@ export default function ClientPlanEditorPage() {
       firstName={dashboard?.firstName}
       lastName={dashboard?.lastName}
       onboarding={dashboard?.onboarding}
+      planFresh={!planQuery.isFetching}
       onReload={() => {
         void planQuery.refetch().then(() => setReloadCount((count) => count + 1));
       }}

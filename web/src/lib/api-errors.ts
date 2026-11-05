@@ -88,6 +88,29 @@ export function getRfc7807ErrorCode(error: unknown): string | null {
 }
 
 /**
+ * The raw ProblemDetails body of a failed request as an untyped object, for reading extension members that
+ * the generated client does not declare (the caller narrows each member). Covers the `AxiosError` shape,
+ * a thrown body object and a bare `ApiException` whose `.response` is a JSON string.
+ */
+export function getProblemBody(error: unknown): Record<string, unknown> | null {
+  if (error instanceof AxiosError) {
+    const data: unknown = error.response?.data;
+    if (typeof data === 'string') {
+      return parseJsonObject(data) as Record<string, unknown> | null;
+    }
+    return typeof data === 'object' && data !== null && !Array.isArray(data) ? (data as Record<string, unknown>) : null;
+  }
+  if (typeof error !== 'object' || error === null) {
+    return null;
+  }
+  const response = (error as { response?: unknown }).response;
+  if (typeof response === 'string') {
+    return parseJsonObject(response) as Record<string, unknown> | null;
+  }
+  return error as Record<string, unknown>;
+}
+
+/**
  * HTTP status of a failed request, for both error shapes: the NSwag
  * `ApiException` (`.status`) and an `AxiosError` (`.response.status`).
  * `null` when the value carries no status (e.g. a network failure, or a

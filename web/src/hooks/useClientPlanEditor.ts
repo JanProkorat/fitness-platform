@@ -19,7 +19,9 @@ import {
 } from '@/components/plan-editor/plan-editor-mapping';
 import { weekHasItems } from '@/components/plan-editor/plan-editor-ops';
 import { DAYS_PER_WEEK, type EditorDocument, type WeekStatus } from '@/components/plan-editor/plan-editor-types';
-import { getApiErrorMessage, getErrorStatus, showApiError } from '@/lib/api-errors';
+import { parseLockRejection, type LockRejection } from '@/components/plan-editor/meal-locks';
+import { getApiErrorMessage, getErrorStatus, getProblemBody, getRfc7807ErrorCode, showApiError } from '@/lib/api-errors';
+import { useToastStore } from '@/stores/toast';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -42,6 +44,7 @@ export function toPlanUpdateRequest(
   loaded: GetPlanResponse,
   doc: EditorDocument,
   version: number | undefined,
+  preserveLockedMeals = false,
 ): UpdatePlanRequest {
   return {
     name: doc.name.trim(),
@@ -55,6 +58,9 @@ export function toPlanUpdateRequest(
       notes: nullToUndefined(supplement.notes),
     })),
     version,
+    // Sent only for the save that follows a template apply; always sending it would make the server drop edits
+    // to locked meals silently instead of refusing them.
+    ...(preserveLockedMeals ? { preserveLockedMeals: true } : {}),
   };
 }
 
@@ -107,7 +113,11 @@ export function useClientPlanEditor(loadedPlan: GetPlanResponse, clientId: strin
   const [plan, setPlan] = useState(loadedPlan);
   const planRef = useRef(loadedPlan);
   const lastSavedRef = useRef(initial);
+  // Set when a template was applied in the browser; the next save tells the server to keep locked meals and past days.
+  const preserveNextSaveRef = useRef(false);
   const [saveState, setSaveState] = useState<PlanEditorSaveState>({ status: 'idle' });
+  // The tile the server refused to save; the editor outlines it until the coach changes that meal or a save succeeds.
+  const [lockRejection, setLockRejection] = useState<LockRejection | null>(null);
 
   const saveMutation = useMutation({
     mutationFn: (request: UpdatePlanRequest) => savePlanFromEditor(planId, request),
@@ -122,6 +132,7 @@ export function useClientPlanEditor(loadedPlan: GetPlanResponse, clientId: strin
     const document = toPlanEditorDocument(response);
     planRef.current = response;
     lastSavedRef.current = document;
+    setLockRejection(null);
     setPlan(response);
     void queryClient.invalidateQueries({ queryKey: ['nutrition-plan-detail', planId] });
     void queryClient.invalidateQueries({ queryKey: ['client-plans', clientId] });
@@ -131,6 +142,18 @@ export function useClientPlanEditor(loadedPlan: GetPlanResponse, clientId: strin
 
   function fail(error: unknown) {
     if (getErrorStatus(error) === 409) {
+      const code = getRfc7807ErrorCode(error);
+      if (code === 'MEAL_LOCKED' || code === 'PAST_DAY_LOCKED') {
+        // The plan moved on under the editor (a meal was eaten, midnight passed). The coach's edits stay: say what
+        // happened, outline the refused tile and refresh the lock data; the coach fixes it and saves again.
+        const message = t(code === 'MEAL_LOCKED' ? 'planEditor.locks.mealLockedError' : 'planEditor.locks.pastDayLockedError');
+        setSaveState({ status: 'error', message });
+        setLockRejection(parseLockRejection(getProblemBody(error)));
+        useToastStore.getState().addToast(message, 'error');
+        // Safe: the editor keeps its own document and `loadedPlan` is captured once, so this only refreshes the lock verdicts.
+        void queryClient.invalidateQueries({ queryKey: ['nutrition-plan-detail', planId] });
+        return;
+      }
       setSaveState({ status: 'conflict', message: t('planEditor.conflict.message') });
     } else {
       setSaveState({ status: 'error', message: getApiErrorMessage(error, 'planEditor.saveError') });
@@ -140,7 +163,10 @@ export function useClientPlanEditor(loadedPlan: GetPlanResponse, clientId: strin
   async function save(doc: EditorDocument): Promise<EditorDocument | null> {
     setSaveState({ status: 'saving' });
     try {
-      const saved = await saveMutation.mutateAsync(toPlanUpdateRequest(planRef.current, doc, planRef.current.version));
+      const saved = await saveMutation.mutateAsync(
+        toPlanUpdateRequest(planRef.current, doc, planRef.current.version, preserveNextSaveRef.current),
+      );
+      preserveNextSaveRef.current = false;
       setSaveState({ status: 'idle' });
       return adopt(saved);
     } catch (error) {
@@ -201,7 +227,10 @@ export function useClientPlanEditor(loadedPlan: GetPlanResponse, clientId: strin
     setSaveState({ status: 'saving' });
     try {
       if (!sameDocument(doc, lastSavedRef.current)) {
-        const saved = await saveMutation.mutateAsync(toPlanUpdateRequest(planRef.current, doc, planRef.current.version));
+        const saved = await saveMutation.mutateAsync(
+          toPlanUpdateRequest(planRef.current, doc, planRef.current.version, preserveNextSaveRef.current),
+        );
+        preserveNextSaveRef.current = false;
         adopt(saved);
       }
       const published = await publishMutation.mutateAsync({ weekNumber, version: planRef.current.version });
@@ -263,6 +292,8 @@ export function useClientPlanEditor(loadedPlan: GetPlanResponse, clientId: strin
   return {
     initial,
     saveState,
+    lockRejection,
+    clearLockRejection: () => setLockRejection(null),
     save,
     primaryAction,
     weekStatus,
@@ -273,6 +304,10 @@ export function useClientPlanEditor(loadedPlan: GetPlanResponse, clientId: strin
     canFinish: isActive,
     /** An Active plan whose last week is over: the nutritionist is nudged to finish it. */
     ended: isActive && planHasEnded(savedStartDate, storedWeeks.length),
+    /** Called after a template lands in the document: the next save sends `preserveLockedMeals` once. */
+    markTemplateApplied: () => {
+      preserveNextSaveRef.current = true;
+    },
     deletePlan,
     finishPlan,
     lifecycleBusy: deleteMutation.isPending || completeMutation.isPending,

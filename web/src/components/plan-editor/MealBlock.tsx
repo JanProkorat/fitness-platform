@@ -29,6 +29,14 @@ import {
   setMealNote,
   setRecipeServings,
 } from '@/components/plan-editor/plan-editor-ops';
+import { Button } from '@/components/ui/button';
+import {
+  isRejectedTile,
+  mealLockView,
+  useLockRejection,
+  useMealLocks,
+  useRestoreRejected,
+} from '@/components/plan-editor/meal-locks';
 import SyncConflictDayPanel from '@/components/plan-editor/sync-conflicts/SyncConflictDayPanel';
 import { useSyncConflicts } from '@/components/plan-editor/sync-conflicts/SyncConflictsContext';
 import { MAX_NOTE_LENGTH, type EditorMeal } from '@/components/plan-editor/plan-editor-types';
@@ -84,12 +92,18 @@ export default function MealBlock({
   const { t } = useTranslation();
   const conflicts = useSyncConflicts();
   const conflict = conflicts?.forMeal(weekIndex, meal.mealId);
-  const draggable = !readOnly && mealItemCount(meal) > 0;
+  const locks = useMealLocks();
+  const rejected = isRejectedTile(useLockRejection(), meal.mealId, weekIndex + 1, dayOfWeek);
+  const restore = useRestoreRejected();
+  // A locked meal reads like a read-only one: it neither moves nor takes a drop, and its controls are gone.
+  const locked = locks ? mealLockView(locks, meal.mealId, weekIndex + 1, dayOfWeek).locked : false;
+  const frozen = readOnly || locked;
+  const draggable = !frozen && mealItemCount(meal) > 0;
   const { ref: dropRef, isDropTarget } = useDroppable({
     id: `cell:${weekIndex}:${dayOfWeek}:${rowIndex}`,
     data: { weekIndex, dayOfWeek, rowIndex },
     // A meal card is dropped by position (see the editor), so no card takes a drop while one is dragged.
-    disabled: readOnly || drag !== null,
+    disabled: frozen || drag !== null,
   });
   const { ref: dragRef, isDragging } = useDraggable({
     id: `cell-meal:${weekIndex}:${dayOfWeek}:${rowIndex}`,
@@ -125,6 +139,7 @@ export default function MealBlock({
       data-landing={landing ? 'true' : undefined}
       data-drop-target={dropMode}
       data-conflict={conflict ? conflict.id : undefined}
+      data-lock-rejected={rejected ? 'true' : undefined}
       tabIndex={readOnly ? undefined : 0}
       aria-label={kindLabel}
       onClick={onSelect}
@@ -141,6 +156,7 @@ export default function MealBlock({
         draggable && !isDragging && 'hover:-translate-y-px hover:shadow-raised-hover motion-reduce:hover:translate-y-0',
         conflict && 'border-caution-ink',
         selected && 'ring-2 ring-ink ring-inset',
+        rejected && 'border-error ring-2 ring-error ring-inset',
         isDropTarget && !isDragging && 'border-nutrition bg-nutrition-soft',
         dropMode !== undefined && 'border-dashed border-nutrition bg-nutrition-soft',
         landing && 'border-nutrition ring-2 ring-nutrition',
@@ -168,7 +184,23 @@ export default function MealBlock({
               {t('planEditor.day.percentOfDay', { percent: Math.round((totals.kcal / dayKcal) * 100) })}
             </span>
           )}
-          {!readOnly && (
+          {rejected && restore && (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              data-testid="meal-restore"
+              className="ml-auto"
+              onPointerDown={(event) => event.stopPropagation()}
+              onClick={(event) => {
+                event.stopPropagation();
+                restore();
+              }}
+            >
+              {t('planEditor.locks.restore')}
+            </Button>
+          )}
+          {!frozen && (
             <span className="ml-auto flex items-center gap-1">
               <button
                 type="button"
@@ -194,7 +226,7 @@ export default function MealBlock({
               <MealItemRow
                 key={`${entry.type}:${entry.index}`}
                 entry={entry}
-                readOnly={readOnly}
+                readOnly={frozen}
                 variant="day"
                 position={{ weekIndex, dayOfWeek, mealId: meal.mealId }}
                 sourceId={
@@ -222,14 +254,14 @@ export default function MealBlock({
             ))}
           </ul>
         ) : (
-          !readOnly && (
+          !frozen && (
             <p className="rounded-xl border border-dashed border-line px-4 py-3 text-body text-muted-foreground">
               {t('planEditor.day.emptyMeal')}
             </p>
           )
         )}
 
-        {readOnly ? (
+        {frozen ? (
           shown.note && (
             <p className="flex items-center gap-2 text-body text-ink">
               <StickyNote className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />

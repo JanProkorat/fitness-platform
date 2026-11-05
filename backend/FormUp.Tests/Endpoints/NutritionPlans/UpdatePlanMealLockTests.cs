@@ -136,7 +136,7 @@ public class UpdatePlanMealLockTests
         Foods = [new UpdateMealFoodRequest { FoodExternalId = Guid.NewGuid(), FoodName = "Nuts", AmountGrams = 30 }],
     };
 
-    private async Task<(int Status, string? ErrorCode, UpdatePlanEndpoint Endpoint)> RunAsync(
+    private async Task<(int Status, string? ErrorCode, UpdatePlanEndpoint Endpoint, JsonElement Body)> RunAsync(
         NutritionPlan plan,
         UpdatePlanRequest req,
         MealLog[]? logs = null,
@@ -166,14 +166,23 @@ public class UpdatePlanMealLockTests
         await ep.HandleAsync(req, TestContext.Current.CancellationToken);
 
         string? errorCode = null;
+        JsonElement body = default;
         if (ep.HttpContext.Response.StatusCode == 409)
         {
             responseBody.Seek(0, SeekOrigin.Begin);
             using var doc = await JsonDocument.ParseAsync(responseBody, cancellationToken: TestContext.Current.CancellationToken);
-            errorCode = doc.RootElement.GetProperty("errorCode").GetString();
+            body = doc.RootElement.Clone();
+            errorCode = body.GetProperty("errorCode").GetString();
         }
 
-        return (ep.HttpContext.Response.StatusCode, errorCode, ep);
+        return (ep.HttpContext.Response.StatusCode, errorCode, ep, body);
+    }
+
+    private static void AssertRejectedSlot(JsonElement body, Guid mealId, int weekNumber, int dayOfWeek)
+    {
+        body.GetProperty("mealId").GetGuid().Should().Be(mealId);
+        body.GetProperty("weekNumber").GetInt32().Should().Be(weekNumber);
+        body.GetProperty("dayOfWeek").GetInt32().Should().Be(dayOfWeek);
     }
 
     [Theory]
@@ -207,6 +216,7 @@ public class UpdatePlanMealLockTests
 
         result.Status.Should().Be(409);
         result.ErrorCode.Should().Be(ErrorCodes.MealLocked);
+        AssertRejectedSlot(result.Body, _todayMealId, 1, TodayDay);
         plan.Version.Should().Be(1);
         plan.Weeks[0].Days[TodayDay - 1].Meals.Single().Foods[0].AmountGrams.Should().Be(150);
     }
@@ -240,6 +250,7 @@ public class UpdatePlanMealLockTests
 
         result.Status.Should().Be(409);
         result.ErrorCode.Should().Be(ErrorCodes.MealLocked);
+        AssertRejectedSlot(result.Body, eaten ? _todayMealId : _pastMealId, 1, day);
     }
 
     [Fact]
@@ -255,6 +266,7 @@ public class UpdatePlanMealLockTests
 
         result.Status.Should().Be(409);
         result.ErrorCode.Should().Be(ErrorCodes.MealLocked);
+        AssertRejectedSlot(result.Body, _todayMealId, 1, FutureDay);
     }
 
     [Fact]
@@ -291,6 +303,17 @@ public class UpdatePlanMealLockTests
 
         result.Status.Should().Be(409);
         result.ErrorCode.Should().Be(ErrorCodes.PastDayLocked);
+        result.Body.GetProperty("weekNumber").GetInt32().Should().Be(1);
+        result.Body.GetProperty("dayOfWeek").GetInt32().Should().Be(1);
+
+        if (moveUnlockedMeal)
+        {
+            result.Body.GetProperty("mealId").GetGuid().Should().Be(_futureMealId);
+        }
+        else
+        {
+            result.Body.GetProperty("mealId").ValueKind.Should().Be(JsonValueKind.Null);
+        }
     }
 
     [Fact]
