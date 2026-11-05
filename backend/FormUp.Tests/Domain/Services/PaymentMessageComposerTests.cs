@@ -176,6 +176,18 @@ public class PaymentMessageComposerTests
     }
 
     [Fact]
+    public void RenderEmailHtml_PlaceholderInsideAValue_IsNotExpandedAgain()
+    {
+        var html = PaymentMessageComposer.RenderEmailHtml(
+            "{{CoachName}}|{{Iban}}",
+            Email(coach: "{{Iban}}"),
+            "en",
+            "https://app.example.com");
+
+        html.Should().Be("{{Iban}}|CZ65 0800 0000 1920 0014 5399");
+    }
+
+    [Fact]
     public void RenderEmailHtml_NoDiscount_LeavesTheBreakdownLineEmpty()
     {
         var withoutDiscount = Email() with { DiscountLabel = null, BasePrice = null };

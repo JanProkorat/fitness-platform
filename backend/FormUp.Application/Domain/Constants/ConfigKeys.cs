@@ -69,6 +69,12 @@ public static class ConfigKeys
     public const string EmailProvider = "Email:Provider";
 
     /// <summary>
+    /// Public absolute base URL of this API (no trailing slash) under which <c>/email/*</c> static assets
+    /// such as the logo are reachable by mail clients. Unset: emails show a text wordmark instead.
+    /// </summary>
+    public const string EmailAssetBaseUrl = "Email:AssetBaseUrl";
+
+    /// <summary>
     /// Resend API token for sending emails via Resend.
     /// </summary>
     public const string ResendApiToken = "Resend:ApiToken";

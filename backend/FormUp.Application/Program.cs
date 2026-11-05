@@ -463,6 +463,7 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
     app.UseHttpsRedirection();
 }
+app.UseStaticFiles();
 app.UseCors(AppPolicies.AllowWebApp);
 app.UseAuthentication();
 app.UseAuthorization();

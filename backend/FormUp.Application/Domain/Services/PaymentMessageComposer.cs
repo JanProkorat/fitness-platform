@@ -1,4 +1,5 @@
 using System.Net;
+using System.Text.RegularExpressions;
 using FormUp.Application.Domain.Enums;
 using FormUp.Application.Domain.Interfaces;
 
@@ -9,7 +10,7 @@ namespace FormUp.Application.Domain.Services;
 /// Month names and number formats are spelled out here instead of read from the runtime culture, so
 /// the output does not depend on the ICU data of the host.
 /// </summary>
-public static class PaymentMessageComposer
+public static partial class PaymentMessageComposer
 {
     /// <summary>Content id of the QR image inside the request email.</summary>
     public const string QrContentId = "payment-qr@formup.local";
@@ -217,19 +218,28 @@ public static class PaymentMessageComposer
             ? string.Format(System.Globalization.CultureInfo.InvariantCulture, BreakdownFormats[lang], FormatAmount(basePrice, lang, model.Currency), discountLabel)
             : string.Empty;
 
-        return template
-            .Replace("{{Heading}}", WebUtility.HtmlEncode(heading), StringComparison.Ordinal)
-            .Replace("{{Intro}}", WebUtility.HtmlEncode(intro), StringComparison.Ordinal)
-            .Replace("{{Amount}}", WebUtility.HtmlEncode(amount), StringComparison.Ordinal)
-            .Replace("{{Iban}}", WebUtility.HtmlEncode(FormatIban(model.Iban)), StringComparison.Ordinal)
-            .Replace("{{VariableSymbol}}", WebUtility.HtmlEncode(model.VariableSymbol), StringComparison.Ordinal)
-            .Replace("{{Message}}", WebUtility.HtmlEncode(model.Message), StringComparison.Ordinal)
-            .Replace("{{Due}}", WebUtility.HtmlEncode(due), StringComparison.Ordinal)
-            .Replace("{{Breakdown}}", WebUtility.HtmlEncode(breakdown), StringComparison.Ordinal)
-            .Replace("{{CoachName}}", WebUtility.HtmlEncode(model.CoachName), StringComparison.Ordinal)
-            .Replace("{{QrCid}}", WebUtility.HtmlEncode(model.QrContentId), StringComparison.Ordinal)
-            .Replace("{{AppUrl}}", WebUtility.HtmlEncode(appUrl), StringComparison.Ordinal);
+        var values = new Dictionary<string, string>
+        {
+            ["Heading"] = heading,
+            ["Intro"] = intro,
+            ["Amount"] = amount,
+            ["Iban"] = FormatIban(model.Iban),
+            ["VariableSymbol"] = model.VariableSymbol,
+            ["Message"] = model.Message,
+            ["Due"] = due,
+            ["Breakdown"] = breakdown,
+            ["CoachName"] = model.CoachName,
+            ["QrCid"] = model.QrContentId,
+            ["AppUrl"] = appUrl
+        };
+
+        // One pass, so a value that itself contains a placeholder is never expanded.
+        return PlaceholderPattern().Replace(template, match =>
+            values.TryGetValue(match.Groups[1].Value, out var value) ? WebUtility.HtmlEncode(value) : match.Value);
     }
+
+    [GeneratedRegex(@"\{\{(\w+)\}\}")]
+    private static partial Regex PlaceholderPattern();
 
     private static string WithMonth(string text, string month)
     {

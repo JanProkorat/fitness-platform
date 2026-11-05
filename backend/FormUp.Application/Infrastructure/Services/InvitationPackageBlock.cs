@@ -24,19 +24,18 @@ internal static class InvitationPackageBlock
 
         var (label, priceNote) = language switch
         {
-            "cs" => ("Balíček", "Cenu najdete v aplikaci."),
-            "de" => ("Paket", "Den Preis sehen Sie in der App."),
-            _ => ("Package", "See the price in the app.")
+            "cs" => ("Balíček", "Cenu a podrobnosti najdete v aplikaci Form Up."),
+            "de" => ("Paket", "Preis und Details sehen Sie in der Form-Up-App."),
+            _ => ("Package", "See the price and details in the Form Up app.")
         };
 
         return $"""
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
                 <tr>
-                  <td style="background:rgba(201,168,76,0.06);border:1px solid rgba(201,168,76,0.2);border-radius:4px;padding:16px 20px;text-align:center;">
-                    <span style="font-size:10px;font-weight:700;letter-spacing:3px;color:#8a6f2e;text-transform:uppercase;">{label}</span>
-                    <p style="margin:6px 0 0;font-size:16px;font-weight:700;color:#f0ece4;">{WebUtility.HtmlEncode(package.Name)}</p>
-                    <p style="margin:4px 0 0;font-size:13px;color:#a89f8c;">{WebUtility.HtmlEncode(BillingLabel(package, language))}</p>
-                    <p style="margin:8px 0 0;font-size:12px;color:#5a5248;">{priceNote}</p>
+                  <td class="fu-rule" style="border:1px solid #E7E4DE;border-radius:14px;padding:14px 16px;">
+                    <p class="fu-muted" style="margin:0 0 2px;font-size:12px;font-weight:600;color:#6B6863;">{label}</p>
+                    <p class="fu-text" style="margin:0 0 2px;font-size:15px;font-weight:700;color:#141414;">{WebUtility.HtmlEncode(package.Name)} &middot; {WebUtility.HtmlEncode(BillingLabel(package, language))}</p>
+                    <p class="fu-muted" style="margin:0;font-size:13px;line-height:1.5;color:#6B6863;">{priceNote}</p>
                   </td>
                 </tr>
               </table>

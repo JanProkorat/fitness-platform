@@ -1,6 +1,4 @@
-using System.Collections.Concurrent;
 using System.Net;
-using System.Reflection;
 using FormUp.Application.Domain.Constants;
 using FormUp.Application.Domain.Interfaces;
 using FormUp.Application.Domain.Services;
@@ -19,65 +17,7 @@ namespace FormUp.Application.Infrastructure.Services;
 /// </summary>
 public class SmtpEmailService(IConfiguration configuration, ILogger<SmtpEmailService> logger) : IEmailService
 {
-    /// <summary>
-    /// Supported languages for email templates.
-    /// </summary>
-    private static readonly HashSet<string> SupportedLanguages = ["en", "cs", "de"];
-
-    /// <summary>
-    /// Cache for loaded email templates, keyed by resource name.
-    /// </summary>
-    private static readonly ConcurrentDictionary<string, string> TemplateCache = new();
-
-    /// <summary>
-    /// Localized email subjects for invitation emails.
-    /// </summary>
-    private static readonly Dictionary<string, string> InvitationSubjects = new()
-    {
-        ["en"] = "You have been invited to Form Up",
-        ["cs"] = "Pozvánka do Form Up",
-        ["de"] = "Einladung zu Form Up"
-    };
-
-    /// <summary>
-    /// Localized email subjects for password reset emails.
-    /// </summary>
-    private static readonly Dictionary<string, string> PasswordResetSubjects = new()
-    {
-        ["en"] = "Reset your Form Up password",
-        ["cs"] = "Obnovení hesla ve Form Up",
-        ["de"] = "Form-Up-Passwort zurücksetzen"
-    };
-
-    /// <summary>
-    /// Localized email subjects for email verification emails.
-    /// </summary>
-    private static readonly Dictionary<string, string> EmailVerificationSubjects = new()
-    {
-        ["en"] = "Verify your Form Up email",
-        ["cs"] = "Ověřte svůj e-mail ve Form Up",
-        ["de"] = "Bestätigen Sie Ihre E-Mail für Form Up"
-    };
-
-    /// <summary>
-    /// Localized email subjects for the bank account re-authentication code.
-    /// </summary>
-    private static readonly Dictionary<string, string> ReauthCodeSubjects = new()
-    {
-        ["en"] = "Your Form Up confirmation code",
-        ["cs"] = "Potvrzovací kód pro Form Up",
-        ["de"] = "Ihr Bestätigungscode für Form Up"
-    };
-
-    /// <summary>
-    /// Localized email subjects for the bank account changed notice.
-    /// </summary>
-    private static readonly Dictionary<string, string> BankAccountChangedSubjects = new()
-    {
-        ["en"] = "Your Form Up bank account was changed",
-        ["cs"] = "Bankovní účet ve Form Up byl změněn",
-        ["de"] = "Ihr Bankkonto bei Form Up wurde geändert"
-    };
+    private readonly EmailTemplateRenderer _renderer = new(configuration);
 
     /// <summary>
     /// Polly retry pipeline: 3 retries with exponential backoff (1s, 2s, 4s).
@@ -94,29 +34,9 @@ public class SmtpEmailService(IConfiguration configuration, ILogger<SmtpEmailSer
     /// <inheritdoc />
     public async Task SendInvitationEmailAsync(string toEmail, string trainerName, string invitationToken, string language, string? personalMessage, InvitationPackageInfo? package, CancellationToken ct)
     {
-        var lang = NormalizeLanguage(language);
-        var baseUrl = configuration[ConfigKeys.AppBaseUrl] ?? "http://localhost:5173";
-        var encodedToken = WebUtility.UrlEncode(invitationToken);
-        var acceptUrl = $"{baseUrl}/invite/accept?token={encodedToken}";
-
-        var template = LoadTemplate("Invitation", lang);
-        var html = template
-            .Replace("{{PackageBlock}}", InvitationPackageBlock.Render(package, lang))
-            .Replace("{{TrainerName}}", WebUtility.HtmlEncode(trainerName))
-            .Replace("{{AcceptUrl}}", acceptUrl)
-            .Replace("{{PersonalMessage}}", string.IsNullOrWhiteSpace(personalMessage)
-                ? ""
-                : $"""
-                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
-                    <tr>
-                      <td style="background:rgba(201,168,76,0.06);border-left:3px solid #c9a84c;border-radius:4px;padding:16px 20px;font-size:14px;line-height:1.6;color:#a89f8c;font-style:italic;">
-                        &ldquo;{WebUtility.HtmlEncode(personalMessage)}&rdquo;
-                      </td>
-                    </tr>
-                  </table>
-                  """);
-
-        var subject = InvitationSubjects.GetValueOrDefault(lang, InvitationSubjects["en"]);
+        var lang = EmailTemplateRenderer.NormalizeLanguage(language);
+        var acceptUrl = $"{BaseUrl}/invite/accept?token={WebUtility.UrlEncode(invitationToken)}";
+        var (subject, html) = _renderer.RenderInvitation(trainerName, acceptUrl, lang, personalMessage, package);
 
         await SendEmailAsync(toEmail, subject, html, ct);
 
@@ -126,16 +46,12 @@ public class SmtpEmailService(IConfiguration configuration, ILogger<SmtpEmailSer
     /// <inheritdoc />
     public async Task SendPasswordResetEmailAsync(string toEmail, string resetToken, string language, CancellationToken ct)
     {
-        var lang = NormalizeLanguage(language);
-        var baseUrl = configuration[ConfigKeys.AppBaseUrl] ?? "http://localhost:5173";
-        var encodedToken = WebUtility.UrlEncode(resetToken);
-        var encodedEmail = WebUtility.UrlEncode(toEmail);
-        var resetUrl = $"{baseUrl}/auth/reset-password?token={encodedToken}&email={encodedEmail}";
-
-        var template = LoadTemplate("PasswordReset", lang);
-        var html = template.Replace("{{ResetUrl}}", resetUrl);
-
-        var subject = PasswordResetSubjects.GetValueOrDefault(lang, PasswordResetSubjects["en"]);
+        var lang = EmailTemplateRenderer.NormalizeLanguage(language);
+        var resetUrl = $"{BaseUrl}/auth/reset-password?token={WebUtility.UrlEncode(resetToken)}&email={WebUtility.UrlEncode(toEmail)}";
+        var (subject, html) = _renderer.Render(
+            EmailTemplateRenderer.PasswordReset,
+            lang,
+            new Dictionary<string, string> { ["ResetUrl"] = resetUrl, ["Email"] = toEmail });
 
         await SendEmailAsync(toEmail, subject, html, ct);
 
@@ -145,15 +61,12 @@ public class SmtpEmailService(IConfiguration configuration, ILogger<SmtpEmailSer
     /// <inheritdoc />
     public async Task SendEmailVerificationAsync(string toEmail, string verificationToken, string language, CancellationToken ct)
     {
-        var lang = NormalizeLanguage(language);
-        var baseUrl = configuration[ConfigKeys.AppBaseUrl] ?? "http://localhost:5173";
-        var encodedToken = WebUtility.UrlEncode(verificationToken);
-        var verifyUrl = $"{baseUrl}/verify-email?token={encodedToken}";
-
-        var template = LoadTemplate("EmailVerification", lang);
-        var html = template.Replace("{{VerifyUrl}}", verifyUrl);
-
-        var subject = EmailVerificationSubjects.GetValueOrDefault(lang, EmailVerificationSubjects["en"]);
+        var lang = EmailTemplateRenderer.NormalizeLanguage(language);
+        var verifyUrl = $"{BaseUrl}/verify-email?token={WebUtility.UrlEncode(verificationToken)}";
+        var (subject, html) = _renderer.Render(
+            EmailTemplateRenderer.EmailVerification,
+            lang,
+            new Dictionary<string, string> { ["VerifyUrl"] = verifyUrl, ["Email"] = toEmail });
 
         await SendEmailAsync(toEmail, subject, html, ct);
 
@@ -163,9 +76,11 @@ public class SmtpEmailService(IConfiguration configuration, ILogger<SmtpEmailSer
     /// <inheritdoc />
     public async Task SendReauthCodeEmailAsync(string toEmail, string code, string language, CancellationToken ct)
     {
-        var lang = NormalizeLanguage(language);
-        var html = LoadTemplate("ReauthCode", lang).Replace("{{Code}}", WebUtility.HtmlEncode(code));
-        var subject = ReauthCodeSubjects.GetValueOrDefault(lang, ReauthCodeSubjects["en"]);
+        var lang = EmailTemplateRenderer.NormalizeLanguage(language);
+        var (subject, html) = _renderer.Render(
+            EmailTemplateRenderer.ReauthCode,
+            lang,
+            new Dictionary<string, string> { ["Code"] = code });
 
         await SendEmailAsync(toEmail, subject, html, ct);
 
@@ -176,15 +91,17 @@ public class SmtpEmailService(IConfiguration configuration, ILogger<SmtpEmailSer
     public async Task SendBankAccountChangedEmailAsync(
         string toEmail, string maskedNewIban, string maskedPreviousIban, string undoToken, string language, CancellationToken ct)
     {
-        var lang = NormalizeLanguage(language);
-        var baseUrl = configuration[ConfigKeys.AppBaseUrl] ?? "http://localhost:5173";
-        var undoUrl = $"{baseUrl}/bank-account/undo?token={WebUtility.UrlEncode(undoToken)}";
-
-        var html = LoadTemplate("BankAccountChanged", lang)
-            .Replace("{{NewIban}}", WebUtility.HtmlEncode(maskedNewIban))
-            .Replace("{{PreviousIban}}", WebUtility.HtmlEncode(maskedPreviousIban))
-            .Replace("{{UndoUrl}}", undoUrl);
-        var subject = BankAccountChangedSubjects.GetValueOrDefault(lang, BankAccountChangedSubjects["en"]);
+        var lang = EmailTemplateRenderer.NormalizeLanguage(language);
+        var undoUrl = $"{BaseUrl}/bank-account/undo?token={WebUtility.UrlEncode(undoToken)}";
+        var (subject, html) = _renderer.Render(
+            EmailTemplateRenderer.BankAccountChanged,
+            lang,
+            new Dictionary<string, string>
+            {
+                ["NewIban"] = maskedNewIban,
+                ["PreviousIban"] = maskedPreviousIban,
+                ["UndoUrl"] = undoUrl
+            });
 
         await SendEmailAsync(toEmail, subject, html, ct);
 
@@ -194,16 +111,16 @@ public class SmtpEmailService(IConfiguration configuration, ILogger<SmtpEmailSer
     /// <inheritdoc />
     public async Task SendPaymentRequestEmailAsync(PaymentRequestEmail email, CancellationToken ct)
     {
-        var lang = NormalizeLanguage(email.Language);
-        var baseUrl = configuration[ConfigKeys.AppBaseUrl] ?? "http://localhost:5173";
-
-        var html = PaymentMessageComposer.RenderEmailHtml(LoadTemplate("PaymentRequest", lang), email, lang, baseUrl);
+        var lang = EmailTemplateRenderer.NormalizeLanguage(email.Language);
+        var html = PaymentMessageComposer.RenderEmailHtml(_renderer.Wrap(EmailTemplateRenderer.PaymentRequest, lang), email, lang, BaseUrl);
         var subject = PaymentMessageComposer.EmailSubject(email, lang);
 
         await SendEmailAsync(email.ToEmail, subject, html, ct, (email.QrContentId, email.QrPng));
 
         logger.LogInformation("Payment request email sent (lang={Language})", lang);
     }
+
+    private string BaseUrl => configuration[ConfigKeys.AppBaseUrl] ?? "http://localhost:5173";
 
     /// <summary>
     /// Sends an email message via SMTP with Polly retry logic.
@@ -248,50 +165,5 @@ public class SmtpEmailService(IConfiguration configuration, ILogger<SmtpEmailSer
             await client.SendAsync(message, token);
             await client.DisconnectAsync(true, token);
         }, ct);
-    }
-
-    /// <summary>
-    /// Normalizes a language code to a supported two-letter code. Falls back to "en".
-    /// </summary>
-    /// <param name="language">The raw language string (e.g. "cs", "cs-CZ", "de-DE").</param>
-    /// <returns>A supported two-letter language code.</returns>
-    private static string NormalizeLanguage(string? language)
-    {
-        if (string.IsNullOrWhiteSpace(language))
-            return "en";
-
-        // Take first two characters (handles "cs-CZ" → "cs")
-        var code = language.Length >= 2 ? language[..2].ToLowerInvariant() : language.ToLowerInvariant();
-        return SupportedLanguages.Contains(code) ? code : "en";
-    }
-
-    /// <summary>
-    /// Loads an email template from embedded resources with caching.
-    /// Falls back to English if the requested language template is not found.
-    /// </summary>
-    /// <param name="templateName">The template name (e.g. "Invitation", "PasswordReset").</param>
-    /// <param name="language">The two-letter language code.</param>
-    /// <returns>The HTML template content.</returns>
-    private static string LoadTemplate(string templateName, string language)
-    {
-        var resourceName = $"FormUp.Application.Infrastructure.EmailTemplates.{templateName}.{language}.html";
-
-        return TemplateCache.GetOrAdd(resourceName, name =>
-        {
-            var assembly = Assembly.GetExecutingAssembly();
-            using var stream = assembly.GetManifestResourceStream(name);
-
-            if (stream is null)
-            {
-                var fallback = $"FormUp.Application.Infrastructure.EmailTemplates.{templateName}.en.html";
-                using var fallbackStream = assembly.GetManifestResourceStream(fallback)
-                    ?? throw new InvalidOperationException($"Email template '{fallback}' not found in embedded resources.");
-                using var fallbackReader = new StreamReader(fallbackStream);
-                return fallbackReader.ReadToEnd();
-            }
-
-            using var reader = new StreamReader(stream);
-            return reader.ReadToEnd();
-        });
     }
 }
