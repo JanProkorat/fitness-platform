@@ -42,12 +42,13 @@ public static class SocialSignUpRoles
 
     /// <summary>
     /// Canonical role names to provision. An empty or absent list means Client.
-    /// Assumes the list already passed validation.
+    /// Roles outside the allowlist are dropped even if no validator ran.
     /// </summary>
     /// <param name="roles">Requested role names, any casing.</param>
     public static List<string> Resolve(IEnumerable<string>? roles)
     {
         var resolved = (roles ?? [])
+            .Where(IsAllowed)
             .Select(role => Enum.Parse<UserRole>(role, ignoreCase: true).ToString())
             .Distinct()
             .ToList();
