@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light dark">
+  <meta name="supported-color-schemes" content="light dark">
+  <title>Form Up</title>
+  <style>
+    @media (prefers-color-scheme: dark) {
+      .fu-bg { background-color: #0E0E0F !important; }
+      .fu-card { background-color: #18181A !important; border-color: #2A292C !important; }
+      .fu-text { color: #F4F2EE !important; }
+      .fu-body { color: #CFCAC2 !important; }
+      .fu-muted { color: #958F87 !important; }
+      .fu-panel { background-color: #232226 !important; }
+      .fu-rule { border-color: #2A292C !important; }
+      .fu-link { color: #F4F2EE !important; }
+      .fu-btn { background-color: #F4F2EE !important; color: #141414 !important; }
+    }
+  </style>
+</head>
+<body class="fu-bg" style="margin:0;padding:0;background-color:#F6F4F0;font-family:'DM Sans','Helvetica Neue',Helvetica,Arial,sans-serif;color:#141414;-webkit-font-smoothing:antialiased;">
+  <div style="display:none;max-height:0;overflow:hidden;opacity:0;mso-hide:all;">{{Preheader}}</div>
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" class="fu-bg" style="background-color:#F6F4F0;padding:32px 16px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
+          <tr>
+            <td style="padding:0 8px 20px;">{{Logo}}</td>
+          </tr>
+          <tr>
+            <td class="fu-card" style="background-color:#FFFFFF;border:1px solid #E7E4DE;border-radius:20px;padding:36px 32px;">
+              {{Body}}
+            </td>
+          </tr>
+          <tr>
+            <td class="fu-muted" style="padding:20px 8px 0;font-size:12px;line-height:1.6;color:#6B6863;">
+              {{FooterNote}}<br>
+              {{FooterLine}}
+              Form Up &middot; Váš plán. Společně.
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

@@ -61,6 +61,7 @@ public class PaymentRequestEmailServiceTests
         sent.To.Should().Equal("eva@example.com");
         sent.Subject.Should().StartWith("Martin Král: 1");
         sent.Html.Should().Contain($"cid:{PaymentMessageComposer.QrContentId}").And.Contain(amountLabel).And.Contain(title);
+        sent.Html.Should().Contain("prefers-color-scheme").And.NotContain("{{");
         sent.ImageContentId.Should().Be(PaymentMessageComposer.QrContentId);
         sent.ImageBytes.Should().Equal(FakePng);
     }
