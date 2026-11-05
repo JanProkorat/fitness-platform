@@ -296,6 +296,14 @@ public class GetDashboardSummaryEndpoint(
             {
                 var merged = todayMeals.Where(meal => meal.MealId == planMeal.MealId).ToList();
 
+                // A snapshot row counts what was eaten from its own snapshot, not from the live plan meal.
+                var snapshotTotals = merged.Select(meal => meal.SnapshotTotals).FirstOrDefault(totals => totals is not null);
+
+                if (snapshotTotals is not null)
+                {
+                    return snapshotTotals.Kcal;
+                }
+
                 if (merged.Any(meal => meal.State == MealEatenState.Eaten))
                 {
                     return planMeal.MealTotals?.Kcal ?? 0;

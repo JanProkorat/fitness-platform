@@ -104,6 +104,7 @@ public class UnlogMealEatenEndpoint(IMongoContext mongo, IApplicationDbContext d
                     Builders<MealLog>.Filter.SizeGt(l => l.EatenItemIds, 0))),
             Builders<MealLog>.Update
                 .Unset(l => l.EatenAt)
+                .Unset(l => l.EatenSnapshot)
                 .Set(l => l.EatenItemIds, new List<Guid>())
                 .Set(l => l.LogDate, today),
             cancellationToken: ct);

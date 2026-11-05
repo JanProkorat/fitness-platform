@@ -35,19 +35,21 @@ public static class MealLogMerger
                 var groupRows = group.ToList();
                 var eatenIds = groupRows.SelectMany(row => MealItemEatenState.EffectiveEatenIds(row, meal)).ToHashSet();
                 var markedEaten = groupRows.Any(row => row.EatenAt.HasValue);
-                var state = MealItemEatenState.StateOf(meal, eatenIds, markedEaten);
+                var items = MealItemEatenState.ItemIds(groupRows, meal);
+                var state = MealItemEatenState.StateOf(items, eatenIds, markedEaten);
                 var share = state switch
                 {
                     MealEatenState.Eaten => 1m,
                     MealEatenState.NotEaten => 0m,
-                    _ => MealItemEatenState.EatenShare(meal, eatenIds, markedEaten),
+                    _ => MealItemEatenState.EatenShare(items, eatenIds, markedEaten),
                 };
                 DateTime? eatenAt = state == MealEatenState.Eaten
                     ? groupRows.Where(row => row.EatenAt.HasValue).Select(row => row.EatenAt).Min()
                     : null;
 
                 return new MergedMealLog(
-                    group.Key.PlanId, group.Key.Day, group.Key.MealId, meal, eatenIds, state, share, eatenAt, groupRows);
+                    group.Key.PlanId, group.Key.Day, group.Key.MealId, meal, eatenIds, state, share, eatenAt, groupRows,
+                    MealItemEatenState.SnapshotTotals(MealItemEatenState.SnapshotOf(groupRows), eatenIds));
             })
             .ToList();
 }

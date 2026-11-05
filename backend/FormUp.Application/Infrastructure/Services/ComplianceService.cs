@@ -287,6 +287,20 @@ public class ComplianceService : IComplianceService
 
                 foreach (var log in group)
                 {
+                    // A snapshot row counts its eaten foods and recipes; older rows only have FoodsEaten.
+                    var snapshotTotals = MealItemEatenState.SnapshotTotals(
+                        log.EatenSnapshot, MealItemEatenState.EffectiveEatenIds(log, null));
+
+                    if (snapshotTotals is not null)
+                    {
+                        dayKcal += snapshotTotals.Kcal;
+                        dayProtein += snapshotTotals.Protein;
+                        dayCarbs += snapshotTotals.Carbs;
+                        dayFat += snapshotTotals.Fat;
+                        dayFiber += snapshotTotals.Fiber;
+                        continue;
+                    }
+
                     foreach (var food in log.FoodsEaten)
                     {
                         var factor = food.AmountGrams / 100m;

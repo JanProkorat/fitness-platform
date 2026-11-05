@@ -9,6 +9,10 @@ namespace FormUp.Application.Domain.Documents;
 /// </summary>
 public class SeenMealItem
 {
+    /// <summary>Plan item id of the item.</summary>
+    [BsonElement("itemId")]
+    public Guid ItemId { get; set; }
+
     /// <summary>Whether the item was a food or a recipe.</summary>
     [BsonElement("kind")]
     [BsonRepresentation(BsonType.String)]
@@ -29,4 +33,20 @@ public class SeenMealItem
     /// <summary>Energy the client showed, in kcal.</summary>
     [BsonElement("kcal")]
     public decimal Kcal { get; set; }
+
+    /// <summary>Protein the client showed, in grams.</summary>
+    [BsonElement("protein")]
+    public decimal Protein { get; set; }
+
+    /// <summary>Carbohydrates the client showed, in grams.</summary>
+    [BsonElement("carbs")]
+    public decimal Carbs { get; set; }
+
+    /// <summary>Fat the client showed, in grams.</summary>
+    [BsonElement("fat")]
+    public decimal Fat { get; set; }
+
+    /// <summary>Fibre the client showed, in grams.</summary>
+    [BsonElement("fibre")]
+    public decimal Fibre { get; set; }
 }

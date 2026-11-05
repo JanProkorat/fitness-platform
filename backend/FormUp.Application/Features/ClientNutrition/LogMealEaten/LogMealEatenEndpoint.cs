@@ -162,6 +162,20 @@ public class LogMealEatenEndpoint(
         await Send.ResponseAsync(LogMealEatenResponse.FromConflict(conflict?.Kind, conflict?.MealLogged ?? true), 201, ct);
     }
 
+    private static EatenMealItem ToEatenItem(SeenMealItemRequest item) => new()
+    {
+        ItemId = item.ItemId,
+        Kind = item.Kind,
+        RefId = item.RefId,
+        Name = item.Name,
+        Amount = item.Amount,
+        Kcal = item.Kcal,
+        Protein = item.Protein,
+        Carbs = item.Carbs,
+        Fat = item.Fat,
+        Fibre = item.Fibre,
+    };
+
     private static PlanMeal? FindMeal(NutritionPlan plan, Guid mealId) =>
         plan.Weeks
             .SelectMany(w => w.Days)
@@ -196,6 +210,11 @@ public class LogMealEatenEndpoint(
                 Name = item.Name,
                 Amount = item.Amount,
                 Kcal = item.Kcal,
+                ItemId = item.ItemId,
+                Protein = item.Protein,
+                Carbs = item.Carbs,
+                Fat = item.Fat,
+                Fibre = item.Fibre,
             })
             .ToList(),
     };
@@ -296,6 +315,12 @@ public class LogMealEatenEndpoint(
 
         var note = string.IsNullOrWhiteSpace(req.Note) ? null : req.Note.Trim();
 
+        // An offline request carries the items the client saw; they are what was eaten, even when the
+        // live plan has moved on. An online request snapshots the live meal.
+        var snapshot = req.SeenMealItems is { Count: > 0 }
+            ? req.SeenMealItems.Select(ToEatenItem).ToList()
+            : MealItemEatenState.BuildSnapshot(meal);
+
         if (existingLog is null)
         {
             var mealLog = new MealLog
@@ -308,7 +333,8 @@ public class LogMealEatenEndpoint(
                 // day the client's own Today card shows. EatenAt stays the true UTC instant.
                 LogDate = todayLocalUtc,
                 EatenAt = now,
-                EatenItemIds = MealItemEatenState.ItemIds(meal).ToList(),
+                EatenItemIds = snapshot.Select(item => item.ItemId).ToList(),
+                EatenSnapshot = snapshot,
                 FoodsEaten = meal.Foods,
                 Photos = (req.PhotoBlobUrls ?? [])
                     .Select(url => new MealPhoto { BlobUrl = url, UploadedAt = now })
@@ -331,12 +357,25 @@ public class LogMealEatenEndpoint(
             }
         }
 
+        // A snapshot is written once, when the row goes from nothing eaten to something eaten; an
+        // existing snapshot (or a legacy row that already has eaten items) is kept as it is.
+        var writeSnapshot = existingLog.EatenSnapshot is null
+                            && MealItemEatenState.EffectiveEatenIds(existingLog, meal).Count == 0;
+        var eatenItemIds = writeSnapshot
+            ? snapshot.Select(item => item.ItemId).ToList()
+            : MealItemEatenState.ItemIds(existingLog, meal).ToList();
+
         var update = Builders<MealLog>.Update
             .Set(l => l.EatenAt, now)
-            .Set(l => l.EatenItemIds, MealItemEatenState.ItemIds(meal).ToList())
+            .Set(l => l.EatenItemIds, eatenItemIds)
             .Set(l => l.LogDate, todayLocalUtc)
             .Set(l => l.FoodsEaten, meal.Foods)
             .Set(l => l.Photos, photos);
+
+        if (writeSnapshot)
+        {
+            update = update.Set(l => l.EatenSnapshot, snapshot);
+        }
 
         if (note is not null)
         {
