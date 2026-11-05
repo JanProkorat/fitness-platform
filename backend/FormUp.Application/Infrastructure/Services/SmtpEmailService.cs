@@ -125,7 +125,7 @@ public class SmtpEmailService(IConfiguration configuration, ILogger<SmtpEmailSer
     {
         var (subject, html) = _renderer.RenderNotification(item);
 
-        await SendEmailAsync(item.Email, subject, html, ct);
+        await SendEmailAsync(item.Email, subject, html, ct, headers: _renderer.NotificationHeaders(item));
 
         logger.LogInformation("Notification email {Event} sent to user {UserId}", item.Event, item.UserId);
     }
@@ -140,8 +140,14 @@ public class SmtpEmailService(IConfiguration configuration, ILogger<SmtpEmailSer
     /// <param name="htmlBody">The HTML body of the email.</param>
     /// <param name="ct">Cancellation token.</param>
     /// <param name="inlineImage">A PNG to embed in the HTML as <c>cid:</c>, or null for a plain HTML mail.</param>
+    /// <param name="headers">Extra message headers by name, or null for none.</param>
     private async Task SendEmailAsync(
-        string toEmail, string subject, string htmlBody, CancellationToken ct, (string ContentId, byte[] Png)? inlineImage = null)
+        string toEmail,
+        string subject,
+        string htmlBody,
+        CancellationToken ct,
+        (string ContentId, byte[] Png)? inlineImage = null,
+        IReadOnlyDictionary<string, string>? headers = null)
     {
         var smtpHost = configuration[ConfigKeys.EmailSmtpHost] ?? "localhost";
         var smtpPort = int.TryParse(configuration[ConfigKeys.EmailSmtpPort], out var port) ? port : 1025;
@@ -152,6 +158,11 @@ public class SmtpEmailService(IConfiguration configuration, ILogger<SmtpEmailSer
         message.From.Add(new MailboxAddress(fromName, fromAddress));
         message.To.Add(MailboxAddress.Parse(toEmail));
         message.Subject = subject;
+
+        foreach (var (name, value) in headers ?? new Dictionary<string, string>())
+        {
+            message.Headers.Add(name, value);
+        }
 
         if (inlineImage is { } image)
         {

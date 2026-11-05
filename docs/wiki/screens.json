@@ -507,6 +507,32 @@
       "notionPageId": null
     },
     {
+      "id": "web.account.email-off",
+      "app": "web",
+      "area": "Account",
+      "title": "Turn off a notification email (email link)",
+      "route": "/email-off",
+      "roles": [
+        "Public"
+      ],
+      "files": [
+        "web/src/pages/EmailTurnOffPage.tsx",
+        "web/src/api/email-links.ts"
+      ],
+      "endpoints": [
+        "POST /users/email-links/turn-off",
+        "POST /users/email-links/turn-on"
+      ],
+      "board": "PageEmailOff",
+      "shots": [
+        {
+          "name": "default",
+          "steps": "open /email-off?token=sample on the dev server; an invalid token shows the Link doesn't work state, a valid token from a notification email footer shows the Turned off state"
+        }
+      ],
+      "notionPageId": null
+    },
+    {
       "id": "web.clients.plan-editor",
       "app": "web",
       "area": "Clients",

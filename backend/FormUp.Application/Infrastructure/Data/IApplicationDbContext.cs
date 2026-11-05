@@ -360,4 +360,16 @@ public interface IApplicationDbContext
         Guid userId,
         IReadOnlyCollection<(NotificationEvent Event, bool EmailEnabled, bool PushEnabled)> preferences,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Sets only the email switch of one event with a single <c>INSERT … ON CONFLICT (user_id, event) DO UPDATE</c>.
+    /// A user with no saved row gets one holding <paramref name="pushEnabledIfNew"/>; a saved push value is never touched.
+    /// Repeating the call with the same value changes nothing but the update stamp.
+    /// </summary>
+    Task UpsertNotificationEmailEnabledAsync(
+        Guid userId,
+        NotificationEvent notificationEvent,
+        bool emailEnabled,
+        bool pushEnabledIfNew,
+        CancellationToken cancellationToken = default);
 }

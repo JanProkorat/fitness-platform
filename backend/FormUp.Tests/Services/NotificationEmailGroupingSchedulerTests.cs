@@ -225,7 +225,7 @@ public class NotificationEmailGroupingSchedulerTests(FitnessApiFactory factory) 
         await Scheduler.RunDueNowAsync(burst.DueAt.AddSeconds(1), Ct);
 
         var item = (await SentToAsync(coach.UserId)).Should().ContainSingle().Subject;
-        var renderer = new EmailTemplateRenderer(new ConfigurationBuilder().Build());
+        var renderer = new EmailTemplateRenderer(factory.Services.GetRequiredService<IConfiguration>());
         var (subject, html) = renderer.RenderNotification(item);
 
         item.Values.Values.Should().NotContain(value => value.Contains(Marker));

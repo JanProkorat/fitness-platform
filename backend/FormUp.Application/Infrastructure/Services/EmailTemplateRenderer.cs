@@ -49,10 +49,22 @@ public sealed partial class EmailTemplateRenderer(IConfiguration configuration)
     /// <summary>Template name of the grouped new-message email.</summary>
     public const string NewMessage = "NewMessage";
 
+    /// <summary>Name of the header that points a mail client at the one-click unsubscribe link.</summary>
+    public const string ListUnsubscribeHeader = "List-Unsubscribe";
+
+    /// <summary>Name of the header that tells a mail client the link accepts an RFC 8058 one-click post.</summary>
+    public const string ListUnsubscribePostHeader = "List-Unsubscribe-Post";
+
+    /// <summary>Value of <see cref="ListUnsubscribePostHeader"/>.</summary>
+    public const string ListUnsubscribePostValue = "List-Unsubscribe=One-Click";
+
     private const string ResourcePrefix = "FormUp.Application.Infrastructure.EmailTemplates.";
     private const string LogoPath = "/email/formup-logo.png";
 
     private static readonly HashSet<string> SupportedLanguages = ["en", "cs", "de"];
+
+    // Derives its signing key on first use, so a renderer built without a JWT secret still renders account emails.
+    private readonly EmailTurnOffTokenService _tokens = new(configuration, TimeProvider.System);
 
     private static readonly ConcurrentDictionary<string, string> ResourceCache = new();
 
@@ -278,8 +290,37 @@ public sealed partial class EmailTemplateRenderer(IConfiguration configuration)
                 break;
         }
 
-        return Render(template, lang, values, raw);
+        return Render(template, lang, values, raw, NotificationFooterLine(item, lang));
     }
+
+    /// <summary>
+    /// The headers a mail client needs to offer its own unsubscribe button for a coach notification email (RFC 8058
+    /// one-click). Only these emails carry them; account, payment and security emails never do.
+    /// </summary>
+    /// <param name="item">The queued notification.</param>
+    public IReadOnlyDictionary<string, string> NotificationHeaders(NotificationEmailWorkItem item) =>
+        new Dictionary<string, string>
+        {
+            [ListUnsubscribeHeader] = $"<{AppBaseUrl()}/users/email-links/one-click?token={_tokens.Create(item.UserId, item.Event)}>",
+            [ListUnsubscribePostHeader] = ListUnsubscribePostValue,
+        };
+
+    private string AppBaseUrl() => (configuration[ConfigKeys.AppBaseUrl] ?? "http://localhost:5173").TrimEnd('/');
+
+    private string NotificationFooterLine(NotificationEmailWorkItem item, string language)
+    {
+        var baseUrl = AppBaseUrl();
+        var turnOffUrl = $"{baseUrl}/email-off?token={_tokens.Create(item.UserId, item.Event)}";
+        var settingsUrl = $"{baseUrl}/settings";
+
+        return FooterLink(turnOffUrl, Localize(language, "Turn off these emails", "Vypnout tyto e-maily", "Diese E-Mails ausschalten"))
+               + "&nbsp;&nbsp;&middot;&nbsp;&nbsp;"
+               + FooterLink(settingsUrl, Localize(language, "Notification settings", "Nastavení oznámení", "Benachrichtigungseinstellungen"));
+    }
+
+    // The label is one of this class's own literals, so only the URL needs encoding.
+    private static string FooterLink(string url, string label) =>
+        $"""<a class="fu-text" href="{WebUtility.HtmlEncode(url)}" style="color:#141414;font-weight:600;">{label}</a>""";
 
     private static string Localize(string language, string en, string cs, string de) =>
         language switch
