@@ -12,6 +12,8 @@ import {
   isToday,
   lockedTileSurfaceClass,
   mealLockView,
+  removedGhosts,
+  type RemovedGhost,
   isRejectedTile,
   useLockRejection,
   useMealLocks,
@@ -485,6 +487,11 @@ interface Props {
   onLabelKeyMove?: (axis: LabelAxis, index: number, direction: -1 | 1) => void;
   /** What is being dragged over the grid: a meal tile (with the contents already slid into place) or a label. */
   drag?: GridDragView | null;
+  /** The removed-but-eaten tile whose popover is open. */
+  openGhostId?: string | null;
+  onOpenGhost?: (id: string | null) => void;
+  /** Leaves the week view for a weekday ("Open <day>" in a removed meal's popover). */
+  onOpenDay?: (dayOfWeek: number) => void;
 }
 
 /** The week as a grid: one column per weekday, a day-total row, then one row per meal. */
@@ -506,13 +513,30 @@ export default function WeekGrid({
   onMoveMealAlong,
   onLabelKeyMove,
   drag = null,
+  openGhostId = null,
+  onOpenGhost,
+  onOpenDay,
 }: Props) {
   const { t } = useTranslation();
   const labelsDraggable = !readOnly && onLabelKeyMove !== undefined;
   const rows = weekRows(week);
   const conflicts = useSyncConflicts();
   const locks = useMealLocks();
-  const ghostPlacement = conflicts ? placeGhosts(week, conflicts.ghosts(weekIndex)) : null;
+  // Meals the client ate that the coach removed: read-only tiles in the cell they sat in, never part of the plan.
+  const ghostPlacement = locks ? placeGhosts(week, removedGhosts(locks, weekIndex)) : null;
+  const renderGhost = (ghost: RemovedGhost, key: number) =>
+    locks ? (
+      <SyncConflictGhostTile
+        key={key}
+        ghost={ghost}
+        placed={conflicts?.byConflictId(ghost.id)}
+        model={conflicts}
+        clientName={locks.clientName}
+        open={openGhostId === ghost.id}
+        onOpenChange={(next) => onOpenGhost?.(next ? ghost.id : null)}
+        onOpenDay={(day) => onOpenDay?.(day)}
+      />
+    ) : null;
   const extraRows = ghostPlacement?.extraRows ?? [];
   const dayByNumber = new Map(week.days.map((day) => [day.dayOfWeek, day]));
   // The slots stay the real week's; only what they show comes from the preview while a move is hovered.
@@ -647,8 +671,8 @@ export default function WeekGrid({
             const detailOpen = detailCell?.dayOfWeek === dayOfWeek && detailCell.rowIndex === row.index;
             const cellMeal = rowMeal(dayByNumber.get(dayOfWeek), row);
             const ghost = cellMeal ? undefined : ghostPlacement?.inRow.get(`${dayOfWeek}:${row.index}`);
-            if (ghost && conflicts) {
-              return <SyncConflictGhostTile key={dayOfWeek} placed={ghost} model={conflicts} />;
+            if (ghost) {
+              return renderGhost(ghost, dayOfWeek);
             }
             return (
               <MealCell
@@ -684,7 +708,7 @@ export default function WeekGrid({
         );
       })}
 
-      {conflicts &&
+      {locks &&
         extraRows.map((extra, extraIndex) => (
           <div key={`ghost-row-${extraIndex}`} data-testid="sync-conflict-ghost-row" className={cn(GRID_CLASS, 'items-stretch')}>
             <span className={cn(STICKY_LABEL_CLASS, 'self-center text-body font-semibold text-balance text-muted-foreground')}>
@@ -693,7 +717,7 @@ export default function WeekGrid({
             {DAY_ORDER.map((dayOfWeek) => {
               const ghost = extra.byDay.get(dayOfWeek);
               return ghost ? (
-                <SyncConflictGhostTile key={dayOfWeek} placed={ghost} model={conflicts} />
+                renderGhost(ghost, dayOfWeek)
               ) : (
                 <span key={dayOfWeek} aria-hidden="true" />
               );

@@ -1,11 +1,15 @@
 import { useTranslation } from 'react-i18next';
+import { Lock } from 'lucide-react';
+import { formatCalendarDate } from '@/components/client-plan-editor/clientPlanDates';
 import MealBlock from '@/components/plan-editor/MealBlock';
 import SyncConflictGhostCard from '@/components/plan-editor/sync-conflicts/SyncConflictGhostCard';
 import { useSyncConflicts } from '@/components/plan-editor/sync-conflicts/SyncConflictsContext';
+import { placeGhosts } from '@/components/plan-editor/sync-conflicts/syncConflictModel';
+import { isPastDay, removedGhosts, slotDate, useMealLocks } from '@/components/plan-editor/meal-locks';
 import { dayTotals } from '@/components/plan-editor/plan-editor-nutrition';
 import MealRowInsertLine from '@/components/plan-editor/MealRowInsertLine';
 import { mealKindLabelKey } from '@/components/plan-editor/plan-editor-format';
-import { dayRowIndexes, kindRank } from '@/components/plan-editor/plan-editor-ops';
+import { dayRowIndexes, kindRank, rowMeal, weekRows } from '@/components/plan-editor/plan-editor-ops';
 import type { MealKind } from '@/api/generated';
 import type { GridDragView } from '@/components/plan-editor/plan-editor-library';
 import type { EditorWeek } from '@/components/plan-editor/plan-editor-types';
@@ -43,8 +47,17 @@ export default function DayView({
 }: Props) {
   const { t, i18n } = useTranslation();
   const conflicts = useSyncConflicts();
-  const ghosts = conflicts?.ghosts(weekIndex, dayOfWeek) ?? [];
+  const locks = useMealLocks();
   const day = week.days.find((candidate) => candidate.dayOfWeek === dayOfWeek);
+  // Meals the client ate that the coach removed show read-only after the day's own meals; they are never saved.
+  const ghosts = locks ? removedGhosts(locks, weekIndex, dayOfWeek) : [];
+  const pastDay = locks ? isPastDay(locks, week.weekNumber, dayOfWeek) : false;
+  const pastDate = locks ? slotDate(locks.startDate, week.weekNumber, dayOfWeek) : null;
+  // On a past day a row with no meal reads "Nothing planned", unless a removed-but-eaten meal sits in it.
+  const takenByGhost = new Set([...placeGhosts(week, ghosts).inRow.keys()]);
+  const emptyRows = pastDay
+    ? weekRows(week).filter((row) => !rowMeal(day, row) && !takenByGhost.has(`${dayOfWeek}:${row.index}`))
+    : [];
   // Meals show in the canonical kind order; `rowIndex` is the meal's row in the week grid, so selection and drops address the right meal.
   const rowIndexes = dayRowIndexes(week, day);
   const meals = (day?.meals ?? [])
@@ -57,7 +70,25 @@ export default function DayView({
 
   return (
     <div className="flex flex-col gap-3 rounded-2xl bg-grid p-3" data-testid="day-view">
-      {meals.length > 0 || ghosts.length > 0 ? (
+      {pastDay && locks && (
+        <p
+          role="note"
+          data-testid="day-past-banner"
+          className="flex items-start gap-3 rounded-2xl border border-line bg-card px-4 py-3 text-body text-muted-foreground"
+        >
+          <Lock className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+          <span>
+            <b className="font-semibold text-ink">
+              {t('planEditor.locks.pastBanner.lead', {
+                day: t(`planEditor.daysLong.${dayOfWeek}`),
+                date: pastDate ? formatCalendarDate(pastDate, i18n.language) : '',
+              })}
+            </b>{' '}
+            {t('planEditor.locks.pastBanner.body', { client: locks.clientName })}
+          </span>
+        </p>
+      )}
+      {meals.length > 0 || ghosts.length > 0 || emptyRows.length > 0 ? (
         <ul className="flex flex-col gap-3" aria-label={t('planEditor.day.meals')}>
           {meals.map(({ meal, rowIndex }, position) => (
             <MealBlock
@@ -67,7 +98,7 @@ export default function DayView({
               drag={drag}
               rowIndex={rowIndex}
               insertLine={
-                position > 0 && !readOnly && onInsertBetween ? (
+                position > 0 && !readOnly && !pastDay && onInsertBetween ? (
                   <MealRowInsertLine
                     above={t(`planEditor.rows.${mealKindLabelKey(meals[position - 1].meal.kind)}`)}
                     below={t(`planEditor.rows.${mealKindLabelKey(meal.kind)}`)}
@@ -86,8 +117,27 @@ export default function DayView({
               onEdit={onEdit}
             />
           ))}
-          {conflicts &&
-            ghosts.map((ghost) => <SyncConflictGhostCard key={ghost.id} placed={ghost} model={conflicts} />)}
+          {ghosts.map((ghost) => (
+            <SyncConflictGhostCard
+              key={ghost.id}
+              ghost={ghost}
+              placed={conflicts?.byConflictId(ghost.id)}
+              model={conflicts}
+            />
+          ))}
+          {emptyRows.map((row) => (
+            <li
+              key={`empty-${row.index}`}
+              data-testid="day-nothing-planned"
+              className="flex items-center gap-3 rounded-2xl border border-line bg-card px-5 py-4"
+            >
+              <Lock className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+              <span className="font-display text-card-title font-semibold text-ink">
+                {t(`planEditor.rows.${mealKindLabelKey(row.kind)}`)}
+              </span>
+              <span className="text-body text-muted-foreground">{t('planEditor.locks.nothingPlanned')}</span>
+            </li>
+          ))}
         </ul>
       ) : (
         <p className="rounded-2xl border border-dashed border-line px-4 py-8 text-center text-body text-muted-foreground">

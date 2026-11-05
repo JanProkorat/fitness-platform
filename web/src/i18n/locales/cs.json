@@ -1905,14 +1905,17 @@
       "close": "Zavřít",
       "markReviewed": "Označit jako zkontrolované",
       "openDay": "Otevřít {{day}}",
-      "total": "Celkem {{kcal}} kcal",
-      "saw": "{{name}} viděl(a)",
-      "planNow": "Plán nyní",
+      "saw": "{{name}} snědl(a)",
+      "planNow": "Vaše změna",
+      "notApplied": "neuplatněno",
+      "ate": "Snězeno {{kcal}} kcal",
+      "wouldBe": "Bylo by {{kcal}} kcal",
+      "notInPlan": "Není ve vašem plánu",
       "version": "v{{version}}",
       "chip": {
         "removed": "Odebráno",
         "added": "Přidáno",
-        "amount": "Množství"
+        "changed": "Změněno"
       },
       "amount": {
         "grams": "{{amount}} g",
@@ -1925,18 +1928,22 @@
           "removed": "{{meal}} odebráno, snězeno offline"
         },
         "intro": {
-          "changed": "{{client}} to označil(a) jako snězené {{date}} v {{time}}. Toto jídlo jste změnili po poslední synchronizaci v klientské aplikaci.",
-          "removed": "Toto jídlo jste odebrali, ale {{client}} ho snědl(a) offline {{date}} v {{time}}. V jídelním deníku není."
-        }
+          "changed": "{{client}} to snědl(a) {{date}} v {{time}}, dříve než se k aplikaci klienta dostala vaše změna. Jídelní deník si ponechává, co bylo snězeno.",
+          "removed": "Toto jídlo jste odebrali, ale {{client}} ho snědl(a) offline {{date}} v {{time}}. V jídelním deníku zůstává a tady se zobrazuje jako snězené."
+        },
+        "lockedNote": "Toto jídlo je zamčené. Označení jako zkontrolované jen skryje toto upozornění."
       },
       "day": {
-        "lead": "{{client}} toto označil(a) jako snězené offline {{date}} v {{time}}.",
-        "versions": "{{client}} viděl(a) verzi {{based}}; od té doby jste uložili verzi {{current}}."
+        "lead": "Toto jídlo jste změnili poté, co ho {{client}} snědl(a) offline.",
+        "body": "Vaše změna se neuplatnila — jídlo ukazuje, co {{client}} snědl(a).",
+        "totals": "Celkem ve vašem plánu {{plan}} kcal · {{client}} snědl(a) {{eaten}} kcal"
       },
       "ghost": {
-        "badge": "Odebráno · snězeno offline",
-        "body": "Toto jídlo ({{meal}}) jste odebrali, ale {{client}} ho snědl(a) offline {{date}} v {{time}}. V jídelním deníku není.",
-        "aria": "{{meal}} odebráno, snězeno offline"
+        "badge": "Odebráno z plánu",
+        "lead": "Toto jídlo ({{meal}}) jste odebrali, ale {{client}} ho snědl(a) offline.",
+        "body": "Snězeno {{date}} v {{time}}. Jídlo zůstává v jídelním deníku; označení jako zkontrolované jen skryje toto upozornění.",
+        "aria": "{{meal}} odebráno z plánu, snězeno",
+        "noItems": "U tohoto jídla se nezaznamenaly žádné položky."
       },
       "strip": {
         "lead_one": "{{client}} snědl(a) offline {{count}} jídlo podle starší verze tohoto plánu.",
@@ -1949,7 +1956,12 @@
         "markAll": "Označit vše jako zkontrolované"
       },
       "reviewError": "Konflikt se nepodařilo označit jako zkontrolovaný. Zkuste to prosím znovu.",
-      "reviewAllError": "Konflikty se nepodařilo označit jako zkontrolované. Zkuste to prosím znovu."
+      "reviewAllError": "Konflikty se nepodařilo označit jako zkontrolované. Zkuste to prosím znovu.",
+      "removedMeal": {
+        "title": "{{meal}} odebráno z vašeho plánu",
+        "intro": "{{client}} to snědl(a), než jste jídlo odebrali. V jídelním deníku zůstává.",
+        "locked": "Toto jídlo je zamčené a nelze ho měnit."
+      }
     },
     "nameLabel": "Název plánu",
     "undo": "Zpět",
@@ -2337,6 +2349,15 @@
     },
     "locks": {
       "nothingPlanned": "Nic nenaplánováno",
+      "pastBanner": {
+        "lead": "{{day}} {{date}} je v minulosti, jeho jídla jsou jen ke čtení.",
+        "body": "Jídla se zamknou, jakmile je {{client}} označí jako snězená nebo jakmile den uplyne. Vidíte, co {{client}} skutečně snědl(a)."
+      },
+      "addMealPast": "Do uplynulého dne nelze přidávat jídla.",
+      "dayEaten": "Snězeno {{kcal}} kcal",
+      "planChangedLater": "Plán se později změnil",
+      "eatenAtOffline": "Snězeno v {{time}} · offline",
+      "notMarkedEaten": "Neoznačeno jako snězené",
       "today": "Dnes",
       "dayLocked": "{{day}}: den už proběhl a je uzamčen",
       "close": "Zavřít",

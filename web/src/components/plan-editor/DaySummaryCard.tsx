@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Plus, StickyNote, X } from 'lucide-react';
+import { Check, Plus, StickyNote, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import KcalReadout from '@/components/plan-editor/KcalReadout';
 import MacroDots from '@/components/plan-editor/MacroDots';
+import { formatKcal } from '@/components/plan-editor/plan-editor-format';
 import type { Totals } from '@/components/plan-editor/plan-editor-nutrition';
 import { MAX_NOTE_LENGTH } from '@/components/plan-editor/plan-editor-types';
 
@@ -17,6 +18,8 @@ interface Props {
   kcalTarget: number | undefined;
   note: string | undefined;
   readOnly: boolean;
+  /** What the client ate on this day, in kcal; shown beside the plan total on judged client plans. */
+  eatenKcal?: number;
   addMealDisabled: boolean;
   addMealTitle: string | undefined;
   onAddMeal: () => void;
@@ -29,12 +32,13 @@ export default function DaySummaryCard({
   kcalTarget,
   note,
   readOnly,
+  eatenKcal,
   addMealDisabled,
   addMealTitle,
   onAddMeal,
   onNoteChange,
 }: Props) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [editing, setEditing] = useState(false);
   const hasNote = Boolean(note);
   // A day with a note keeps its line open; an empty line goes away once it loses focus.
@@ -45,6 +49,12 @@ export default function DaySummaryCard({
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-2.5 text-body text-ink">
         <span className="font-semibold">{t('planEditor.dayTotal')}</span>
         <KcalReadout kcal={totals.kcal} target={kcalTarget} />
+        {eatenKcal !== undefined && (
+          <span data-testid="day-eaten" className="inline-flex items-center gap-1 font-semibold text-success-ink">
+            <Check className="size-4 shrink-0" aria-hidden="true" />
+            {t('planEditor.locks.dayEaten', { kcal: formatKcal(eatenKcal, i18n.language) })}
+          </span>
+        )}
         <MacroDots
           protein={totals.protein}
           carbs={totals.carbs}

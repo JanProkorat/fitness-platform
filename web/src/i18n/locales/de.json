@@ -1855,14 +1855,17 @@
       "close": "Schließen",
       "markReviewed": "Als geprüft markieren",
       "openDay": "{{day}} öffnen",
-      "total": "Gesamt {{kcal}} kcal",
-      "saw": "{{name}} sah",
-      "planNow": "Plan jetzt",
+      "saw": "{{name}} aß",
+      "planNow": "Ihre Änderung",
+      "notApplied": "nicht übernommen",
+      "ate": "Gegessen {{kcal}} kcal",
+      "wouldBe": "Wären {{kcal}} kcal",
+      "notInPlan": "Nicht in Ihrem Plan",
       "version": "v{{version}}",
       "chip": {
         "removed": "Entfernt",
         "added": "Hinzugefügt",
-        "amount": "Menge"
+        "changed": "Geändert"
       },
       "amount": {
         "grams": "{{amount}} g",
@@ -1875,18 +1878,22 @@
           "removed": "{{meal}} entfernt, offline gegessen"
         },
         "intro": {
-          "changed": "{{client}} hat es am {{date}} um {{time}} als gegessen markiert. Sie haben diese Mahlzeit nach der letzten Synchronisierung von {{client}} geändert.",
-          "removed": "Sie haben diese Mahlzeit entfernt, aber {{client}} hat sie am {{date}} um {{time}} offline gegessen. Sie steht nicht im Mahlzeitenprotokoll von {{client}}."
-        }
+          "changed": "{{client}} hat sie am {{date}} um {{time}} gegessen, bevor Ihre Änderung {{client}} erreicht hat. Das Mahlzeitenprotokoll behält, was gegessen wurde.",
+          "removed": "Sie haben diese Mahlzeit entfernt, aber {{client}} hat sie am {{date}} um {{time}} offline gegessen. Sie bleibt im Mahlzeitenprotokoll und wird hier als gegessen angezeigt."
+        },
+        "lockedNote": "Diese Mahlzeit ist gesperrt. „Als geprüft markieren“ blendet nur diesen Hinweis aus."
       },
       "day": {
-        "lead": "{{client}} hat dies am {{date}} um {{time}} offline als gegessen markiert.",
-        "versions": "{{client}} sah Version {{based}}; Sie haben seitdem Version {{current}} gespeichert."
+        "lead": "Sie haben diese Mahlzeit geändert, nachdem {{client}} sie offline gegessen hat.",
+        "body": "Ihre Änderung wurde nicht übernommen — die Mahlzeit zeigt, was {{client}} gegessen hat.",
+        "totals": "Gesamt in Ihrem Plan {{plan}} kcal · {{client}} hat {{eaten}} kcal gegessen"
       },
       "ghost": {
-        "badge": "Entfernt · offline gegessen",
-        "body": "Sie haben diese Mahlzeit ({{meal}}) entfernt, aber {{client}} hat sie am {{date}} um {{time}} offline gegessen. Sie steht nicht im Mahlzeitenprotokoll von {{client}}.",
-        "aria": "{{meal}} entfernt, offline gegessen"
+        "badge": "Aus dem Plan entfernt",
+        "lead": "Sie haben diese Mahlzeit ({{meal}}) entfernt, aber {{client}} hat sie offline gegessen.",
+        "body": "Gegessen am {{date}} um {{time}}. Sie bleibt im Mahlzeitenprotokoll; „Als geprüft markieren“ blendet nur diesen Hinweis aus.",
+        "aria": "{{meal}} aus dem Plan entfernt, gegessen",
+        "noItems": "Für diese Mahlzeit wurden keine Einträge aufgezeichnet."
       },
       "strip": {
         "lead_one": "{{client}} hat {{count}} Mahlzeit offline nach einer älteren Version dieses Plans gegessen.",
@@ -1897,7 +1904,12 @@
         "markAll": "Alle als geprüft markieren"
       },
       "reviewError": "Der Konflikt konnte nicht als geprüft markiert werden. Bitte versuchen Sie es erneut.",
-      "reviewAllError": "Die Konflikte konnten nicht als geprüft markiert werden. Bitte versuchen Sie es erneut."
+      "reviewAllError": "Die Konflikte konnten nicht als geprüft markiert werden. Bitte versuchen Sie es erneut.",
+      "removedMeal": {
+        "title": "{{meal}} aus Ihrem Plan entfernt",
+        "intro": "{{client}} hat sie gegessen, bevor Sie sie entfernt haben. Sie bleibt im Mahlzeitenprotokoll.",
+        "locked": "Diese Mahlzeit ist gesperrt und kann nicht geändert werden."
+      }
     },
     "nameLabel": "Planname",
     "undo": "Rückgängig",
@@ -2262,6 +2274,15 @@
     },
     "locks": {
       "nothingPlanned": "Nichts geplant",
+      "pastBanner": {
+        "lead": "{{day}}, {{date}}, liegt in der Vergangenheit, daher sind die Mahlzeiten schreibgeschützt.",
+        "body": "Mahlzeiten werden gesperrt, sobald {{client}} sie als gegessen markiert oder der Tag vorbei ist. Sie sehen, was {{client}} tatsächlich gegessen hat."
+      },
+      "addMealPast": "Zu einem vergangenen Tag können keine Mahlzeiten hinzugefügt werden.",
+      "dayEaten": "Gegessen {{kcal}} kcal",
+      "planChangedLater": "Plan später geändert",
+      "eatenAtOffline": "Gegessen um {{time}} · offline",
+      "notMarkedEaten": "Nicht als gegessen markiert",
       "today": "Heute",
       "dayLocked": "{{day}} liegt in der Vergangenheit und ist gesperrt",
       "close": "Schließen",
