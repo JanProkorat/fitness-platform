@@ -272,6 +272,15 @@ public static class QaSeedRunner
     public static readonly Guid QaEndedLinkMessage2Id     = new("00000000-0000-0000-aabb-000000000013");
 
     // -------------------------------------------------------------------------
+    // Ending client — a client with a LIVE link to qa.trainer that an e2e spec ends itself via
+    // DELETE /client/collaborations/{publicId}. No conversation, no plan, no payment terms, no
+    // package. The display name is "QA Ending" — it must never contain "QA Client".
+    // -------------------------------------------------------------------------
+    public static readonly Guid ClientEndingUserId          = new("10101010-1010-1010-1010-101010101010");
+    public static readonly Guid ClientEndingProfilePublicId = new("10101010-1010-1010-aaaa-000000000001");
+    public const string ClientEndingEmail = "qa.client.ending@formup.test";
+
+    // -------------------------------------------------------------------------
     // #1303 — Client detail Overview fixtures for qa.client (Rich seed only): eight weekly body
     // measurements, onboarding answers, meal logs against qa.nutri's plan, one personal record,
     // check-in history around the NextIsoMonday anchor and one completed session this Monday.
@@ -591,6 +600,11 @@ public static class QaSeedRunner
             var clientFormerProfile = await EnsureClientProfileAsync(db, ClientFormerUserId, ClientFormerProfilePublicId, logger);
             await EnsureTrainerClientLinkAsync(db, trainerProfile, clientFormerProfile, logger, isActive: false);
             await EnsureEndedLinkConversationFixtureAsync(db, logger);
+
+            // A client with a live link that the ended-link e2e ends itself.
+            await EnsureUserAsync(userManager, ClientEndingUserId, ClientEndingEmail, "QA", "Ending", UserRole.Client, logger);
+            var clientEndingProfile = await EnsureClientProfileAsync(db, ClientEndingUserId, ClientEndingProfilePublicId, logger);
+            await EnsureTrainerClientLinkAsync(db, trainerProfile, clientEndingProfile, logger);
 
             // #1095 — weekly check-in fixtures: one responded-unreviewed (NewCheckIns chip)
             // and one expired (MissingCheckIns chip), scoped to Training — the profession the
