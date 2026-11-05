@@ -73,6 +73,8 @@ test.describe('ended link price save', () => {
   test('saving a price after the client ended the link shows the ended toast and view', async ({ page }) => {
     // The coach's page must stay stale: no SignalR push of the ended link.
     await page.route('**/hubs/**', (route) => route.abort());
+    // A toast is also echoed into an aria-live region, so match the visible title only.
+    const toastTitle = (text: string) => page.locator('[data-slot="toast-title"]').filter({ hasText: text });
 
     await page.goto(`/clients/${ENDING_CLIENT_ID}/payment`);
     const packageSelect = page.getByLabel('Package', { exact: true });
@@ -81,7 +83,7 @@ test.describe('ended link price save', () => {
 
     // Control: the same save succeeds while the link is live.
     await page.getByRole('button', { name: 'Save price' }).click();
-    await expect(page.getByText('Price saved.')).toBeVisible();
+    await expect(toastTitle('Price saved.')).toBeVisible();
 
     // The client ends the link behind the coach page's back.
     const clientAuth = await login(api, CLIENT_EMAIL);
@@ -100,8 +102,10 @@ test.describe('ended link price save', () => {
     await page.getByRole('button', { name: 'Save price' }).click();
 
     await expect(
-      page.getByText('The collaboration with this client has ended, so the price can no longer be changed.'),
+      toastTitle('The collaboration with this client has ended, so the price can no longer be changed.'),
     ).toBeVisible();
+    await expect(toastTitle('Could not save the price.')).toHaveCount(0);
+    // The aria-live region repeats toast copy; a generic error must not appear there either.
     await expect(page.getByText('Could not save the price.')).toHaveCount(0);
     // Ended view: the price form is replaced.
     await expect(page.getByRole('button', { name: 'Save price' })).toHaveCount(0);
