@@ -48,12 +48,13 @@ public class NotificationEmailSenderTests(FitnessApiFactory factory)
         return coach;
     }
 
-    private async Task<IReadOnlyList<NotificationEmailWorkItem>> SendAsync(Guid coachId, NotificationEvent notificationEvent)
+    private async Task<IReadOnlyList<NotificationEmailWorkItem>> SendAsync(
+        Guid coachId, NotificationEvent notificationEvent, IReadOnlyDictionary<string, string>? values = null)
     {
         using (var scope = factory.Services.CreateScope())
         {
             await scope.ServiceProvider.GetRequiredService<INotificationEmailSender>()
-                .SendAsync(coachId, notificationEvent, Values, TestContext.Current.CancellationToken);
+                .SendAsync(coachId, notificationEvent, values ?? Values, TestContext.Current.CancellationToken);
         }
 
         return await factory.Services.GetRequiredService<FakeEmailService>()
@@ -61,6 +62,7 @@ public class NotificationEmailSenderTests(FitnessApiFactory factory)
     }
 
     [Theory]
+    [InlineData(NotificationEvent.NewMessage, true)]
     [InlineData(NotificationEvent.WeeklyCheckInSubmitted, true)]
     [InlineData(NotificationEvent.JoinRequest, true)]
     [InlineData(NotificationEvent.ProgressPhotosSubmitted, false)]
@@ -100,11 +102,30 @@ public class NotificationEmailSenderTests(FitnessApiFactory factory)
     }
 
     [Fact]
-    public async Task SendAsync_NewMessage_SendsNoEmailBecauseItHasNoTemplateYet()
+    public async Task SendAsync_NewMessageWithClient_LinksTheInboxConversation()
     {
-        var coach = await SeedCoachAsync("en", NotificationEvent.NewMessage, emailEnabled: true);
+        var coach = await SeedCoachAsync("en");
 
-        (await SendAsync(coach.UserId, NotificationEvent.NewMessage)).Should().BeEmpty();
+        var sent = await SendAsync(coach.UserId, NotificationEvent.NewMessage);
+
+        sent.Should().ContainSingle();
+        sent[0].Values[NotificationEmailWorkItem.ActionUrlKey]
+            .Should().EndWith($"/inbox?client={Values[NotificationEmailWorkItem.ClientPublicIdKey]}");
+    }
+
+    [Fact]
+    public async Task SendAsync_NewMessageWithoutClientProfile_LinksTheInbox()
+    {
+        var coach = await SeedCoachAsync("en");
+        var withoutProfile = new Dictionary<string, string>
+        {
+            [NotificationEmailWorkItem.ClientNameKey] = "Petra Svobodova",
+        };
+
+        var sent = await SendAsync(coach.UserId, NotificationEvent.NewMessage, withoutProfile);
+
+        sent.Should().ContainSingle();
+        sent[0].Values[NotificationEmailWorkItem.ActionUrlKey].Should().EndWith("/inbox");
     }
 
     [Fact]

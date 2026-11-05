@@ -1,3 +1,4 @@
+using System.Net;
 using FluentAssertions;
 using FormUp.Application.Domain.Enums;
 using FormUp.Application.Domain.Interfaces;
@@ -7,7 +8,7 @@ using Microsoft.Extensions.Configuration;
 namespace FormUp.Tests.Infrastructure.Services;
 
 /// <summary>
-/// The four coach notification emails (check-in, join request, photos, workout) rendered in every language.
+/// The coach notification emails (check-in, join request, photos, workout, new messages) rendered in every language.
 /// </summary>
 public class EmailTemplateRendererNotificationTests
 {
@@ -39,7 +40,8 @@ public class EmailTemplateRendererNotificationTests
         foreach (var notificationEvent in new[]
                  {
                      NotificationEvent.WeeklyCheckInSubmitted, NotificationEvent.JoinRequest,
-                     NotificationEvent.ProgressPhotosSubmitted, NotificationEvent.WorkoutFinished
+                     NotificationEvent.ProgressPhotosSubmitted, NotificationEvent.WorkoutFinished,
+                     NotificationEvent.NewMessage
                  })
         {
             foreach (var language in new[] { "en", "cs", "de" })
@@ -157,10 +159,48 @@ public class EmailTemplateRendererNotificationTests
         html.Should().Contain("Upper body A").And.Contain("47 min").And.Contain("18").And.Contain("Felt strong");
     }
 
-    [Fact]
-    public void RenderNotification_EventWithoutTemplate_Throws()
+    [Theory]
+    [InlineData("en", "4", "Petra sent you 4 messages")]
+    [InlineData("en", "1", "Petra sent you a message")]
+    [InlineData("cs", "1", "Petra · 1 nová zpráva")]
+    [InlineData("cs", "3", "Petra · 3 nové zprávy")]
+    [InlineData("cs", "5", "Petra · 5 nových zpráv")]
+    [InlineData("de", "4", "Petra hat Ihnen 4 Nachrichten gesendet")]
+    [InlineData("de", "1", "Petra hat Ihnen eine Nachricht gesendet")]
+    public void RenderNotification_NewMessage_TitlesTheBurstWithTheCountAndTheRightPlural(string language, string count, string expectedTitle)
     {
-        var act = () => Renderer.RenderNotification(Item(NotificationEvent.NewMessage, "en"));
+        var (_, html) = Renderer.RenderNotification(Item(
+            NotificationEvent.NewMessage, language, (NotificationEmailWorkItem.MessageCountKey, count)));
+
+        // The encoder turns accented letters into entities; decode before comparing the visible text.
+        WebUtility.HtmlDecode(html).Should().Contain($">{expectedTitle}</h1>");
+    }
+
+    [Theory]
+    [InlineData("en", "Petra sent you 4 messages")]
+    [InlineData("cs", "Nové zprávy: Petra Svobodova (4)")]
+    [InlineData("de", "Petra hat Ihnen 4 Nachrichten gesendet")]
+    public void RenderNotification_NewMessage_PutsTheCountInTheSubject(string language, string expectedSubject)
+    {
+        var (subject, _) = Renderer.RenderNotification(Item(
+            NotificationEvent.NewMessage, language, (NotificationEmailWorkItem.MessageCountKey, "4")));
+
+        subject.Should().Be(expectedSubject);
+    }
+
+    [Fact]
+    public void RenderNotification_NewMessage_HasNoMessageBubblesEyebrowOrMoreLine()
+    {
+        var (_, html) = Renderer.RenderNotification(Item(
+            NotificationEvent.NewMessage, "en", (NotificationEmailWorkItem.MessageCountKey, "9")));
+
+        html.Should().NotContain("&ldquo;").And.NotContain("more").And.NotContain("NEW MESSAGES");
+    }
+
+    [Fact]
+    public void RenderNotification_UnknownEvent_Throws()
+    {
+        var act = () => Renderer.RenderNotification(Item((NotificationEvent)999, "en"));
 
         act.Should().Throw<NotSupportedException>();
     }

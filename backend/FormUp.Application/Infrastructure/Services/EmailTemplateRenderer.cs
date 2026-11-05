@@ -46,6 +46,9 @@ public sealed partial class EmailTemplateRenderer(IConfiguration configuration)
     /// <summary>Template name of the workout finished email.</summary>
     public const string Workout = "Workout";
 
+    /// <summary>Template name of the grouped new-message email.</summary>
+    public const string NewMessage = "NewMessage";
+
     private const string ResourcePrefix = "FormUp.Application.Infrastructure.EmailTemplates.";
     private const string LogoPath = "/email/formup-logo.png";
 
@@ -108,6 +111,12 @@ public sealed partial class EmailTemplateRenderer(IConfiguration configuration)
             ["en"] = "{{ClientFirstName}} finished a workout",
             ["cs"] = "Dokončený trénink: {{ClientFirstName}}",
             ["de"] = "Training beendet: {{ClientFirstName}}"
+        },
+        [NewMessage] = new()
+        {
+            ["en"] = "{{MessageTitle}}",
+            ["cs"] = "Nové zprávy: {{ClientName}} ({{MessageCount}})",
+            ["de"] = "{{MessageTitle}}"
         }
     };
 
@@ -213,6 +222,7 @@ public sealed partial class EmailTemplateRenderer(IConfiguration configuration)
         NotificationEvent.JoinRequest => JoinRequest,
         NotificationEvent.ProgressPhotosSubmitted => Photos,
         NotificationEvent.WorkoutFinished => Workout,
+        NotificationEvent.NewMessage => NewMessage,
         _ => null
     };
 
@@ -261,6 +271,10 @@ public sealed partial class EmailTemplateRenderer(IConfiguration configuration)
                     Tile(values, NotificationEmailWorkItem.SetCountKey, lang, "Sets", "Série", "Sätze"));
                 raw["NoteBlock"] = QuoteBlock(
                     values.GetValueOrDefault(NotificationEmailWorkItem.NoteKey), Localize(lang, "Note", "Poznámka", "Notiz"));
+                break;
+            case NotificationEvent.NewMessage:
+                values["MessageCount"] = MessageCount(values).ToString(CultureInfo.InvariantCulture);
+                values["MessageTitle"] = MessageTitle(firstName, MessageCount(values), lang);
                 break;
         }
 
@@ -342,6 +356,30 @@ public sealed partial class EmailTemplateRenderer(IConfiguration configuration)
                 </tr>
               </table>
               """;
+    }
+
+    private static int MessageCount(IReadOnlyDictionary<string, string> values) =>
+        int.TryParse(values.GetValueOrDefault(NotificationEmailWorkItem.MessageCountKey), NumberStyles.None, CultureInfo.InvariantCulture, out var count)
+            ? Math.Max(count, 1)
+            : 1;
+
+    // Czech never declines the name or uses a gendered past tense: the name stays in the nominative before a dot.
+    private static string MessageTitle(string firstName, int count, string language)
+    {
+        var number = count.ToString(CultureInfo.InvariantCulture);
+
+        return language switch
+        {
+            "cs" => count == 1
+                ? $"{firstName} · 1 nová zpráva"
+                : count is >= 2 and <= 4 ? $"{firstName} · {number} nové zprávy" : $"{firstName} · {number} nových zpráv",
+            "de" => count == 1
+                ? $"{firstName} hat Ihnen eine Nachricht gesendet"
+                : $"{firstName} hat Ihnen {number} Nachrichten gesendet",
+            _ => count == 1
+                ? $"{firstName} sent you a message"
+                : $"{firstName} sent you {number} messages"
+        };
     }
 
     private static string PhotoLead(string clientName, IReadOnlyDictionary<string, string> values, string language)

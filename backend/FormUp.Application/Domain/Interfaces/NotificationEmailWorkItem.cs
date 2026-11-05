@@ -3,7 +3,7 @@ using FormUp.Application.Domain.Enums;
 namespace FormUp.Application.Domain.Interfaces;
 
 /// <summary>
-/// Background work item for a coach notification email (check-in, join request, photos, workout).
+/// Background work item for a coach notification email (check-in, join request, photos, workout, new messages).
 /// Carries values only: the worker renders and sends it in a fresh scope.
 /// </summary>
 /// <param name="Email">Recipient email address. Never logged; log <paramref name="UserId"/> instead.</param>
@@ -60,4 +60,7 @@ public sealed record NotificationEmailWorkItem(
 
     /// <summary>Workout: the client's note. Optional.</summary>
     public const string NoteKey = "Note";
+
+    /// <summary>New message: how many unread messages the burst holds. The email never carries message text.</summary>
+    public const string MessageCountKey = "MessageCount";
 }
