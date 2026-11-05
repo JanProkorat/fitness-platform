@@ -15,8 +15,11 @@ internal sealed class EmailLinkTurnOffValidator : Validator<EmailLinkTurnOffRequ
     /// </summary>
     public EmailLinkTurnOffValidator()
     {
+        // Each rule carries the code: WithErrorCode only applies to the rule just before it.
         RuleFor(x => x.Token)
             .NotEmpty()
+            .WithErrorCode(ErrorCodes.EmailLinkInvalid)
+            .WithMessage(EmailLinkPreferenceSwitch.InvalidMessage)
             .MaximumLength(256)
             .WithErrorCode(ErrorCodes.EmailLinkInvalid)
             .WithMessage(EmailLinkPreferenceSwitch.InvalidMessage);

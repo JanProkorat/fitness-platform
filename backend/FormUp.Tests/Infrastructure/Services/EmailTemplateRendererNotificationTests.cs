@@ -14,7 +14,17 @@ public class EmailTemplateRendererNotificationTests
 {
     private const string ActionUrl = "https://app.example/clients/abc/forms";
 
-    private static readonly EmailTemplateRenderer Renderer = new(new ConfigurationBuilder().Build());
+    private const string BaseUrl = "https://app.example";
+
+    private static readonly IConfiguration Configuration = new ConfigurationBuilder()
+        .AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["App:BaseUrl"] = BaseUrl,
+            ["Jwt:Secret"] = new string('s', 64),
+        })
+        .Build();
+
+    private static readonly EmailTemplateRenderer Renderer = new(Configuration);
 
     private static NotificationEmailWorkItem Item(
         NotificationEvent notificationEvent, string language, params (string Key, string Value)[] extra)
@@ -194,7 +204,48 @@ public class EmailTemplateRendererNotificationTests
         var (_, html) = Renderer.RenderNotification(Item(
             NotificationEvent.NewMessage, "en", (NotificationEmailWorkItem.MessageCountKey, "9")));
 
-        html.Should().NotContain("&ldquo;").And.NotContain("more").And.NotContain("NEW MESSAGES");
+        // The footer's random link token is cut out so a chance "more" inside it cannot fail the check.
+        var copy = System.Text.RegularExpressions.Regex.Replace(html, "token=[^\"]+", string.Empty);
+
+        copy.Should().NotContain("&ldquo;").And.NotContain("more").And.NotContain("NEW MESSAGES");
+    }
+
+    [Theory]
+    [MemberData(nameof(EveryEventAndLanguage))]
+    public void RenderNotification_EveryEventAndLanguage_FootersTheTurnOffAndSettingsLinks(
+        NotificationEvent notificationEvent, string language)
+    {
+        var item = Item(notificationEvent, language, (NotificationEmailWorkItem.PhotoCountKey, "2"));
+
+        var (_, html) = Renderer.RenderNotification(item);
+
+        var (turnOff, settings) = language switch
+        {
+            "cs" => ("Vypnout tyto e-maily", "Nastavení oznámení"),
+            "de" => ("Diese E-Mails ausschalten", "Benachrichtigungseinstellungen"),
+            _ => ("Turn off these emails", "Notification settings"),
+        };
+        var token = System.Text.RegularExpressions.Regex.Match(html, $"href=\"{BaseUrl}/email-off\\?token=([A-Za-z0-9_-]+)\"[^>]*>{turnOff}</a>");
+
+        token.Success.Should().BeTrue("the footer links the turn-off page under the localized label");
+        html.Should().Contain($"href=\"{BaseUrl}/settings\"").And.Contain($">{settings}</a>");
+        new EmailTurnOffTokenService(Configuration, TimeProvider.System).Validate(token.Groups[1].Value)
+            .Should().Be(new EmailTurnOffTokenClaims(item.UserId, notificationEvent));
+    }
+
+    [Fact]
+    public void NotificationHeaders_CarryAOneClickLinkForTheSameUserAndEventAndThePostMarker()
+    {
+        var item = Item(NotificationEvent.JoinRequest, "en");
+
+        var headers = Renderer.NotificationHeaders(item);
+
+        headers["List-Unsubscribe-Post"].Should().Be("List-Unsubscribe=One-Click");
+        var link = System.Text.RegularExpressions.Regex.Match(
+            headers["List-Unsubscribe"], $"^<{BaseUrl}/users/email-links/one-click\\?token=([A-Za-z0-9_-]+)>$");
+        link.Success.Should().BeTrue();
+        new EmailTurnOffTokenService(Configuration, TimeProvider.System).Validate(link.Groups[1].Value)
+            .Should().Be(new EmailTurnOffTokenClaims(item.UserId, NotificationEvent.JoinRequest));
     }
 
     [Fact]

@@ -25,7 +25,6 @@ internal sealed class EmailLinkOneClickEndpoint(
     {
         Post("/users/email-links/one-click");
         AllowAnonymous();
-        AllowFormData(urlEncoded: true);
         Options(x => x.RequireRateLimiting(AppPolicies.EmailLinkRateLimit));
         Summary(s =>
         {

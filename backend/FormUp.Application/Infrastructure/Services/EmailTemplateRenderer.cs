@@ -318,8 +318,9 @@ public sealed partial class EmailTemplateRenderer(IConfiguration configuration)
                + FooterLink(settingsUrl, Localize(language, "Notification settings", "Nastavení oznámení", "Benachrichtigungseinstellungen"));
     }
 
+    // The label is one of this class's own literals, so only the URL needs encoding.
     private static string FooterLink(string url, string label) =>
-        $"""<a class="fu-text" href="{WebUtility.HtmlEncode(url)}" style="color:#141414;font-weight:600;">{WebUtility.HtmlEncode(label)}</a>""";
+        $"""<a class="fu-text" href="{WebUtility.HtmlEncode(url)}" style="color:#141414;font-weight:600;">{label}</a>""";
 
     private static string Localize(string language, string en, string cs, string de) =>
         language switch

@@ -50,7 +50,8 @@ public sealed class EmailTurnOffTokenService(IConfiguration configuration, TimeP
     /// <inheritdoc />
     public EmailTurnOffTokenClaims? Validate(string? token)
     {
-        if (string.IsNullOrEmpty(token) || token.Length > MaxTokenLength)
+        // IsValid first: the decoder throws, rather than returns false, on an illegal character.
+        if (string.IsNullOrEmpty(token) || token.Length > MaxTokenLength || !Base64Url.IsValid(token))
         {
             return null;
         }
