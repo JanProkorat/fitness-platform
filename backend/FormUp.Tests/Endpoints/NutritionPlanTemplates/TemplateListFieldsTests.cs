@@ -299,6 +299,75 @@ public class TemplateListFieldsTests(FitnessApiFactory factory)
         filtered.TotalCount.Should().Be(0);
     }
 
+    private static object[] BuildRequestWeeksWithEmptyMealRows(params (int Day, int Meals, bool Filled)[] daySpecs) =>
+    [
+        new
+        {
+            WeekNumber = 1,
+            Days = daySpecs.Select(spec => new
+            {
+                DayOfWeek = spec.Day,
+                Meals = Enumerable.Range(1, spec.Meals).Select(order => new
+                {
+                    Kind = order == 1 ? "Breakfast" : order == 2 ? "Lunch" : "Dinner",
+                    Order = order,
+                    Foods = spec.Filled
+                        ? new[]
+                        {
+                            new
+                            {
+                                FoodExternalId = Guid.NewGuid(),
+                                FoodName = "Test food",
+                                AmountGrams = 100m,
+                                NutrientValuePer100Grams = new { Kcal = 200m, Protein = 0m, Carbs = 0m, Fat = 0m }
+                            }
+                        }
+                        : []
+                }).ToArray()
+            }).ToArray()
+        }
+    ];
+
+    [Fact]
+    public async Task Create_DaysWithOnlyEmptyMealRows_AreLeftOutOfBothStats()
+    {
+        var (nutritionist, _) = await RegisterNutritionistAsync("create-empty-rows");
+
+        var response = await nutritionist.PostAsJsonAsync(
+            "/nutrition/plan-templates",
+            new
+            {
+                Name = UniqueName(),
+                Weeks = BuildRequestWeeksWithEmptyMealRows((1, 2, true), (2, 3, false), (3, 3, false))
+            });
+
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        var body = await response.Content.ReadFromJsonAsync<SummaryDto>(
+            cancellationToken: TestContext.Current.CancellationToken);
+        body!.AvgKcalPerDay.Should().Be(400m, "only the filled day counts");
+        body.MealsPerDay.Should().Be(2, "empty meal rows do not make a day count");
+    }
+
+    [Fact]
+    public async Task Create_EveryDayHasOnlyEmptyMealRows_PersistsNullStats()
+    {
+        var (nutritionist, _) = await RegisterNutritionistAsync("create-all-empty-rows");
+
+        var response = await nutritionist.PostAsJsonAsync(
+            "/nutrition/plan-templates",
+            new
+            {
+                Name = UniqueName(),
+                Weeks = BuildRequestWeeksWithEmptyMealRows((1, 3, false), (2, 2, false))
+            });
+
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        var body = await response.Content.ReadFromJsonAsync<SummaryDto>(
+            cancellationToken: TestContext.Current.CancellationToken);
+        body!.MealsPerDay.Should().BeNull();
+        body.AvgKcalPerDay.Should().BeNull();
+    }
+
     [Fact]
     public async Task Create_WithNoMeals_PersistsNullStats()
     {
