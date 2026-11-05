@@ -75,7 +75,8 @@ public class CompleteWorkoutEndpointTests
             StubComplianceService(),
             EndpointTestHelpers.CreateGrantingLinkAuthorizationService(),
             Substitute.For<ILogger<CompleteWorkoutEndpoint>>(),
-            CreateMockDb(), TimeProvider.System);
+            CreateMockDb(), TimeProvider.System,
+            Substitute.For<INotificationService>(), Substitute.For<INotificationEmailSender>());
 
         await ep.HandleAsync(new CompleteWorkoutRequest { LogId = logId }, TestContext.Current.CancellationToken);
 
@@ -101,7 +102,8 @@ public class CompleteWorkoutEndpointTests
             StubComplianceService(),
             EndpointTestHelpers.CreateGrantingLinkAuthorizationService(),
             Substitute.For<ILogger<CompleteWorkoutEndpoint>>(),
-            CreateMockDb(), TimeProvider.System);
+            CreateMockDb(), TimeProvider.System,
+            Substitute.For<INotificationService>(), Substitute.For<INotificationEmailSender>());
 
         await ep.HandleAsync(new CompleteWorkoutRequest { LogId = Guid.NewGuid() }, TestContext.Current.CancellationToken);
 
@@ -122,7 +124,8 @@ public class CompleteWorkoutEndpointTests
             StubComplianceService(),
             EndpointTestHelpers.CreateGrantingLinkAuthorizationService(),
             Substitute.For<ILogger<CompleteWorkoutEndpoint>>(),
-            CreateMockDb(), TimeProvider.System);
+            CreateMockDb(), TimeProvider.System,
+            Substitute.For<INotificationService>(), Substitute.For<INotificationEmailSender>());
 
         await ep.HandleAsync(new CompleteWorkoutRequest { LogId = Guid.NewGuid() }, TestContext.Current.CancellationToken);
 
@@ -147,7 +150,8 @@ public class CompleteWorkoutEndpointTests
             StubComplianceService(),
             EndpointTestHelpers.CreateGrantingLinkAuthorizationService(),
             Substitute.For<ILogger<CompleteWorkoutEndpoint>>(),
-            CreateMockDb(), TimeProvider.System);
+            CreateMockDb(), TimeProvider.System,
+            Substitute.For<INotificationService>(), Substitute.For<INotificationEmailSender>());
 
         await ep.HandleAsync(new CompleteWorkoutRequest { LogId = logId }, TestContext.Current.CancellationToken);
 
@@ -180,7 +184,8 @@ public class CompleteWorkoutEndpointTests
             StubComplianceService(),
             EndpointTestHelpers.CreateGrantingLinkAuthorizationService(),
             Substitute.For<ILogger<CompleteWorkoutEndpoint>>(),
-            CreateMockDb(), TimeProvider.System);
+            CreateMockDb(), TimeProvider.System,
+            Substitute.For<INotificationService>(), Substitute.For<INotificationEmailSender>());
 
         await ep.HandleAsync(new CompleteWorkoutRequest { LogId = logId }, TestContext.Current.CancellationToken);
 
@@ -229,7 +234,8 @@ public class CompleteWorkoutEndpointTests
             StubComplianceService(),
             EndpointTestHelpers.CreateGrantingLinkAuthorizationService(),
             Substitute.For<ILogger<CompleteWorkoutEndpoint>>(),
-            CreateMockDb(), TimeProvider.System);
+            CreateMockDb(), TimeProvider.System,
+            Substitute.For<INotificationService>(), Substitute.For<INotificationEmailSender>());
 
         // Act
         await ep.HandleAsync(new CompleteWorkoutRequest { LogId = logId }, TestContext.Current.CancellationToken);
@@ -266,7 +272,8 @@ public class CompleteWorkoutEndpointTests
             StubComplianceService(),
             EndpointTestHelpers.CreateGrantingLinkAuthorizationService(),
             Substitute.For<ILogger<CompleteWorkoutEndpoint>>(),
-            CreateMockDb(), TimeProvider.System);
+            CreateMockDb(), TimeProvider.System,
+            Substitute.For<INotificationService>(), Substitute.For<INotificationEmailSender>());
 
         // Act
         await ep.HandleAsync(new CompleteWorkoutRequest { LogId = logId }, TestContext.Current.CancellationToken);

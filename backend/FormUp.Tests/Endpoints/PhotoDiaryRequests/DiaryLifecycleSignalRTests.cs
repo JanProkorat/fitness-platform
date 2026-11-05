@@ -288,7 +288,7 @@ public class DiaryLifecycleSignalRTests
         var ep = Factory.Create<SubmitRequestEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            db, _notifier, _submitLogger);
+            db, _notifier, Substitute.For<INotificationService>(), Substitute.For<INotificationEmailSender>(), _submitLogger);
 
         await ep.HandleAsync(new SubmitRequestRequest
         {
@@ -345,7 +345,7 @@ public class DiaryLifecycleSignalRTests
         var ep = Factory.Create<SubmitRequestEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            db, _notifier, _submitLogger);
+            db, _notifier, Substitute.For<INotificationService>(), Substitute.For<INotificationEmailSender>(), _submitLogger);
 
         await ep.HandleAsync(new SubmitRequestRequest
         {
@@ -382,7 +382,7 @@ public class DiaryLifecycleSignalRTests
         var ep = Factory.Create<SubmitRequestEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            db, _notifier, _submitLogger);
+            db, _notifier, Substitute.For<INotificationService>(), Substitute.For<INotificationEmailSender>(), _submitLogger);
 
         await ep.HandleAsync(new SubmitRequestRequest
         {
@@ -420,7 +420,7 @@ public class DiaryLifecycleSignalRTests
         var ep = Factory.Create<SubmitRequestEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            db, _notifier, _submitLogger);
+            db, _notifier, Substitute.For<INotificationService>(), Substitute.For<INotificationEmailSender>(), _submitLogger);
 
         var act = () => ep.HandleAsync(new SubmitRequestRequest
         {

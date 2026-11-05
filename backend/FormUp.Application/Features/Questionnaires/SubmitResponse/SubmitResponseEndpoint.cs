@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Security.Claims;
 using FastEndpoints;
 using FormUp.Application.Domain.Constants;
@@ -11,7 +12,11 @@ using Microsoft.EntityFrameworkCore;
 
 namespace FormUp.Application.Features.Questionnaires.SubmitResponse;
 
-public class SubmitResponseEndpoint(IApplicationDbContext db, IProfileMapperService mapper, TimeProvider timeProvider)
+public class SubmitResponseEndpoint(
+    IApplicationDbContext db,
+    IProfileMapperService mapper,
+    INotificationEmailSender notificationEmails,
+    TimeProvider timeProvider)
     : EndpointWithoutRequest
 {
     public override void Configure()
@@ -143,6 +148,38 @@ public class SubmitResponseEndpoint(IApplicationDbContext db, IProfileMapperServ
         // Map answers to client profile and notify professional (also calls SaveChangesAsync)
         await mapper.MapResponseToProfileAsync(response, ct);
 
+        if (response.Kind == QuestionnaireResponseKind.CheckIn)
+        {
+            await QueueCheckInEmailAsync(response.ProfessionalId, userGuid, weightAnswer?.ValueNumber, ct);
+        }
+
         await Send.OkAsync(new { Message = "Questionnaire submitted successfully." }, ct);
+    }
+
+    private async Task QueueCheckInEmailAsync(Guid coachUserId, Guid clientUserId, decimal? weightKg, CancellationToken ct)
+    {
+        var client = await db.ClientProfiles
+            .AsNoTracking()
+            .Where(cp => cp.UserId == clientUserId)
+            .Select(cp => new { cp.PublicId, cp.User.FirstName, cp.User.LastName })
+            .FirstOrDefaultAsync(ct);
+
+        if (client is null)
+        {
+            return;
+        }
+
+        var values = new Dictionary<string, string>
+        {
+            [NotificationEmailWorkItem.ClientNameKey] = $"{client.FirstName} {client.LastName}".Trim(),
+            [NotificationEmailWorkItem.ClientPublicIdKey] = client.PublicId.ToString(),
+        };
+
+        if (weightKg is { } weight)
+        {
+            values[NotificationEmailWorkItem.WeightKey] = string.Format(CultureInfo.InvariantCulture, "{0:0.#} kg", weight);
+        }
+
+        await notificationEmails.SendAsync(coachUserId, NotificationEvent.WeeklyCheckInSubmitted, values, ct);
     }
 }

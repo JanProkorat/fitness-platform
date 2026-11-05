@@ -85,6 +85,63 @@ public class FakeEmailService : IEmailService
         return Task.CompletedTask;
     }
 
+    private readonly List<NotificationEmailWorkItem> _notificationsSent = [];
+    private readonly HashSet<Guid> _notificationFailuresByUser = [];
+
+    /// <summary>
+    /// Snapshot of coach notification emails sent during the test.
+    /// </summary>
+    public IReadOnlyList<NotificationEmailWorkItem> SentNotifications
+    {
+        get
+        {
+            lock (_sync)
+            {
+                return _notificationsSent.ToArray();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Notification emails sent to one recipient, after the background queue has gone idle. Waiting for
+    /// the queue to drain first makes a "nothing was sent" assertion mean the worker had its chance.
+    /// </summary>
+    /// <param name="queue">The host's background email queue.</param>
+    /// <param name="userId">The recipient's user id.</param>
+    public async Task<IReadOnlyList<NotificationEmailWorkItem>> NotificationsForAsync(IBackgroundEmailQueue queue, Guid userId)
+    {
+        await WaitForAsync(() => queue.PendingCount == 0);
+
+        return SentNotifications.Where(item => item.UserId == userId).ToList();
+    }
+
+    /// <summary>
+    /// Makes <see cref="SendNotificationEmailAsync"/> throw for the given recipient only.
+    /// </summary>
+    public void FailNotificationsFor(Guid userId)
+    {
+        lock (_sync)
+        {
+            _notificationFailuresByUser.Add(userId);
+        }
+    }
+
+    /// <inheritdoc />
+    public Task SendNotificationEmailAsync(NotificationEmailWorkItem item, CancellationToken ct)
+    {
+        lock (_sync)
+        {
+            if (_notificationFailuresByUser.Contains(item.UserId))
+            {
+                throw new InvalidOperationException("Simulated mail provider failure for a notification email.");
+            }
+
+            _notificationsSent.Add(item);
+        }
+
+        return Task.CompletedTask;
+    }
+
     /// <summary>
     /// Snapshot of bank account re-authentication code emails sent during the test.
     /// </summary>
@@ -249,6 +306,8 @@ public class FakeEmailService : IEmailService
             _verificationsSent.Clear();
             _paymentRequestsSent.Clear();
             _paymentRequestFailuresByEmail.Clear();
+            _notificationsSent.Clear();
+            _notificationFailuresByUser.Clear();
         }
     }
 

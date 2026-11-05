@@ -1,8 +1,10 @@
 using System.Collections.Concurrent;
+using System.Globalization;
 using System.Net;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using FormUp.Application.Domain.Constants;
+using FormUp.Application.Domain.Enums;
 using FormUp.Application.Domain.Interfaces;
 
 namespace FormUp.Application.Infrastructure.Services;
@@ -31,6 +33,18 @@ public sealed partial class EmailTemplateRenderer(IConfiguration configuration)
 
     /// <summary>Template name of the bank account re-authentication code email.</summary>
     public const string ReauthCode = "ReauthCode";
+
+    /// <summary>Template name of the weekly check-in submitted email.</summary>
+    public const string CheckIn = "CheckIn";
+
+    /// <summary>Template name of the join request email.</summary>
+    public const string JoinRequest = "JoinRequest";
+
+    /// <summary>Template name of the progress photos submitted email.</summary>
+    public const string Photos = "Photos";
+
+    /// <summary>Template name of the workout finished email.</summary>
+    public const string Workout = "Workout";
 
     private const string ResourcePrefix = "FormUp.Application.Infrastructure.EmailTemplates.";
     private const string LogoPath = "/email/formup-logo.png";
@@ -70,6 +84,30 @@ public sealed partial class EmailTemplateRenderer(IConfiguration configuration)
             ["en"] = "Your Form Up bank account was changed",
             ["cs"] = "Bankovní účet ve Form Up byl změněn",
             ["de"] = "Ihr Bankkonto bei Form Up wurde geändert"
+        },
+        [CheckIn] = new()
+        {
+            ["en"] = "{{ClientFirstName}} sent a weekly check-in",
+            ["cs"] = "Nový týdenní check-in: {{ClientFirstName}}",
+            ["de"] = "Neuer Wochen-Check-in: {{ClientFirstName}}"
+        },
+        [JoinRequest] = new()
+        {
+            ["en"] = "{{ClientName}} wants to work with you",
+            ["cs"] = "Nová žádost o spolupráci: {{ClientName}}",
+            ["de"] = "Neue Anfrage: {{ClientName}} möchte mit Ihnen zusammenarbeiten"
+        },
+        [Photos] = new()
+        {
+            ["en"] = "New photos from {{ClientFirstName}}",
+            ["cs"] = "Nové fotky: {{ClientFirstName}}",
+            ["de"] = "Neue Fotos von {{ClientFirstName}}"
+        },
+        [Workout] = new()
+        {
+            ["en"] = "{{ClientFirstName}} finished a workout",
+            ["cs"] = "Dokončený trénink: {{ClientFirstName}}",
+            ["de"] = "Training beendet: {{ClientFirstName}}"
         }
     };
 
@@ -163,6 +201,174 @@ public sealed partial class EmailTemplateRenderer(IConfiguration configuration)
                 ["PackageBlock"] = InvitationPackageBlock.Render(package, lang),
                 ["PersonalMessage"] = PersonalMessageBlock(personalMessage, lang, firstName)
             });
+    }
+
+    /// <summary>
+    /// The template that carries an event's email, or null when the event has no email template yet.
+    /// </summary>
+    /// <param name="notificationEvent">The notification event.</param>
+    public static string? TemplateFor(NotificationEvent notificationEvent) => notificationEvent switch
+    {
+        NotificationEvent.WeeklyCheckInSubmitted => CheckIn,
+        NotificationEvent.JoinRequest => JoinRequest,
+        NotificationEvent.ProgressPhotosSubmitted => Photos,
+        NotificationEvent.WorkoutFinished => Workout,
+        _ => null
+    };
+
+    /// <summary>
+    /// Renders a coach notification email. Optional blocks (stat tiles, quoted notes, the client card) are built
+    /// here from the plain values and left empty when their values are missing.
+    /// </summary>
+    /// <param name="item">The queued notification.</param>
+    public (string Subject, string Html) RenderNotification(NotificationEmailWorkItem item)
+    {
+        var template = TemplateFor(item.Event)
+            ?? throw new NotSupportedException($"No email template for notification event {item.Event}.");
+        var lang = NormalizeLanguage(item.Language);
+        var values = new Dictionary<string, string>(item.Values);
+        var clientName = values.GetValueOrDefault(NotificationEmailWorkItem.ClientNameKey, string.Empty);
+        var firstName = FirstName(clientName);
+
+        values["ClientFirstName"] = firstName;
+        values["ClientInitials"] = Initials(clientName);
+
+        var raw = new Dictionary<string, string>();
+
+        switch (item.Event)
+        {
+            case NotificationEvent.WeeklyCheckInSubmitted:
+                raw["Tiles"] = StatTiles(Tile(values, NotificationEmailWorkItem.WeightKey, lang, "Weight", "Váha", "Gewicht"));
+                break;
+            case NotificationEvent.JoinRequest:
+                raw["ClientCard"] = ClientCard(clientName, values.GetValueOrDefault(NotificationEmailWorkItem.PackageNameKey), lang);
+                raw["MessageBlock"] = QuoteBlock(
+                    values.GetValueOrDefault(NotificationEmailWorkItem.MessageKey), Localize(lang, "Message", "Zpráva", "Nachricht"));
+                break;
+            case NotificationEvent.ProgressPhotosSubmitted:
+                values["PhotoLead"] = PhotoLead(clientName, values, lang);
+                break;
+            case NotificationEvent.WorkoutFinished:
+                values["WorkoutLead"] = string.Join(" · ", new[]
+                    {
+                        clientName,
+                        values.GetValueOrDefault(NotificationEmailWorkItem.SessionNameKey),
+                        values.GetValueOrDefault(NotificationEmailWorkItem.PlanNameKey)
+                    }.Where(part => !string.IsNullOrWhiteSpace(part)));
+                raw["Tiles"] = StatTiles(
+                    Tile(values, NotificationEmailWorkItem.DurationMinutesKey, lang, "Duration", "Délka", "Dauer", " min"),
+                    Tile(values, NotificationEmailWorkItem.ExerciseCountKey, lang, "Exercises", "Cviky", "Übungen"),
+                    Tile(values, NotificationEmailWorkItem.SetCountKey, lang, "Sets", "Série", "Sätze"));
+                raw["NoteBlock"] = QuoteBlock(
+                    values.GetValueOrDefault(NotificationEmailWorkItem.NoteKey), Localize(lang, "Note", "Poznámka", "Notiz"));
+                break;
+        }
+
+        return Render(template, lang, values, raw);
+    }
+
+    private static string Localize(string language, string en, string cs, string de) =>
+        language switch
+        {
+            "cs" => cs,
+            "de" => de,
+            _ => en
+        };
+
+    private static (string Label, string Value)? Tile(
+        IReadOnlyDictionary<string, string> values, string key, string language, string en, string cs, string de, string suffix = "") =>
+        values.TryGetValue(key, out var value) && !string.IsNullOrWhiteSpace(value)
+            ? (Localize(language, en, cs, de), value + suffix)
+            : null;
+
+    private static string StatTiles(params (string Label, string Value)?[] tiles)
+    {
+        var present = tiles.Where(tile => tile is not null).Select(tile => tile!.Value).ToList();
+
+        if (present.Count == 0)
+        {
+            return string.Empty;
+        }
+
+        var cells = string.Join(
+            """<td width="10" style="font-size:0;line-height:0;">&nbsp;</td>""",
+            present.Select(tile => $"""
+                <td class="fu-rule" valign="top" style="padding:14px 16px;border:1px solid #E7E4DE;border-radius:14px;">
+                  <p class="fu-muted" style="margin:0 0 4px;font-size:12px;color:#6B6863;">{WebUtility.HtmlEncode(tile.Label)}</p>
+                  <p class="fu-text" style="margin:0;font-family:'Outfit','Helvetica Neue',Helvetica,Arial,sans-serif;font-size:22px;font-weight:600;color:#141414;">{WebUtility.HtmlEncode(tile.Value)}</p>
+                </td>
+                """));
+
+        return $"""
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
+                <tr>{cells}</tr>
+              </table>
+              """;
+    }
+
+    private static string QuoteBlock(string? text, string label)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return string.Empty;
+        }
+
+        return $"""
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
+                <tr>
+                  <td class="fu-panel" style="background-color:#F6F4F0;border-radius:14px;padding:14px 16px;">
+                    <p class="fu-muted" style="margin:0 0 6px;font-size:12px;font-weight:600;color:#6B6863;">{WebUtility.HtmlEncode(label)}</p>
+                    <p class="fu-text" style="margin:0;font-size:15px;line-height:1.55;color:#141414;">&ldquo;{WebUtility.HtmlEncode(text)}&rdquo;</p>
+                  </td>
+                </tr>
+              </table>
+              """;
+    }
+
+    private static string ClientCard(string clientName, string? packageName, string language)
+    {
+        var detail = string.IsNullOrWhiteSpace(packageName)
+            ? string.Empty
+            : $"""<p class="fu-muted" style="margin:2px 0 0;font-size:13px;color:#6B6863;">{Localize(language, "Package", "Balíček", "Paket")}: {WebUtility.HtmlEncode(packageName)}</p>""";
+
+        return $"""
+              <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
+                <tr>
+                  <td class="fu-btn" width="40" height="40" align="center" style="width:40px;height:40px;border-radius:20px;background-color:#141414;color:#FFFFFF;font-size:14px;font-weight:600;">{WebUtility.HtmlEncode(Initials(clientName))}</td>
+                  <td style="padding-left:12px;">
+                    <p class="fu-text" style="margin:0;font-size:15px;font-weight:700;color:#141414;">{WebUtility.HtmlEncode(clientName)}</p>
+                    {detail}
+                  </td>
+                </tr>
+              </table>
+              """;
+    }
+
+    private static string PhotoLead(string clientName, IReadOnlyDictionary<string, string> values, string language)
+    {
+        var count = int.TryParse(values.GetValueOrDefault(NotificationEmailWorkItem.PhotoCountKey), out var parsed) ? parsed : 0;
+        var summary = language switch
+        {
+            "cs" => count == 1 ? "1 fotku" : count is >= 2 and <= 4 ? $"{count} fotky" : $"{count} fotek",
+            "de" => count == 1 ? "1 Foto" : $"{count} Fotos",
+            _ => count == 1 ? "1 photo" : $"{count} photos"
+        };
+        var hasDate = DateOnly.TryParseExact(
+            values.GetValueOrDefault(NotificationEmailWorkItem.RequestDateKey),
+            "yyyy-MM-dd",
+            CultureInfo.InvariantCulture,
+            DateTimeStyles.None,
+            out var parsedDate);
+        var requestDate = hasDate
+            ? parsedDate.ToString(Localize(language, "d MMM yyyy", "d. M. yyyy", "dd.MM.yyyy"), CultureInfo.InvariantCulture)
+            : string.Empty;
+
+        return language switch
+        {
+            "cs" => $"{clientName} · odesláno {summary}. " + (hasDate ? $"Odpověď na vaši žádost z {requestDate}." : "Odpověď na vaši žádost o fotky."),
+            "de" => $"{clientName} · {summary} gesendet. " + (hasDate ? $"Antwort auf Ihre Anfrage vom {requestDate}." : "Antwort auf Ihre Fotoanfrage."),
+            _ => $"{clientName} · {summary} sent. " + (hasDate ? $"In reply to your request from {requestDate}." : "In reply to your photo request.")
+        };
     }
 
     /// <summary>
