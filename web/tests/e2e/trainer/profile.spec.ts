@@ -14,6 +14,7 @@ interface TrainerProfileBody {
 }
 
 const SAVE_STATE = 'profile-save-state';
+const SAVE_BUTTON = { name: 'Save changes', exact: true } as const;
 
 async function stubProfile(page: Page, onSave: (body: TrainerProfileBody) => void) {
   await page.route(/\/users\/me$/, async (route) => {
@@ -62,7 +63,7 @@ test.describe('coach profile tag boxes', () => {
 
     await page.getByLabel('Specializations', { exact: true }).fill('Mobility');
     await page.getByLabel('Languages', { exact: true }).fill('English');
-    await page.getByRole('button', { name: 'Save', exact: true }).click();
+    await page.getByRole('button', SAVE_BUTTON).click();
 
     await expect.poll(() => saved.length).toBe(1);
     expect(JSON.parse(saved[0].specializations)).toEqual(['Strength', 'Mobility']);
@@ -76,7 +77,7 @@ test.describe('coach profile tag boxes', () => {
 
     // Languages are limited by the serialized length of the whole list, not per item.
     await page.getByLabel('Languages', { exact: true }).fill('x'.repeat(1100));
-    await page.getByRole('button', { name: 'Save', exact: true }).click();
+    await page.getByRole('button', SAVE_BUTTON).click();
 
     await expect(page.getByText('Too many entries — remove some.')).toBeVisible();
     expect(saved).toHaveLength(0);
@@ -87,7 +88,7 @@ test.describe('coach profile tag boxes', () => {
     await stubProfile(page, () => undefined);
     await openProfile(page);
 
-    const save = page.getByRole('button', { name: 'Save', exact: true });
+    const save = page.getByRole('button', SAVE_BUTTON);
     await expect(save).toHaveAttribute('aria-disabled', 'true');
 
     await page.getByLabel('Specializations', { exact: true }).fill('Mobility');
