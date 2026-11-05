@@ -8,7 +8,7 @@ import {
 import { planPositionOfDate } from '@/components/client-plan-editor/clientPlanDates';
 import { eatenSnapshotKcal, type EatenView, type PlanMealLocks } from '@/components/plan-editor/meal-locks';
 import { foodDisplayName } from '@/components/plan-editor/plan-editor-library';
-import { foodTotals, mealTotals, recipeTotals } from '@/components/plan-editor/plan-editor-nutrition';
+import { foodTotals, mealTotals, recipeTotals, type Totals } from '@/components/plan-editor/plan-editor-nutrition';
 import { rowMeal, weekRows } from '@/components/plan-editor/plan-editor-ops';
 import type { EditorDocument, EditorMeal, EditorWeek } from '@/components/plan-editor/plan-editor-types';
 
@@ -89,6 +89,8 @@ export interface CompareLine {
   amount: number;
   unit: 'grams' | 'servings';
   kcal: number;
+  /** The item's macros, for the bar beside its kcal. */
+  totals: Totals;
 }
 
 export type ComparePairStatus = 'same' | 'removed' | 'added' | 'changed';
@@ -131,29 +133,38 @@ function snapshotLine(item: EatenMealItem): CompareLine {
     amount: item.amount ?? 0,
     unit: item.kind === SeenMealItemKind.Recipe ? 'servings' : 'grams',
     kcal: item.kcal ?? 0,
+    totals: {
+      kcal: item.kcal ?? 0,
+      protein: item.protein ?? 0,
+      carbs: item.carbs ?? 0,
+      fat: item.fat ?? 0,
+      fiber: item.fibre ?? 0,
+    },
   };
 }
 
 function liveLines(meal: EditorMeal, language: string): { itemId: string | undefined; line: CompareLine }[] {
   return [
-    ...meal.recipes.map((recipe) => ({
-      itemId: recipe.itemId,
-      line: {
-        name: recipe.recipeName,
-        amount: recipe.servings,
-        unit: 'servings' as const,
-        kcal: recipeTotals(recipe).kcal,
-      },
-    })),
-    ...meal.foods.map((food) => ({
-      itemId: food.itemId,
-      line: {
-        name: foodDisplayName(food, language),
-        amount: food.amountGrams,
-        unit: 'grams' as const,
-        kcal: foodTotals(food).kcal,
-      },
-    })),
+    ...meal.recipes.map((recipe) => {
+      const totals = recipeTotals(recipe);
+      return {
+        itemId: recipe.itemId,
+        line: { name: recipe.recipeName, amount: recipe.servings, unit: 'servings' as const, kcal: totals.kcal, totals },
+      };
+    }),
+    ...meal.foods.map((food) => {
+      const totals = foodTotals(food);
+      return {
+        itemId: food.itemId,
+        line: {
+          name: foodDisplayName(food, language),
+          amount: food.amountGrams,
+          unit: 'grams' as const,
+          kcal: totals.kcal,
+          totals,
+        },
+      };
+    }),
   ];
 }
 

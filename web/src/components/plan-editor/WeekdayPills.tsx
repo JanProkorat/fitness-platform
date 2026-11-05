@@ -1,7 +1,9 @@
 import { useTranslation } from 'react-i18next';
+import { Lock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import ConflictBadge from '@/components/plan-editor/sync-conflicts/ConflictBadge';
 import { useSyncConflicts } from '@/components/plan-editor/sync-conflicts/SyncConflictsContext';
+import { isPastDay, isToday, useMealLocks } from '@/components/plan-editor/meal-locks';
 import { DAY_ORDER } from '@/components/plan-editor/plan-editor-format';
 import { dayTotals, targetStatus, type TargetStatus } from '@/components/plan-editor/plan-editor-nutrition';
 import type { EditorWeek } from '@/components/plan-editor/plan-editor-types';
@@ -26,6 +28,7 @@ interface Props {
 export default function WeekdayPills({ week, weekIndex, current, dailyKcalTarget, onSelect }: Props) {
   const { t } = useTranslation();
   const conflicts = useSyncConflicts();
+  const locks = useMealLocks();
 
   return (
     <div role="tablist" aria-label={t('planEditor.day.weekdays')} className="flex flex-wrap gap-2">
@@ -34,6 +37,9 @@ export default function WeekdayPills({ week, weekIndex, current, dailyKcalTarget
         const status = day ? targetStatus(dayTotals(day).kcal, dailyKcalTarget) : 'none';
         const dot = DOT_CLASS[status];
         const active = dayOfWeek === current;
+        // Like the week view's headers: a past day carries a lock, today a pill (client plans only).
+        const past = locks ? isPastDay(locks, week.weekNumber, dayOfWeek) : false;
+        const today = locks ? isToday(locks, week.weekNumber, dayOfWeek) : false;
         return (
           <button
             key={dayOfWeek}
@@ -48,6 +54,20 @@ export default function WeekdayPills({ week, weekIndex, current, dailyKcalTarget
             )}
           >
             {t(`planEditor.days.${dayOfWeek}`)}
+            {past && (
+              <Lock
+                data-testid="day-tab-lock"
+                className="size-3"
+                role="img"
+                aria-label={t('planEditor.locks.dayLocked', { day: t(`planEditor.daysLong.${dayOfWeek}`) })}
+              />
+            )}
+            {today && (
+              <span data-testid="day-tab-today" className="text-meta font-semibold">
+                {'· '}
+                {t('planEditor.locks.today')}
+              </span>
+            )}
             {conflicts && weekIndex !== undefined && conflicts.countOnDay(weekIndex, dayOfWeek) > 0 && <ConflictBadge />}
             {dot && <span className={cn('size-1.75 rounded-full', dot)} aria-hidden="true" />}
           </button>

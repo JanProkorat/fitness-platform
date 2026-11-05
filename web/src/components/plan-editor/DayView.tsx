@@ -79,8 +79,8 @@ export default function DayView({
           <Lock className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
           <span>
             <b className="font-semibold text-ink">
+              {/* The formatted date already carries the weekday, so the day name is not passed separately. */}
               {t('planEditor.locks.pastBanner.lead', {
-                day: t(`planEditor.daysLong.${dayOfWeek}`),
                 date: pastDate ? formatCalendarDate(pastDate, i18n.language) : '',
               })}
             </b>{' '}

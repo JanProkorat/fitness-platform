@@ -22,7 +22,8 @@ type ChipStatus = Exclude<ComparePairStatus, 'same'>;
 const CONFLICT_CHIP_CLASS: Record<ChipStatus, string> = {
   removed: 'bg-error-soft text-error',
   added: 'bg-success-soft text-success-ink',
-  changed: 'bg-caution-soft text-caution-ink',
+  // A stronger tint than caution-soft, which is the colour of the notice the pill often sits on.
+  changed: 'bg-caution-ink/20 text-caution-ink',
 };
 
 export function ConflictChip({ status }: { status: ChipStatus }) {
@@ -31,7 +32,10 @@ export function ConflictChip({ status }: { status: ChipStatus }) {
     <span
       data-testid="conflict-chip"
       data-status={status}
-      className={cn('rounded-full px-2 py-0.5 text-label font-semibold', CONFLICT_CHIP_CLASS[status])}
+      className={cn(
+        'inline-flex items-center rounded-full px-2 py-0.5 text-label font-bold whitespace-nowrap',
+        CONFLICT_CHIP_CLASS[status],
+      )}
     >
       {t(`planEditor.syncConflicts.chip.${status}`)}
     </span>
