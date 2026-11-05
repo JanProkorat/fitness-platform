@@ -179,6 +179,7 @@ public class UpdateClientDataEndpointTests
     public async Task HandleAsync_BmrOnlyPatch_NutritionTargetsRowAbsent_CreatesRowAndPersistsValue()
     {
         var (trainerProfile, clientProfile, link) = BuildLinkedPair(_trainerId, _clientUserId);
+        link.CanViewNutritionPlans = true;
         var onboardingData = new ClientOnboardingData { Id = 10, ClientProfileId = clientProfile.Id };
         clientProfile.OnboardingData = onboardingData;
 
@@ -212,6 +213,7 @@ public class UpdateClientDataEndpointTests
     public async Task HandleAsync_BmrOnlyPatch_NutritionTargetsRowExists_MutatesInPlace_DoesNotAddDuplicate()
     {
         var (trainerProfile, clientProfile, link) = BuildLinkedPair(_trainerId, _clientUserId);
+        link.CanViewNutritionPlans = true;
         var onboardingData = new ClientOnboardingData { Id = 11, ClientProfileId = clientProfile.Id };
         var existingTargets = EntityBuilder.ClientNutritionTargets
             .WithClientOnboardingDataId(onboardingData.Id)
@@ -238,5 +240,145 @@ public class UpdateClientDataEndpointTests
         onboardingData.NutritionTargets.Should().BeSameAs(existingTargets,
             "the existing row must be mutated in place, not replaced with a new instance");
         db.ClientNutritionTargets.DidNotReceive().Add(Arg.Any<ClientNutritionTargets>());
+    }
+
+    [Fact]
+    public async Task HandleAsync_TrainingOnlyLink_MacroFields_Returns403_TargetsUnchanged_NoIdentityWrite()
+    {
+        var (trainerProfile, clientProfile, link) = BuildLinkedPair(_trainerId, _clientUserId);
+        link.CanViewTrainingPlans = true;
+        link.CanViewNutritionPlans = false;
+        var onboardingData = new ClientOnboardingData { Id = 12, ClientProfileId = clientProfile.Id };
+        var existingTargets = EntityBuilder.ClientNutritionTargets
+            .WithClientOnboardingDataId(onboardingData.Id)
+            .Build();
+        onboardingData.NutritionTargets = existingTargets;
+        clientProfile.OnboardingData = onboardingData;
+        var originalBmr = existingTargets.Bmr;
+        var originalProtein = existingTargets.ProteinGrams;
+
+        var db = new MockDbBuilder()
+            .With(trainerProfile).With(clientProfile).With(link).With(existingTargets)
+            .Build();
+        var userManager = EndpointTestHelpers.CreateFakeUserManager();
+        var ep = CreateEndpoint(db, userManager);
+
+        await ep.HandleAsync(new UpdateClientDataRequest
+        {
+            ClientId = clientProfile.PublicId,
+            Bmr = 9999m,
+            ProteinGrams = 999m,
+        }, TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(403);
+        existingTargets.Bmr.Should().Be(originalBmr);
+        existingTargets.ProteinGrams.Should().Be(originalProtein);
+        await userManager.DidNotReceive().FindByIdAsync(Arg.Any<string>());
+        await userManager.DidNotReceive().UpdateAsync(Arg.Any<ApplicationUser>());
+        await db.DidNotReceive().SaveChangesAsync(Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task HandleAsync_TrainingOnlyLink_MacroFieldWithoutOnboardingData_Returns403()
+    {
+        var (trainerProfile, clientProfile, link) = BuildLinkedPair(_trainerId, _clientUserId);
+        link.CanViewTrainingPlans = true;
+        var db = new MockDbBuilder()
+            .With(trainerProfile).With(clientProfile).With(link)
+            .Build();
+        var ep = CreateEndpoint(db, EndpointTestHelpers.CreateFakeUserManager());
+
+        await ep.HandleAsync(new UpdateClientDataRequest
+        {
+            ClientId = clientProfile.PublicId,
+            DerivedNutritionGoal = "LoseWeight",
+        }, TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(403);
+    }
+
+    [Fact]
+    public async Task HandleAsync_TrainingOnlyLink_MacroFieldsAndFirstName_Returns403_NameUnchanged()
+    {
+        var (trainerProfile, clientProfile, link) = BuildLinkedPair(_trainerId, _clientUserId);
+        link.CanViewTrainingPlans = true;
+        var db = new MockDbBuilder()
+            .With(trainerProfile).With(clientProfile).With(link)
+            .Build();
+        var clientUser = new ApplicationUser
+        {
+            Id = _clientUserId, Email = "old@test.com", UserName = "old@test.com",
+            FirstName = "Old", LastName = "Name"
+        };
+        var userManager = EndpointTestHelpers.CreateFakeUserManager();
+        userManager.FindByIdAsync(_clientUserId.ToString()).Returns(clientUser);
+        var ep = CreateEndpoint(db, userManager);
+
+        await ep.HandleAsync(new UpdateClientDataRequest
+        {
+            ClientId = clientProfile.PublicId,
+            FirstName = "New",
+            Bmr = 1800m,
+        }, TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(403);
+        clientUser.FirstName.Should().Be("Old");
+        await userManager.DidNotReceive().UpdateAsync(Arg.Any<ApplicationUser>());
+        await userManager.DidNotReceive().SetEmailAsync(Arg.Any<ApplicationUser>(), Arg.Any<string>());
+    }
+
+    [Fact]
+    public async Task HandleAsync_TrainingOnlyLink_OnlyProfileAndIdentityFields_Returns200()
+    {
+        var (trainerProfile, clientProfile, link) = BuildLinkedPair(_trainerId, _clientUserId);
+        link.CanViewTrainingPlans = true;
+        var db = new MockDbBuilder()
+            .With(trainerProfile).With(clientProfile).With(link)
+            .Build();
+        var clientUser = new ApplicationUser
+        {
+            Id = _clientUserId, Email = "old@test.com", UserName = "old@test.com",
+            FirstName = "Old", LastName = "Name"
+        };
+        var userManager = EndpointTestHelpers.CreateFakeUserManager();
+        userManager.FindByIdAsync(_clientUserId.ToString()).Returns(clientUser);
+        userManager.UpdateAsync(clientUser).Returns(IdentityResult.Success);
+        var ep = CreateEndpoint(db, userManager);
+
+        await ep.HandleAsync(new UpdateClientDataRequest
+        {
+            ClientId = clientProfile.PublicId,
+            FirstName = "New",
+            WeightKg = 80m,
+        }, TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(200);
+        clientUser.FirstName.Should().Be("New");
+        clientProfile.WeightKg.Should().Be(80m);
+    }
+
+    [Fact]
+    public async Task HandleAsync_NutritionLink_MacroTargets_Returns200_Saved()
+    {
+        var (trainerProfile, clientProfile, link) = BuildLinkedPair(_trainerId, _clientUserId);
+        link.CanViewNutritionPlans = true;
+        var onboardingData = new ClientOnboardingData { Id = 13, ClientProfileId = clientProfile.Id };
+        clientProfile.OnboardingData = onboardingData;
+        var db = new MockDbBuilder()
+            .With(trainerProfile).With(clientProfile).With(link)
+            .Build();
+        var ep = CreateEndpoint(db, EndpointTestHelpers.CreateFakeUserManager());
+
+        await ep.HandleAsync(new UpdateClientDataRequest
+        {
+            ClientId = clientProfile.PublicId,
+            Bmr = 1700m,
+            ProteinGrams = 140m,
+        }, TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(200);
+        onboardingData.NutritionTargets!.Bmr.Should().Be(1700m);
+        onboardingData.NutritionTargets.ProteinGrams.Should().Be(140m);
+        await db.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
     }
 }

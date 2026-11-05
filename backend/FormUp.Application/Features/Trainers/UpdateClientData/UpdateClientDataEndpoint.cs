@@ -40,7 +40,12 @@ public class UpdateClientDataEndpoint(
         Summary(s =>
         {
             s.Summary = "Update client data";
-            s.Description = "Updates client profile fields and/or nutrition targets. Only non-null fields are applied.";
+            s.Description = "Updates client profile fields and/or nutrition targets. Only non-null fields are applied. "
+                + "Nutrition targets require the link's nutrition capability.";
+            s.Responses[StatusCodes.Status200OK] = "Client data updated";
+            s.Responses[StatusCodes.Status401Unauthorized] = "Missing or unreadable caller claim";
+            s.Responses[StatusCodes.Status403Forbidden] = "Request carries nutrition targets but the link has no nutrition capability";
+            s.Responses[StatusCodes.Status404NotFound] = "Caller, client or active link not found";
         });
     }
 
@@ -66,6 +71,24 @@ public class UpdateClientDataEndpoint(
         var capabilities = await linkAuthorizationService.GetCapabilitiesByClientPublicIdAsync(
             Guid.Parse(userId), req.ClientId, ct);
         if (capabilities is null) { await Send.NotFoundAsync(ct); return; }
+
+        // Nutrition targets need the nutrition capability. Decided from the request alone and
+        // before any write: the identity writes below persist immediately, so a rejected
+        // request must not have changed the client's name or email.
+        var hasTargetPatch = req.DerivedActivityLevel != null
+            || req.DerivedNutritionGoal != null
+            || req.Bmr.HasValue
+            || req.Tdee.HasValue
+            || req.AdjustedKcal.HasValue
+            || req.ProteinGrams.HasValue
+            || req.CarbsGrams.HasValue
+            || req.FatGrams.HasValue
+            || req.MealDistribution != null;
+        if (hasTargetPatch && !capabilities.Value.CanViewNutritionPlans)
+        {
+            await Send.ForbiddenAsync(ct);
+            return;
+        }
 
         // Update identity fields (#667) — these live on ApplicationUser, not ClientProfile.
         if (req.FirstName != null || req.LastName != null || req.Email != null)
@@ -127,16 +150,6 @@ public class UpdateClientDataEndpoint(
             // Nutrition targets live on their own child row (split from OnboardingData) —
             // create it on demand so a patch touching only one target field is never
             // silently dropped when the row does not yet exist.
-            var hasTargetPatch = req.DerivedActivityLevel != null
-                || req.DerivedNutritionGoal != null
-                || req.Bmr.HasValue
-                || req.Tdee.HasValue
-                || req.AdjustedKcal.HasValue
-                || req.ProteinGrams.HasValue
-                || req.CarbsGrams.HasValue
-                || req.FatGrams.HasValue
-                || req.MealDistribution != null;
-
             if (hasTargetPatch)
             {
                 var isNewTargets = od.NutritionTargets is null;
