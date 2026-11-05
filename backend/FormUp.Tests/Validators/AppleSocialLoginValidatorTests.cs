@@ -37,6 +37,34 @@ public class AppleSocialLoginValidatorTests
     }
 
     [Theory]
+    [InlineData("Trainer")]
+    [InlineData("nutritionist")]
+    public void Validate_CoachWithHealthDataConsent_FailsWithCoachConsentMessage(string role)
+    {
+        var request = Request(role);
+        request.HealthDataConsent = true;
+
+        var result = new AppleSocialLoginValidator().Validate(request);
+
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().Contain(e => e.ErrorMessage == SocialSignUpRoles.CoachHealthDataConsentMessage);
+    }
+
+    [Theory]
+    [InlineData]
+    [InlineData("Client")]
+    public void Validate_ClientRolesWithOrWithoutConsent_Passes(params string[] roles)
+    {
+        foreach (var consent in new bool?[] { null, true, false })
+        {
+            var request = Request(roles);
+            request.HealthDataConsent = consent;
+
+            new AppleSocialLoginValidator().Validate(request).IsValid.Should().BeTrue();
+        }
+    }
+
+    [Theory]
     [InlineData]
     [InlineData("Client")]
     [InlineData("Trainer")]

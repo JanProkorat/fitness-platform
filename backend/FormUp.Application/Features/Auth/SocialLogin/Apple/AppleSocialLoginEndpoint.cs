@@ -35,6 +35,7 @@ public class AppleSocialLoginEndpoint(
     // already addressed to a newly-provisioned account's email (#803/#817).
     IPendingInviteConversationSeeder inviteConversationSeeder,
     IPendingInviteNotificationSeeder inviteNotificationSeeder,
+    IAuditService audit,
     ILogger<AppleSocialLoginEndpoint> logger) : Endpoint<AppleSocialLoginRequest, AppleSocialLoginResponse>
 {
     private const string AppleProvider = "apple";
@@ -48,9 +49,9 @@ public class AppleSocialLoginEndpoint(
         Summary(s =>
         {
             s.Summary = "Apple Sign-In";
-            s.Description = "Verifies an Apple identity token and returns platform JWT tokens. Provisions a new account if the email is not yet registered, with the requested roles (Trainer, Nutritionist or Client; default Client). Roles are ignored for an already-linked account.";
+            s.Description = "Verifies an Apple identity token and returns platform JWT tokens. Provisions a new account if the email is not yet registered, with the requested roles (Trainer, Nutritionist or Client; default Client). Roles and healthDataConsent are ignored for an already-linked account. A new Client account requires healthDataConsent=true (same as /auth/register); a coach sign-up must omit it.";
             s.Response<AppleSocialLoginResponse>(200, "Login successful");
-            s.Responses[400] = "identityToken or nonce is missing or empty, or Roles is invalid (Admin, unknown, or Client combined with a coach role)";
+            s.Responses[400] = "identityToken or nonce is missing or empty, Roles is invalid (Admin, unknown, or Client combined with a coach role), a coach sends healthDataConsent, or a new Client account lacks healthDataConsent=true. The nonce is already consumed by the time the consent check runs, so the client must request a new nonce to retry";
             s.Responses[401] = "Apple identity token is invalid, expired, has wrong audience, email is explicitly unverified, or the nonce is invalid/consumed/expired";
             s.Responses[403] = "Account is deactivated";
             s.Responses[409] = "Email belongs to an existing password-only account (social_email_conflict)";
@@ -173,6 +174,22 @@ public class AppleSocialLoginEndpoint(
             var firstName = req.FirstName ?? string.Empty;
             var lastName = req.LastName ?? string.Empty;
 
+            // The validator limits requested roles to Trainer, Nutritionist or Client (never Admin,
+            // never Client combined with a coach role); an empty list means Client. Roles are read
+            // for new accounts only — a linked account keeps what it has.
+            var newUserRoles = SocialSignUpRoles.Resolve(req.Roles);
+            var isCoach = SocialSignUpRoles.HasCoachRole(newUserRoles);
+
+            // Same semantics as /auth/register: a new Client account needs the Art. 9 health-data
+            // consent. Checked here, not in the validator, because new-vs-linked is only known now.
+            if (!isCoach && req.HealthDataConsent != true)
+            {
+                AddError(r => r.HealthDataConsent, SocialSignUpRoles.HealthDataConsentRequiredMessage);
+                ThrowIfAnyErrors();
+                return;
+            }
+
+            var nowUtc = DateTime.UtcNow;
             var newUser = new ApplicationUser
             {
                 UserName = applePayload.Email,
@@ -181,14 +198,11 @@ public class AppleSocialLoginEndpoint(
                 FirstName = firstName,
                 LastName = lastName,
                 GdprConsent = true,
-                GdprConsentDate = DateTime.UtcNow
+                GdprConsentDate = nowUtc,
+                // Art. 9 health-data consent: set for clients only; coaches stay null.
+                HealthDataConsent = isCoach ? null : req.HealthDataConsent,
+                HealthDataConsentDate = isCoach ? null : nowUtc
             };
-
-            // The validator limits requested roles to Trainer, Nutritionist or Client (never Admin,
-            // never Client combined with a coach role); an empty list means Client. Roles are read
-            // for new accounts only — a linked account keeps what it has.
-            var newUserRoles = SocialSignUpRoles.Resolve(req.Roles);
-            var isCoach = SocialSignUpRoles.HasCoachRole(newUserRoles);
 
             var createResult = await userManager.CreateAsync(newUser);
             if (!createResult.Succeeded)
@@ -227,6 +241,19 @@ public class AppleSocialLoginEndpoint(
 
             await db.SaveChangesAsync(ct);
             user = newUser;
+
+            // Audit: consent recorded at sign-up, same entry as /auth/register plus the provider.
+            var healthDataConsentValue = newUser.HealthDataConsent.HasValue
+                ? (newUser.HealthDataConsent.Value ? "true" : "false")
+                : "null";
+            await audit.LogAsync(
+                newUser.Id,
+                "Register",
+                nameof(ApplicationUser),
+                newUser.Id,
+                HttpContext.Connection.RemoteIpAddress?.ToString(),
+                newValues: $"{{\"gdprConsent\":true,\"healthDataConsent\":{healthDataConsentValue},\"roles\":[{string.Join(",", newUserRoles.Select(role => $"\"{role}\""))}],\"provider\":\"{AppleProvider}\"}}",
+                ct: ct);
 
             if (isCoach)
             {
