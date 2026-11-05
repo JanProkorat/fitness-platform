@@ -5279,6 +5279,11 @@
       "body": "It may be incomplete, or it belongs to another account.",
       "note": "Sign in to choose which emails you get in Settings › Notifications.",
       "signIn": "Sign in"
+    },
+    "failed": {
+      "title": "Something went wrong",
+      "body": "We couldn't turn this email off right now. Try again in a moment.",
+      "retry": "Try again"
     }
   },
   "entry": {

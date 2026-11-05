@@ -3,7 +3,8 @@ import type { ReactNode } from 'react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { BellIcon, BellOffIcon, InfoIcon, Link2OffIcon } from 'lucide-react';
+import { BellIcon, BellOffIcon, InfoIcon, Link2OffIcon, TriangleAlertIcon } from 'lucide-react';
+import { getErrorCode, getErrorStatus } from '@/lib/api-errors';
 import { NotificationEvent, turnOffEmail, turnOnEmail } from '@/api/email-links';
 import type { EmailLinkTurnOffResponse } from '@/api/email-links';
 import { profileKeys } from '@/api/profile';
@@ -128,8 +129,37 @@ export default function EmailTurnOffPage() {
       </>,
     );
 
-  if (!hasToken || turnOffQuery.isError) {
+  // Only the backend's uniform invalid-link answer (400, EMAIL_LINK_INVALID) means the link is broken.
+  // The NSwag client throws the parsed 400 body itself (no status), so check the code as well as the status.
+  const linkIsInvalid =
+    turnOffQuery.isError &&
+    (getErrorStatus(turnOffQuery.error) === 400 || getErrorCode(turnOffQuery.error) === 'EMAIL_LINK_INVALID');
+
+  if (!hasToken || linkIsInvalid) {
     return invalidCard();
+  }
+
+  // Rate limit (429), server or network failure: the link may be fine, so offer one manual retry.
+  if (turnOffQuery.isError) {
+    return shell(
+      <>
+        <div className="flex size-11.5 items-center justify-center rounded-xl bg-caution-soft text-caution-ink">
+          <TriangleAlertIcon className="size-5" aria-hidden="true" />
+        </div>
+        <CardTitle>{t('emailOff.failed.title')}</CardTitle>
+        <CardDescription role="alert">{t('emailOff.failed.body')}</CardDescription>
+        <CardContent>
+          <Button
+            type="button"
+            className="w-full"
+            disabled={turnOffQuery.isFetching}
+            onClick={() => void turnOffQuery.refetch()}
+          >
+            {t('emailOff.failed.retry')}
+          </Button>
+        </CardContent>
+      </>,
+    );
   }
 
   if (turnOffQuery.isSuccess) {
