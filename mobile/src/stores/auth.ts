@@ -4,6 +4,12 @@ import { create } from 'zustand';
 import { isOfflineFailure } from '@/api/errors';
 import { clearPersistedCache } from '@/lib/persistence';
 import { queryClient } from '@/lib/queryClient';
+import {
+  clearStoredSessionUserId,
+  readStoredSessionUserId,
+  userIdFromAccessToken,
+  writeStoredSessionUserId,
+} from '@/lib/session';
 import { useOutboxStore } from '@/stores/outbox';
 
 const REFRESH_TOKEN_KEY = 'refreshToken';
@@ -13,6 +19,8 @@ interface AuthState {
   accessToken: string | null;
   /** Mirror of the SecureStore value so the refresh path can read it synchronously. */
   refreshToken: string | null;
+  /** Id of the signed-in user, from the access token; kept in SecureStore so an offline restore knows it too. */
+  sessionUserId: string | null;
   isAuthenticated: boolean;
   isInitialized: boolean;
   /** Bumped on every login and logout so an in-flight refresh can tell its session ended. */
@@ -34,7 +42,11 @@ interface AuthState {
     accessToken: string,
     refreshToken: string,
   ) => Promise<boolean>;
-  logout: () => Promise<void>;
+  /**
+   * Ends the session. The user's unsent offline writes stay on the device for their next sign-in, unless
+   * `discardOutbox` is set (the account no longer exists).
+   */
+  logout: (options?: { discardOutbox?: boolean }) => Promise<void>;
   restoreSession: () => Promise<void>;
 }
 
@@ -50,6 +62,7 @@ async function syncPersistedToken(refreshToken: string | null): Promise<void> {
 export const useAuthStore = create<AuthState>((set, get) => ({
   accessToken: null,
   refreshToken: null,
+  sessionUserId: null,
   isAuthenticated: false,
   isInitialized: false,
   sessionGeneration: 0,
@@ -60,23 +73,29 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   acknowledgeVerified: () => set({ verifiedAcknowledged: true }),
 
   login: async (accessToken, refreshToken) => {
+    const userId = userIdFromAccessToken(accessToken);
+    if (!userId) throw new Error('invalid_access_token');
     // Memory first, then disk: a throttled write can otherwise bring the old user's snapshot back.
     queryClient.clear();
     await clearPersistedCache();
-    // The previous user's pending writes must never go out under this user's token.
-    await useOutboxStore.getState().wipe();
+    // Each user has their own queue: the previous user's pending writes stay under their id and are never
+    // loaded, shown or sent under this user's token.
+    await useOutboxStore.getState().bindUser(userId, { discardLegacy: true });
     // Memory first, so a stale refresh that wrote SecureStore meanwhile restores this token.
     set((state) => ({
       accessToken,
       refreshToken,
+      sessionUserId: userId,
       sawUnverified: false,
       verifiedAcknowledged: false,
       sessionGeneration: state.sessionGeneration + 1,
     }));
     try {
       await SecureStore.setItemAsync(REFRESH_TOKEN_KEY, refreshToken);
+      await writeStoredSessionUserId(userId);
     } catch (error) {
-      set({ accessToken: null, refreshToken: null });
+      set({ accessToken: null, refreshToken: null, sessionUserId: null });
+      await useOutboxStore.getState().release();
       throw error;
     }
     set({ isAuthenticated: true });
@@ -89,16 +108,29 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       await syncPersistedToken(get().refreshToken);
       return false;
     }
+    // An offline-restored session, or one started before the user id was kept, learns its owner here.
+    const tokenUserId = userIdFromAccessToken(accessToken);
+    if (tokenUserId && tokenUserId !== get().sessionUserId) {
+      await useOutboxStore.getState().bindUser(tokenUserId);
+      if (get().sessionGeneration !== generation) {
+        await syncPersistedToken(get().refreshToken);
+        return false;
+      }
+      set({ sessionUserId: tokenUserId });
+      await writeStoredSessionUserId(tokenUserId);
+    }
     set({ accessToken, refreshToken });
     return true;
   },
 
-  logout: async () => {
+  logout: async (options) => {
     // Captured before the state clears so the server-side push token can be removed as this user.
     const endingAccessToken = get().accessToken;
+    const endingUserId = get().sessionUserId;
     set((state) => ({
       accessToken: null,
       refreshToken: null,
+      sessionUserId: null,
       isAuthenticated: false,
       sawUnverified: false,
       verifiedAcknowledged: false,
@@ -106,12 +138,16 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }));
     queryClient.clear();
     await clearPersistedCache();
-    await useOutboxStore.getState().wipe();
+    // Unsent writes stay on the device under this user's id, to go out at their next sign-in; an account that was
+    // deleted on the server has nothing left to send them to.
+    if (options?.discardOutbox) await useOutboxStore.getState().discardUser(endingUserId);
+    else await useOutboxStore.getState().release();
     // Fire and forget, imported lazily because the API client imports this store.
     void import('@/api/pushToken')
       .then(({ unregisterPushToken }) => unregisterPushToken(endingAccessToken))
       .catch(() => undefined);
     await SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY);
+    await clearStoredSessionUserId();
   },
 
   restoreSession: async () => {
@@ -120,6 +156,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       if (!stored) {
         set({ isInitialized: true });
         return;
+      }
+      const storedUserId = await readStoredSessionUserId();
+      if (storedUserId) {
+        // Bound before the refresh so an offline start already works on this user's queue.
+        await useOutboxStore.getState().bindUser(storedUserId);
+        set({ sessionUserId: storedUserId });
       }
       set({ refreshToken: stored });
       // Imported lazily: refresh.ts imports this store.
