@@ -2,6 +2,7 @@ using System.Globalization;
 using FormUp.Application.Domain.Entities;
 using FormUp.Application.Domain.Enums;
 using FormUp.Application.Domain.Interfaces;
+using FormUp.Application.Domain.Services;
 using FormUp.Application.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -16,13 +17,20 @@ namespace FormUp.Application.Infrastructure.Services;
 /// </summary>
 /// <param name="db">Application database context.</param>
 /// <param name="sender">Sends the email; it checks the recipient's email switch.</param>
+/// <param name="notifications">Creates the in-app notice that goes with a photo burst.</param>
 /// <param name="logger">Logger. Receives ids only.</param>
 public sealed class NotificationEmailGroupProcessor(
     IApplicationDbContext db,
     INotificationEmailSender sender,
+    INotificationService notifications,
     ILogger<NotificationEmailGroupProcessor> logger)
 {
-    private sealed record PendingSend(Guid RecipientUserId, NotificationEvent Event, Dictionary<string, string> Values);
+    private sealed record PendingSend(
+        Guid RecipientUserId,
+        NotificationEvent Event,
+        Dictionary<string, string> Values,
+        NotificationType? NoticeType = null,
+        Dictionary<string, string>? NoticeParameters = null);
 
     /// <summary>
     /// Claims and handles the earliest due burst. Call it in a fresh scope per burst.
@@ -64,10 +72,30 @@ public sealed class NotificationEmailGroupProcessor(
 
         if (send is not null)
         {
+            // The notice comes first and does not depend on the email switch; the sender checks the switch itself.
+            if (send.NoticeType is { } noticeType)
+            {
+                await CreateNoticeAsync(send, noticeType, ct);
+            }
+
             await sender.SendAsync(send.RecipientUserId, send.Event, send.Values, ct);
         }
 
         return true;
+    }
+
+    private async Task CreateNoticeAsync(PendingSend send, NotificationType noticeType, CancellationToken ct)
+    {
+        try
+        {
+            await notifications.CreateAsync(send.RecipientUserId, noticeType, send.NoticeParameters, ct: ct);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            logger.LogWarning(ex,
+                "NotificationEmailGroupingScheduler: could not create the {Event} notice for user {UserId}.",
+                send.Event, send.RecipientUserId);
+        }
     }
 
     /// <summary>
@@ -76,7 +104,12 @@ public sealed class NotificationEmailGroupProcessor(
     /// </summary>
     private async Task<PendingSend?> BuildAsync(PendingNotificationEmail pending, CancellationToken ct)
     {
-        // New messages are the only grouped event for now; another event adds its own branch here.
+        // Each grouped event has its own branch here.
+        if (pending.Event == NotificationEvent.ProgressPhotosSubmitted)
+        {
+            return await BuildPhotosAsync(pending, ct);
+        }
+
         if (pending.Event != NotificationEvent.NewMessage)
         {
             return null;
@@ -137,6 +170,71 @@ public sealed class NotificationEmailGroupProcessor(
         }
 
         return new PendingSend(pending.RecipientUserId, pending.Event, values);
+    }
+
+    /// <summary>
+    /// Builds the photo email and notice, or null when there is nothing to send: the coach no longer has a live link
+    /// that grants a plan domain, or no qualifying photo of the burst is still visible to them. Only the number of
+    /// photos is read, never their addresses.
+    /// </summary>
+    private async Task<PendingSend?> BuildPhotosAsync(PendingNotificationEmail pending, CancellationToken ct)
+    {
+        var client = await db.ClientProfiles
+            .AsNoTracking()
+            .Where(cp => cp.PublicId == pending.GroupId)
+            .Select(cp => new { cp.Id, cp.User.FirstName, cp.User.LastName })
+            .FirstOrDefaultAsync(ct);
+
+        if (client is null)
+        {
+            return null;
+        }
+
+        var linkIsLive = await db.ClientProfessionalLinks
+            .AsNoTracking()
+            .AnyAsync(l => l.ClientProfileId == client.Id
+                           && l.IsActive
+                           && (l.CanViewNutritionPlans || l.CanViewTrainingPlans)
+                           && l.ProfessionalProfile.UserId == pending.RecipientUserId, ct);
+
+        if (!linkIsLive)
+        {
+            return null;
+        }
+
+        var photoCount = await db.PlanPhotos
+            .AsNoTracking()
+            .Where(ProgressPhotoBurst.IsFreeFormProgressPhoto)
+            .CountAsync(p => p.ClientProfileId == client.Id
+                             && p.DateCreated >= pending.FirstEventAt
+                             && p.DateCreated <= pending.LastEventAt
+                             && db.PlanPhotoViewers.Any(v => v.PlanPhotoId == p.Id && v.ProfessionalUserId == pending.RecipientUserId), ct);
+
+        if (photoCount == 0)
+        {
+            return null;
+        }
+
+        var clientName = $"{client.FirstName} {client.LastName}".Trim();
+        var count = photoCount.ToString(CultureInfo.InvariantCulture);
+
+        return new PendingSend(
+            pending.RecipientUserId,
+            pending.Event,
+            new Dictionary<string, string>
+            {
+                [NotificationEmailWorkItem.ClientNameKey] = clientName,
+                [NotificationEmailWorkItem.PhotoCountKey] = count,
+                [NotificationEmailWorkItem.FreeFormKey] = "true",
+                [NotificationEmailWorkItem.ClientPublicIdKey] = pending.GroupId.ToString(),
+            },
+            NotificationType.ProgressPhotosSubmitted,
+            new Dictionary<string, string>
+            {
+                ["clientName"] = clientName,
+                ["photoCount"] = count,
+                ["clientId"] = pending.GroupId.ToString(),
+            });
     }
 
     // A row that cannot be handled is dropped so it cannot starve the ones behind it.
