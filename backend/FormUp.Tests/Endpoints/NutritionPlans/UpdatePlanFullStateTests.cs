@@ -40,7 +40,8 @@ public class UpdatePlanFullStateTests
             new MockDbBuilder().Build(),
             Substitute.For<IRealtimeNotifier>(),
             new PlanConcurrencyGuard(),
-            linkAuthorizationService ?? EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
+            linkAuthorizationService ?? EndpointTestHelpers.CreateGrantingLinkAuthorizationService(),
+            TimeProvider.System);
 
     private static UpdateWeekRequest BuildWeekRequest(int weekNumber, MealFood? food = null)
     {

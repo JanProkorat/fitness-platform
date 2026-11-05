@@ -56,6 +56,13 @@ public class UpdatePlanRequest
     /// Must be greater than zero when provided.
     /// </summary>
     public decimal? TargetWeightKg { get; set; }
+
+    /// <summary>
+    /// When true, locked meals (eaten, partly eaten, or on a day before the client's today) and every
+    /// past day's meals are kept as stored, incoming meals on past days are dropped, and the rest of the
+    /// payload is applied without a lock conflict. Used when a template is applied in the browser.
+    /// </summary>
+    public bool PreserveLockedMeals { get; set; }
 }
 
 /// <summary>
