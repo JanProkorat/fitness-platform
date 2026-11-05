@@ -187,6 +187,19 @@ builder.Services.AddRateLimiter(options =>
                     QueueLimit = 0
                 }));
 
+    // Anonymous notification email links: see AppPolicies.EmailLinkRateLimit for why this is not the auth budget.
+    options.AddPolicy(AppPolicies.EmailLinkRateLimit, context =>
+        rateLimitingDisabled
+            ? RateLimitPartition.GetNoLimiter("disabled")
+            : RateLimitPartition.GetFixedWindowLimiter(
+                partitionKey: GetPartitionKey(context),
+                factory: _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = 60,
+                    Window = TimeSpan.FromMinutes(15),
+                    QueueLimit = 0
+                }));
+
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
 });
 
@@ -226,6 +239,7 @@ builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<INotificationEmailSender, NotificationEmailSender>();
 builder.Services.AddScoped<IWorkoutCompletionService, WorkoutCompletionService>();
 builder.Services.AddScoped<IEmailVerificationTokenService, EmailVerificationTokenService>();
+builder.Services.AddSingleton<IEmailTurnOffTokenService, EmailTurnOffTokenService>();
 // Registers IHttpClientFactory — consumed by ExpoPushNotificationService below
 // and by the ResendClient typed client when Email:Provider = Resend.
 builder.Services.AddHttpClient();

@@ -108,7 +108,7 @@ public class ResendEmailService(IResend resend, IConfiguration configuration, IL
     {
         var (subject, html) = _renderer.RenderNotification(item);
 
-        await SendEmailAsync(item.Email, subject, html, ct);
+        await SendEmailAsync(item.Email, subject, html, ct, headers: _renderer.NotificationHeaders(item));
 
         logger.LogInformation("Notification email {Event} sent via Resend to user {UserId}", item.Event, item.UserId);
     }
@@ -123,8 +123,14 @@ public class ResendEmailService(IResend resend, IConfiguration configuration, IL
     /// <param name="htmlBody">The HTML body of the email.</param>
     /// <param name="ct">Cancellation token.</param>
     /// <param name="inlineImage">A PNG to embed in the HTML as <c>cid:</c>, or null for a plain HTML mail.</param>
+    /// <param name="headers">Extra message headers by name, or null for none.</param>
     private async Task SendEmailAsync(
-        string toEmail, string subject, string htmlBody, CancellationToken ct, (string ContentId, byte[] Png)? inlineImage = null)
+        string toEmail,
+        string subject,
+        string htmlBody,
+        CancellationToken ct,
+        (string ContentId, byte[] Png)? inlineImage = null,
+        IReadOnlyDictionary<string, string>? headers = null)
     {
         var fromAddress = configuration[ConfigKeys.EmailFromAddress] ?? "noreply@formup.local";
         var fromName = configuration[ConfigKeys.EmailFromName] ?? "Form Up";
@@ -136,6 +142,11 @@ public class ResendEmailService(IResend resend, IConfiguration configuration, IL
             HtmlBody = htmlBody
         };
         message.To.Add(toEmail);
+
+        if (headers is { Count: > 0 })
+        {
+            message.Headers = headers.ToDictionary(header => header.Key, header => header.Value);
+        }
 
         if (inlineImage is { } image)
         {

@@ -707,6 +707,25 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         return Database.ExecuteSqlRawAsync(sql, parameters, cancellationToken);
     }
 
+    /// <inheritdoc />
+    public Task UpsertNotificationEmailEnabledAsync(
+        Guid userId,
+        NotificationEvent notificationEvent,
+        bool emailEnabled,
+        bool pushEnabledIfNew,
+        CancellationToken cancellationToken = default)
+    {
+        // Every value is bound; the conflict branch deliberately leaves push_enabled alone.
+        const string sql = "INSERT INTO notification_preferences (user_id, event, email_enabled, push_enabled, date_created) "
+                           + "VALUES ({0}, {1}, {2}, {3}, {4}) "
+                           + "ON CONFLICT (user_id, event) DO UPDATE SET email_enabled = EXCLUDED.email_enabled, date_updated = {4}";
+
+        return Database.ExecuteSqlRawAsync(
+            sql,
+            [userId, (int)notificationEvent, emailEnabled, pushEnabledIfNew, DateTime.UtcNow],
+            cancellationToken);
+    }
+
     /// <summary>
     /// Wraps a schema identifier in double quotes, doubling any embedded quote.
     /// </summary>

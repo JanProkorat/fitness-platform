@@ -32,6 +32,13 @@ public static class AppPolicies
     public const string PendingInviteRateLimit = "pending-invite";
 
     /// <summary>
+    /// Rate limiting policy for the anonymous notification email links (turn off, turn on, one-click).
+    /// 60 requests per 15 minutes per IP — mail providers send RFC 8058 one-click posts from shared
+    /// IP ranges, so the login budget would reject real requests. The token's HMAC is the real protection.
+    /// </summary>
+    public const string EmailLinkRateLimit = "email-link";
+
+    /// <summary>
     /// CORS policy for the web application.
     /// </summary>
     public const string AllowWebApp = nameof(AllowWebApp);
