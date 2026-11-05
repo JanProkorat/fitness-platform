@@ -177,7 +177,7 @@ test.describe('coach invite card in the inbox thread', () => {
     await expect(panel.getByText(PARTICIPANT_EMAIL)).toBeVisible();
     await expect(panel.getByText('Expires')).toBeVisible();
     // The dashboard 404 for an unlinked client must never surface as a load error.
-    await expect(page.getByText('Failed to load the plan')).toHaveCount(0);
+    await expect(page.getByText("Couldn't load the data")).toHaveCount(0);
   });
 
   test('Cancel invite flips the card to "Invitation cancelled" and drops the button', async ({ page }) => {

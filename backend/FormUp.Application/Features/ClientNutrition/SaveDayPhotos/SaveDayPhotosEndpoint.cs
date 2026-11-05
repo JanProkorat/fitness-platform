@@ -36,6 +36,8 @@ namespace FormUp.Application.Features.ClientNutrition.SaveDayPhotos;
 /// <param name="blobStorage">Blob storage service — normalises each submitted BlobUrl to its
 /// canonical stored form before persisting, so an echoed short-lived read URL cannot become the
 /// permanently stored value (F9 follow-up).</param>
+/// <param name="imageUploadService">Image upload service — confirms each new photo URL sits under
+/// the active plan's <c>plan-photos/{planId}/</c> folder issued by the day-photo upload-URL endpoint.</param>
 /// <param name="timeProvider">Clock abstraction (#955) — lets tests pin the "now" instant deterministically.</param>
 public class SaveDayPhotosEndpoint(
     IMongoContext mongo,
@@ -44,6 +46,7 @@ public class SaveDayPhotosEndpoint(
     IClientLinkAuthorizationService linkAuthorizationService,
     ILogger<SaveDayPhotosEndpoint> logger,
     IBlobStorageService blobStorage,
+    IImageUploadService imageUploadService,
     TimeProvider timeProvider)
     : Endpoint<SaveDayPhotosRequest>
 {
@@ -62,6 +65,9 @@ public class SaveDayPhotosEndpoint(
                 "UploadedAt timestamp; new URLs receive the current UTC time. Pass an empty Photos list " +
                 "to remove all photos; pass null for Note to clear the day-level diary note. " +
                 "Creates the log entry if it does not exist yet.";
+            s.Responses[StatusCodes.Status204NoContent] = "Photos saved";
+            s.Responses[StatusCodes.Status400BadRequest] = "Invalid request, or a photo URL is not a blob URL from this plan's upload folder (INVALID_BLOB_URL)";
+            s.Responses[StatusCodes.Status404NotFound] = "No active plan covers today";
         });
     }
 
@@ -109,14 +115,6 @@ public class SaveDayPhotosEndpoint(
             return;
         }
 
-        var normalizedPhotos = await NormalizePhotoUrlsOrRespondAsync(req.Photos, ct);
-        if (normalizedPhotos is null)
-        {
-            return;
-        }
-
-        var now = DateTime.UtcNow;
-
         // Key: one log per (client, plan, calendar day).
         // Defensive OR branch: matches both modern records (LogDate == today) and any future
         // scenario where LogDate was not set correctly but CreatedAt falls within today's window.
@@ -133,6 +131,15 @@ public class SaveDayPhotosEndpoint(
 
         var existingCursor = await mongo.DayLogs.FindAsync(logFilter, cancellationToken: ct);
         var existingLog = await existingCursor.FirstOrDefaultAsync(ct);
+
+        var normalizedPhotos = await NormalizePhotoUrlsOrRespondAsync(
+            req.Photos, plan.ExternalId, existingLog?.Photos ?? [], ct);
+        if (normalizedPhotos is null)
+        {
+            return;
+        }
+
+        var now = DateTime.UtcNow;
 
         // Build the replacement photo list, preserving UploadedAt for unchanged URLs.
         var existingByUrl = (existingLog?.Photos ?? [])
@@ -266,17 +273,32 @@ public class SaveDayPhotosEndpoint(
 
     /// <summary>
     /// Normalises every submitted <see cref="DayPhotoInput.BlobUrl"/> to its canonical stored
-    /// form before it reaches any Mongo/DB write — see
-    /// <see cref="IBlobStorageService.NormalizeToCanonicalUrl"/>. A client may echo back the
-    /// short-lived DisplayUrl issued by GetTodayDayLog (or, from an app build that predates the
-    /// identity/presentation split, a value that used to BE the permanent BlobUrl); without this
-    /// the signed query string would become the permanently stored value. Returns <c>null</c>
-    /// when any submitted URL cannot be recognised as a blob storage URL — a 400 has already
-    /// been written in that case.
+    /// form (see <see cref="IBlobStorageService.NormalizeToCanonicalUrl"/>, so an echoed signed
+    /// read URL never becomes the stored value) and checks it belongs to the client's upload
+    /// folder. A URL is accepted when it sits directly under <c>plan-photos/{planId}/</c>, or when
+    /// it is already stored on the existing day log (photos saved before the folder check existed).
+    /// Returns <c>null</c> when any URL is rejected — a 400 has already been written and nothing
+    /// persisted.
     /// </summary>
     private async Task<List<DayPhotoInput>?> NormalizePhotoUrlsOrRespondAsync(
-        List<DayPhotoInput> inputs, CancellationToken ct)
+        List<DayPhotoInput> inputs,
+        Guid planId,
+        List<DayPhoto> existingPhotos,
+        CancellationToken ct)
     {
+        var knownUrls = new HashSet<string>(StringComparer.Ordinal);
+
+        foreach (var existing in existingPhotos)
+        {
+            knownUrls.Add(existing.BlobUrl);
+
+            var canonicalExisting = blobStorage.NormalizeToCanonicalUrl(existing.BlobUrl);
+            if (canonicalExisting is not null)
+            {
+                knownUrls.Add(canonicalExisting);
+            }
+        }
+
         var normalized = new List<DayPhotoInput>(inputs.Count);
 
         foreach (var input in inputs)
@@ -286,6 +308,15 @@ public class SaveDayPhotosEndpoint(
             {
                 await this.SendProblemAsync(400, ErrorCodes.InvalidBlobUrl,
                     "Photo URL is not a recognised blob storage URL.", ct);
+                return null;
+            }
+
+            if (!knownUrls.Contains(canonicalBlobUrl) &&
+                !imageUploadService.IsValidBlobUrlUnderSubPath(
+                    ImageUploadScope.PlanPhoto, planId.ToString(), canonicalBlobUrl))
+            {
+                await this.SendProblemAsync(400, ErrorCodes.InvalidBlobUrl,
+                    "Photo URL does not belong to this plan.", ct);
                 return null;
             }
 

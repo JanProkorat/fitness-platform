@@ -27,6 +27,7 @@
     "total": "Celkem {{count}}",
     "error": "Chyba",
     "loadError": "Plán se nepodařilo načíst. Zkuste stránku obnovit.",
+    "dataLoadError": "Data se nepodařilo načíst. Zkuste stránku obnovit.",
     "success": "Úspěch",
     "clear": "Vymazat",
     "delete": "Smazat",
@@ -93,9 +94,9 @@
     "forgotPasswordLoading": "Odesílám...",
     "forgotPasswordSuccess": "Pokud email existuje, odkaz pro obnovení byl odeslán.",
     "forgotPasswordError": "Něco se pokazilo. Zkuste to znovu.",
-    "inviteAccepted": "Pozvánka přijata! Nyní jste propojeni se svým koučem.",
+    "inviteAccepted": "Pozvánka přijata! Nyní jste propojeni se svým trenérem / poradcem.",
     "inviteExpired": "Tato pozvánka vypršela nebo je neplatná.",
-    "inviteRegisterHint": "Vytvořte si účet pro přijetí pozvánky od vašeho kouče.",
+    "inviteRegisterHint": "Vytvořte si účet pro přijetí pozvánky od vašeho trenéra / poradce.",
     "verifyEmailTitle": "Ověřte svůj e-mail",
     "verifyEmailSubtitle": "Na váš e-mail jsme odeslali ověřovací odkaz. Klikněte na něj pro aktivaci účtu.",
     "verifyEmailCheckSpam": "Zkontrolujte i složku se spamem.",
@@ -172,7 +173,7 @@
   "downloadApp": {
     "title": "Stáhněte si aplikaci",
     "subtitle": "Klientská část Form Up je dostupná výhradně v mobilní aplikaci.",
-    "description": "Stáhněte si aplikaci pro spojení s koučem, sledování pokroku a plnění personalizovaných plánů.",
+    "description": "Stáhněte si aplikaci pro spojení s trenérem / poradcem, sledování pokroku a plnění personalizovaných plánů.",
     "appStore": "Stáhnout na App Store",
     "googlePlay": "Stáhnout na Google Play",
     "comingSoon": "Mobilní aplikace se připravuje",
@@ -924,7 +925,7 @@
     "title": "Nastavení profilu",
     "subtitle": "Správa osobních údajů",
     "tabPersonal": "Osobní údaje",
-    "tabTrainer": "Profil kouče",
+    "tabTrainer": "Profil trenéra / poradce",
     "firstName": "Jméno",
     "lastName": "Příjmení",
     "bio": "Bio",
@@ -933,10 +934,10 @@
     "specializationPlaceholder": "např. Silový trénink, Jóga, Výživa",
     "yearsOfExperience": "Roky zkušeností",
     "saved": "Profil uložen",
-    "trainerSaved": "Profil kouče uložen",
+    "trainerSaved": "Profil trenéra / poradce uložen",
     "saveError": "Chyba při ukládání",
     "loadError": "Nepodařilo se načíst údaje profilu",
-    "trainerProfileLoadError": "Nepodařilo se načíst profil kouče",
+    "trainerProfileLoadError": "Nepodařilo se načíst profil trenéra / poradce",
     "rolesTitle": "Role",
     "rolesSubtitle": "Vyber, jaké služby poskytuješ klientům. Role lze kombinovat.",
     "trainerRoleDesc": "Silový trénink, kardio, rehabilitace, kondice",
@@ -1489,8 +1490,8 @@
           "ingredient": "Tuto surovinu vidíte a používáte jen vy."
         },
         "Public": {
-          "recipe": "Tento recept vidí a mohou používat všichni koučové.",
-          "ingredient": "Tuto surovinu vidí a mohou používat všichni koučové."
+          "recipe": "Tento recept vidí a mohou používat všichni trenéři / poradci.",
+          "ingredient": "Tuto surovinu vidí a mohou používat všichni trenéři / poradci."
         }
       }
     },
@@ -1541,7 +1542,7 @@
       "ownerOptions": {
         "Mine": "Moje",
         "System": "Systémové",
-        "OtherCoaches": "Ostatní koučové"
+        "OtherCoaches": "Ostatní trenéři / poradci"
       }
     },
     "picture": {
@@ -3341,7 +3342,7 @@
     "ACCOUNT_DELETION_FAILED": "Smazání účtu se nezdařilo. Zkuste to znovu.",
     "KCAL_INCONSISTENT": "Hodnota kalorií neodpovídá makroživinám (bílkoviny×4 + sacharidy×4 + tuky×9 + vláknina×2 ± 10 %).",
     "FOOD_NOT_OWNED": "Můžete upravovat pouze vlastní potraviny.",
-    "TRAINER_PROFILE_MISSING": "Profil kouče nebyl nalezen.",
+    "TRAINER_PROFILE_MISSING": "Profil trenéra / poradce nebyl nalezen.",
     "CLIENT_NOT_FOUND": "Klient nebyl nalezen.",
     "NO_CLIENT_RELATIONSHIP": "S tímto klientem nemáte aktivní vztah.",
     "COLLABORATOR_NOT_FOUND": "Spolupracovník nebyl nalezen.",
@@ -3394,7 +3395,7 @@
     "BROADCAST_MESSAGE_TOO_LONG_AFTER_SUBSTITUTION": "Po doplnění jmen je zpráva příliš dlouhá. Zkraťte prosím text.",
     "DUPLICATE_PENDING_INVITE": "Pozvánka na tento e-mail už čeká na vyřízení.",
     "TOO_MANY_PENDING_INVITES": "Dosáhli jste maximálního počtu nevyřízených pozvánek. Počkejte na odpověď nebo některou zrušte.",
-    "PROFESSION_ALREADY_OCCUPIED": "Tento klient už má pro tuto profesi aktivního kouče.",
+    "PROFESSION_ALREADY_OCCUPIED": "Tento klient už má pro tuto profesi aktivního trenéra / poradce.",
     "REQUESTED_SCOPE_EXCEEDS_HELD_ROLES": "Požadovaný přístup přesahuje vaše aktuální role.",
     "CLIENT_TAG_NAME_ALREADY_EXISTS": "Štítek s tímto názvem už existuje.",
     "CLIENT_TAG_NOT_FOUND": "Tento štítek se nepodařilo najít.",
@@ -4218,7 +4219,7 @@
         "nutrition": "Chcete svému nutričnímu poradci sdělit ještě něco dalšího?"
       },
       "weekOf": "Týden {{range}}",
-      "editLocked": "Váš kouč to již viděl."
+      "editLocked": "Váš trenér / poradce to již viděl."
     },
     "flag": {
       "traveling": "Cestování",
@@ -4791,7 +4792,7 @@
     "heightCm": "Výška (cm)",
     "weightKg": "Váha (kg)",
     "profileUpdated": "Profil klienta uložen",
-    "readOnlyFieldHint": "Toto pole nelze z portálu kouče upravit.",
+    "readOnlyFieldHint": "Toto pole nelze z portálu trenéra / poradce upravit.",
     "ageYears_one": "{{count}} rok",
     "ageYears_few": "{{count}} roky",
     "ageYears_many": "{{count}} let",
@@ -5007,7 +5008,7 @@
       "linkedPlanCta": "Zobrazit propojený plán: {{name}}"
     },
     "poznamky": {
-      "title": "Poznámky kouče",
+      "title": "Poznámky trenéra / poradce",
       "subtitle": "· soukromé, klient nevidí",
       "placeholder": "Přidat poznámku…",
       "saveButton": "Uložit poznámku",

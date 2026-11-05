@@ -5,6 +5,8 @@ using FormUp.Application.Domain.Constants;
 using FormUp.Application.Domain.Entities;
 using FormUp.Application.Domain.Extensions;
 using FormUp.Application.Domain.Interfaces;
+using FormUp.Application.Domain.Services;
+using FormUp.Application.Features.Auth.Shared;
 using FormUp.Application.Infrastructure.Data;
 using FormUp.Application.Infrastructure.Services;
 using Microsoft.AspNetCore.Identity;
@@ -41,9 +43,9 @@ public class GoogleSocialLoginEndpoint(
         Summary(s =>
         {
             s.Summary = "Google social login";
-            s.Description = "Verifies a Google ID token and returns platform JWT tokens. Provisions a new account if the email is not yet registered.";
+            s.Description = "Verifies a Google ID token and returns platform JWT tokens. Provisions a new account if the email is not yet registered, with the requested roles (Trainer, Nutritionist or Client; default Client). Roles are ignored for an already-linked account.";
             s.Response<GoogleSocialLoginResponse>(200, "Login successful");
-            s.Responses[400] = "idToken or nonce is missing or empty";
+            s.Responses[400] = "idToken or nonce is missing or empty, or Roles is invalid (Admin, unknown, or Client combined with a coach role)";
             s.Responses[401] = "Google ID token is invalid, expired, has wrong audience, or the nonce is invalid/consumed/expired";
             s.Responses[403] = "Account is deactivated";
             s.Responses[409] = "Email belongs to an existing password-only account (social_email_conflict)";
@@ -161,11 +163,12 @@ public class GoogleSocialLoginEndpoint(
                 GdprConsentDate = DateTime.UtcNow
             };
 
-            // New Google social-login users default to the Client role.
-            // The client-facing mobile app is the social-login consumer; trainers are
-            // provisioned via the password register flow only. Defaulting to Trainer here
-            // would allow any anonymous caller with a valid Google token to gain Trainer
-            // privileges — a privilege escalation on an anonymous endpoint.
+            // The validator limits requested roles to Trainer, Nutritionist or Client (never Admin,
+            // never Client combined with a coach role); an empty list means Client. Roles are read
+            // for new accounts only — a linked account keeps what it has.
+            var newUserRoles = SocialSignUpRoles.Resolve(req.Roles);
+            var isCoach = SocialSignUpRoles.HasCoachRole(newUserRoles);
+
             var createResult = await userManager.CreateAsync(newUser);
             if (!createResult.Succeeded)
             {
@@ -177,10 +180,20 @@ public class GoogleSocialLoginEndpoint(
                 return;
             }
 
-            await userManager.AddToRoleAsync(newUser, AppRoles.Client);
+            foreach (var role in newUserRoles)
+            {
+                await userManager.AddToRoleAsync(newUser, role);
+            }
 
-            // Create the client profile (mirroring RegisterEndpoint for Client role).
-            db.ClientProfiles.Add(new ClientProfile { UserId = newUser.Id });
+            // Role-specific profile, mirroring RegisterEndpoint.
+            if (isCoach)
+            {
+                db.ProfessionalProfiles.Add(new ProfessionalProfile { UserId = newUser.Id });
+            }
+            else
+            {
+                db.ClientProfiles.Add(new ClientProfile { UserId = newUser.Id });
+            }
 
             // Link the Google identity.
             db.UserExternalLogins.Add(new UserExternalLogin
@@ -194,33 +207,14 @@ public class GoogleSocialLoginEndpoint(
             await db.SaveChangesAsync(ct);
             user = newUser;
 
-            // New account (always Client role for social login) — if it matches an
-            // existing message-bearing PendingInvite, seed the professional-client
-            // conversation now instead of waiting for the client to accept (#803/#817).
-            // Non-fatal: the account (and its Google link) are already committed above,
-            // so a conversation-seed failure must not turn a successful sign-in into a
-            // 500 — accept-time seeding remains the fallback path.
-            try
+            if (isCoach)
             {
-                await inviteConversationSeeder.SeedForNewUserAsync(newUser, ct);
+                var language = HttpContext.Request.Headers.AcceptLanguage.FirstOrDefault() ?? "en";
+                await DefaultCheckInForm.EnsureAsync(db, newUser.Id, language, ct);
             }
-            catch (Exception ex) when (ex is not OperationCanceledException)
+            else
             {
-                logger.LogError(ex,
-                    "Failed to seed pending-invite conversation(s) for {Email} during Google sign-up. User {UserId} created; conversation will still be seeded at invite-accept time.",
-                    newUser.Email, newUser.Id);
-            }
-
-            // In-app InvitationReceived notification for invites sent before the account existed (#1676).
-            try
-            {
-                await inviteNotificationSeeder.SeedForNewUserAsync(newUser, ct);
-            }
-            catch (Exception ex) when (ex is not OperationCanceledException)
-            {
-                logger.LogError(ex,
-                    "Failed to create pending-invite notification(s) during Google sign-up for user {UserId}.",
-                    newUser.Id);
+                await SeedPendingInvitesAsync(newUser, ct);
             }
         }
 
@@ -267,6 +261,37 @@ public class GoogleSocialLoginEndpoint(
             ExpiresAt = expiresAt,
             EmailConfirmed = user.EmailConfirmed
         }, ct);
+    }
+
+    /// <summary>
+    /// For a new Client account that matches an existing PendingInvite, seeds the professional-client
+    /// conversation and the in-app notification now instead of waiting for the client to accept.
+    /// Non-fatal: the account and its Google link are already committed, so a seed failure must not
+    /// turn a successful sign-in into a 500 — accept-time seeding remains the fallback.
+    /// </summary>
+    private async Task SeedPendingInvitesAsync(ApplicationUser newUser, CancellationToken ct)
+    {
+        try
+        {
+            await inviteConversationSeeder.SeedForNewUserAsync(newUser, ct);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            logger.LogError(ex,
+                "Failed to seed pending-invite conversation(s) for {Email} during Google sign-up. User {UserId} created; conversation will still be seeded at invite-accept time.",
+                newUser.Email, newUser.Id);
+        }
+
+        try
+        {
+            await inviteNotificationSeeder.SeedForNewUserAsync(newUser, ct);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            logger.LogError(ex,
+                "Failed to create pending-invite notification(s) during Google sign-up for user {UserId}.",
+                newUser.Id);
+        }
     }
 
     /// <summary>

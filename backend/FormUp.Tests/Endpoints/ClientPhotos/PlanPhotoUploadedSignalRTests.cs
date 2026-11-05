@@ -192,7 +192,7 @@ public class PlanPhotoUploadedSignalRTests
         Factory.Create<SaveDayPhotosEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, linkAuthorizationService ?? EndpointTestHelpers.CreateGrantingLinkAuthorizationService(), _dayLogger, new FakeBlobStorageService(), TimeProvider.System);
+            mongo, db, _notifier, linkAuthorizationService ?? EndpointTestHelpers.CreateGrantingLinkAuthorizationService(), _dayLogger, new FakeBlobStorageService(), new ImageUploadService(new FakeBlobStorageService()), TimeProvider.System);
 
     // ════════════════════════════════════════════════════════════════════════════
     // FinalizePlanPhoto — nutrition plan
@@ -550,7 +550,7 @@ public class PlanPhotoUploadedSignalRTests
         {
             Photos =
             [
-                new DayPhotoInput { BlobUrl = "https://cdn.example.com/progress.jpg", Category = DayPhotoCategory.Progress }
+                new DayPhotoInput { BlobUrl = $"plan-photos/{plan.ExternalId}/{Guid.NewGuid():N}.jpg", Category = DayPhotoCategory.Progress }
             ]
         }, TestContext.Current.CancellationToken);
 
@@ -582,8 +582,10 @@ public class PlanPhotoUploadedSignalRTests
 
         await ep.HandleAsync(new SaveDayPhotosRequest
         {
-            Photos = [new DayPhotoInput { BlobUrl = "https://cdn.example.com/day.jpg", Category = DayPhotoCategory.Free }]
+            Photos = [new DayPhotoInput { BlobUrl = $"plan-photos/{plan.ExternalId}/{Guid.NewGuid():N}.jpg", Category = DayPhotoCategory.Free }]
         }, TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(204);
 
         await _notifier.DidNotReceive().NotifyAsync(
             _otherProfessionalId,

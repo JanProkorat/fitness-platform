@@ -105,7 +105,7 @@ export default function ClientDetailPage() {
   if (dashboardQuery.isError || !dashboardQuery.data) {
     return (
       <div className="flex flex-col items-center gap-3 py-16">
-        <p className="text-body text-muted-foreground">{t('common.loadError')}</p>
+        <p className="text-body text-muted-foreground">{t('common.dataLoadError')}</p>
         <Button type="button" variant="outline" onClick={() => void dashboardQuery.refetch()}>
           {t('clients.retry')}
         </Button>

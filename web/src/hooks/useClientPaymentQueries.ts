@@ -16,6 +16,7 @@ import {
   type SetClientPaymentTermsRequest,
   type WaiveClientPaymentRequest,
 } from '@/api/client-payments';
+import { apiClient } from '@/api/client';
 import { getErrorStatus } from '@/lib/api-errors';
 
 /** Prefixes shared with the packages and discounts pages, so an invalidation reaches both. */
@@ -104,12 +105,30 @@ export function useInvalidateClientLinkState(clientId: string) {
 
 /**
  * Asks the payment summary, which still answers for an ended link, whether the collaboration ended.
- * When it did, the page's queries are refreshed so it switches to the ended view.
+ * The summary also 404s for an ended link the coach never shared a price with, so on a 404 the
+ * client dashboard decides: its 404 means the link ended. Any other failure counts as not ended.
+ * When it ended, the page's queries are refreshed so it switches to the ended view.
  */
 export function useCheckCollaborationEnded(clientId: string) {
   const queryClient = useQueryClient();
   const invalidateLinkState = useInvalidateClientLinkState(clientId);
+
+  const dashboardSaysEnded = async (): Promise<boolean> => {
+    try {
+      await queryClient.fetchQuery({
+        queryKey: ['client-dashboard', clientId],
+        queryFn: () => apiClient.getClientDashboardEndpoint(clientId),
+        staleTime: 0,
+        retry: false,
+      });
+      return false;
+    } catch (error) {
+      return getErrorStatus(error) === 404;
+    }
+  };
+
   return async (): Promise<boolean> => {
+    let ended: boolean;
     try {
       const summary = await queryClient.fetchQuery({
         queryKey: clientPaymentKeys.summary(clientId),
@@ -117,10 +136,11 @@ export function useCheckCollaborationEnded(clientId: string) {
         staleTime: 0,
         retry: retryUnlessDenied,
       });
-      if (summary.collaborationEnded !== true) {
-        return false;
-      }
-    } catch {
+      ended = summary.collaborationEnded === true;
+    } catch (error) {
+      ended = getErrorStatus(error) === 404 && (await dashboardSaysEnded());
+    }
+    if (!ended) {
       return false;
     }
     await invalidateLinkState();

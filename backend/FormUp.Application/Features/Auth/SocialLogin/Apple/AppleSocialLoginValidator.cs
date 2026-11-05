@@ -1,5 +1,6 @@
 using FastEndpoints;
 using FluentValidation;
+using FormUp.Application.Features.Auth.Shared;
 
 namespace FormUp.Application.Features.Auth.SocialLogin.Apple;
 
@@ -15,5 +16,13 @@ public class AppleSocialLoginValidator : Validator<AppleSocialLoginRequest>
     {
         RuleFor(x => x.IdentityToken).NotEmpty();
         RuleFor(x => x.Nonce).NotEmpty();
+
+        RuleForEach(x => x.Roles)
+            .Must(SocialSignUpRoles.IsAllowed)
+            .WithMessage(SocialSignUpRoles.InvalidRoleMessage);
+
+        RuleFor(x => x.Roles)
+            .Must(roles => !SocialSignUpRoles.MixesClientWithCoach(roles))
+            .WithMessage(SocialSignUpRoles.ClientCoachMixMessage);
     }
 }

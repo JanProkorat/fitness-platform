@@ -27,6 +27,7 @@
     "total": "Gesamt {{count}}",
     "error": "Fehler",
     "loadError": "Der Plan konnte nicht geladen werden. Bitte Seite neu laden.",
+    "dataLoadError": "Die Daten konnten nicht geladen werden. Bitte laden Sie die Seite neu.",
     "success": "Erfolg",
     "clear": "Löschen",
     "delete": "Löschen",

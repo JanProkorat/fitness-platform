@@ -27,6 +27,7 @@
     "total": "Total {{count}}",
     "error": "Error",
     "loadError": "Failed to load the plan. Please refresh the page.",
+    "dataLoadError": "Couldn't load the data. Please refresh the page.",
     "success": "Success",
     "clear": "Clear",
     "delete": "Delete",

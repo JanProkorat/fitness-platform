@@ -37,4 +37,10 @@ public class AppleSocialLoginRequest
     /// (Apple hashes it before embedding: SHA-256(nonce) appears in the id_token's nonce claim).
     /// </summary>
     public string Nonce { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Roles requested for a brand-new account: Trainer, Nutritionist or Client (never combined with a coach role).
+    /// Empty or absent means Client. Ignored when the Apple identity is already linked to an account.
+    /// </summary>
+    public List<string> Roles { get; set; } = [];
 }

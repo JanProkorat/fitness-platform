@@ -93,7 +93,7 @@ export default function WeightCard({ dashboard, measurements, isPending, isError
 
       {!isPending && isError && (
         <div className="flex flex-col items-start gap-2">
-          <p className="text-meta text-muted-foreground">{t('common.loadError')}</p>
+          <p className="text-meta text-muted-foreground">{t('common.dataLoadError')}</p>
           <Button type="button" variant="outline" size="sm" onClick={onRetry}>
             {t('clients.retry')}
           </Button>
