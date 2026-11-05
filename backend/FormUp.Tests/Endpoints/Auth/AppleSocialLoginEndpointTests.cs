@@ -768,4 +768,124 @@ public class AppleSocialLoginEndpointTests
         // ProfessionalProfile must NOT be created for a new Apple social-login user.
         db.ProfessionalProfiles.DidNotReceive().Add(Arg.Any<ProfessionalProfile>());
     }
+
+    // ── Requested roles for new accounts ───────────────────────────────────
+
+    private static Microsoft.AspNetCore.Identity.UserManager<ApplicationUser> MakeNewUserManager()
+    {
+        var manager = EndpointTestHelpers.CreateFakeUserManager();
+        manager.FindByEmailAsync(PrivateRelayPayload.Email!).Returns((ApplicationUser?)null);
+        manager.CreateAsync(Arg.Any<ApplicationUser>())
+            .Returns(Microsoft.AspNetCore.Identity.IdentityResult.Success);
+        manager.AddToRoleAsync(Arg.Any<ApplicationUser>(), Arg.Any<string>())
+            .Returns(Microsoft.AspNetCore.Identity.IdentityResult.Success);
+        manager.GetRolesAsync(Arg.Any<ApplicationUser>()).Returns(["Trainer"]);
+        return manager;
+    }
+
+    [Fact]
+    public async Task HandleAsync_NewUserRequestsTrainer_ProvisionsCoachWithDefaultCheckInForm()
+    {
+        var userManager = MakeNewUserManager();
+        var db = new MockDbBuilder().With(MakeValidNonce()).Build();
+        var ep = Factory.Create<AppleSocialLoginEndpoint>(MakeVerifier(PrivateRelayPayload), userManager, db, MakeConfig(), _inviteConversationSeeder, _inviteNotificationSeeder, _logger);
+        ep.HttpContext.Request.Headers.AcceptLanguage = "cs";
+
+        await ep.HandleAsync(
+            new AppleSocialLoginRequest { IdentityToken = "valid-token", Nonce = ValidNonce, Roles = ["Trainer"] },
+            CancellationToken.None);
+
+        ep.ValidationFailed.Should().BeFalse();
+        ep.Response.AccessToken.Should().NotBeNullOrEmpty();
+        await userManager.Received(1).AddToRoleAsync(Arg.Any<ApplicationUser>(), AppRoles.Trainer);
+        await userManager.DidNotReceive().AddToRoleAsync(Arg.Any<ApplicationUser>(), AppRoles.Client);
+        db.ProfessionalProfiles.Received(1).Add(Arg.Any<ProfessionalProfile>());
+        db.ClientProfiles.DidNotReceive().Add(Arg.Any<ClientProfile>());
+        db.Questionnaires.Received(1).Add(Arg.Is<Questionnaire>(q =>
+            q.Type == FormUp.Application.Domain.Enums.QuestionnaireType.CheckIn && q.Title == "Týdenní check-in"));
+        db.UserExternalLogins.Received(1).Add(Arg.Is<UserExternalLogin>(el => el.Provider == "apple"));
+        await _inviteConversationSeeder.DidNotReceive().SeedForNewUserAsync(Arg.Any<ApplicationUser>(), Arg.Any<CancellationToken>());
+        await _inviteNotificationSeeder.DidNotReceive().SeedForNewUserAsync(Arg.Any<ApplicationUser>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task HandleAsync_NewUserRequestsNutritionistWithoutLanguageHeader_FallsBackToEnglishForm()
+    {
+        var userManager = MakeNewUserManager();
+        var db = new MockDbBuilder().With(MakeValidNonce()).Build();
+        var ep = Factory.Create<AppleSocialLoginEndpoint>(MakeVerifier(PrivateRelayPayload), userManager, db, MakeConfig(), _inviteConversationSeeder, _inviteNotificationSeeder, _logger);
+
+        await ep.HandleAsync(
+            new AppleSocialLoginRequest { IdentityToken = "valid-token", Nonce = ValidNonce, Roles = ["nutritionist"] },
+            CancellationToken.None);
+
+        await userManager.Received(1).AddToRoleAsync(Arg.Any<ApplicationUser>(), AppRoles.Nutritionist);
+        db.ProfessionalProfiles.Received(1).Add(Arg.Any<ProfessionalProfile>());
+        db.Questionnaires.Received(1).Add(Arg.Is<Questionnaire>(q => q.Title == "Weekly Check-In"));
+    }
+
+    [Fact]
+    public async Task HandleAsync_NewUserWithoutRoles_StaysClientWithoutCheckInForm()
+    {
+        var userManager = MakeNewUserManager();
+        var db = new MockDbBuilder().With(MakeValidNonce()).Build();
+        var ep = Factory.Create<AppleSocialLoginEndpoint>(MakeVerifier(PrivateRelayPayload), userManager, db, MakeConfig(), _inviteConversationSeeder, _inviteNotificationSeeder, _logger);
+
+        await ep.HandleAsync(
+            new AppleSocialLoginRequest { IdentityToken = "valid-token", Nonce = ValidNonce },
+            CancellationToken.None);
+
+        await userManager.Received(1).AddToRoleAsync(Arg.Any<ApplicationUser>(), AppRoles.Client);
+        db.ClientProfiles.Received(1).Add(Arg.Any<ClientProfile>());
+        db.ProfessionalProfiles.DidNotReceive().Add(Arg.Any<ProfessionalProfile>());
+        db.Questionnaires.DidNotReceive().Add(Arg.Any<Questionnaire>());
+        await _inviteConversationSeeder.Received(1).SeedForNewUserAsync(Arg.Any<ApplicationUser>(), Arg.Any<CancellationToken>());
+        await _inviteNotificationSeeder.Received(1).SeedForNewUserAsync(Arg.Any<ApplicationUser>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task HandleAsync_LinkedUserSendsOtherRoles_KeepsStoredRolesAndProfiles()
+    {
+        var userId = Guid.NewGuid();
+        var user = EntityBuilder.User.WithId(userId).WithEmail(ValidPayloadWithEmail.Email!).Build();
+        var externalLogin = new UserExternalLogin { UserId = userId, Provider = "apple", Subject = ValidPayloadWithEmail.Subject };
+        var userManager = EndpointTestHelpers.CreateFakeUserManager();
+        userManager.FindByIdAsync(userId.ToString()).Returns(user);
+        userManager.GetRolesAsync(user).Returns(["Client"]);
+        var db = new MockDbBuilder().With(MakeValidNonce()).With(externalLogin).Build();
+        var ep = Factory.Create<AppleSocialLoginEndpoint>(MakeVerifier(ValidPayloadWithEmail), userManager, db, MakeConfig(), _inviteConversationSeeder, _inviteNotificationSeeder, _logger);
+
+        await ep.HandleAsync(
+            new AppleSocialLoginRequest { IdentityToken = "valid-token", Nonce = ValidNonce, Roles = ["Trainer"] },
+            CancellationToken.None);
+
+        ep.Response.AccessToken.Should().NotBeNullOrEmpty();
+        await userManager.DidNotReceive().AddToRoleAsync(Arg.Any<ApplicationUser>(), Arg.Any<string>());
+        await userManager.DidNotReceive().CreateAsync(Arg.Any<ApplicationUser>());
+        db.ProfessionalProfiles.DidNotReceive().Add(Arg.Any<ProfessionalProfile>());
+        db.ClientProfiles.DidNotReceive().Add(Arg.Any<ClientProfile>());
+        db.Questionnaires.DidNotReceive().Add(Arg.Any<Questionnaire>());
+    }
+
+    [Fact]
+    public async Task HandleAsync_EmailConflictWithRoles_Returns409AndWritesNothing()
+    {
+        var existingUser = EntityBuilder.User.WithEmail(PrivateRelayPayload.Email!).Build();
+        var userManager = EndpointTestHelpers.CreateFakeUserManager();
+        userManager.FindByEmailAsync(PrivateRelayPayload.Email!).Returns(existingUser);
+        var db = new MockDbBuilder().With(MakeValidNonce()).Build();
+        var ep = Factory.Create<AppleSocialLoginEndpoint>(MakeVerifier(PrivateRelayPayload), userManager, db, MakeConfig(), _inviteConversationSeeder, _inviteNotificationSeeder, _logger);
+
+        await ep.HandleAsync(
+            new AppleSocialLoginRequest { IdentityToken = "valid-token", Nonce = ValidNonce, Roles = ["Trainer"] },
+            CancellationToken.None);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(StatusCodes.Status409Conflict);
+        await userManager.DidNotReceive().CreateAsync(Arg.Any<ApplicationUser>());
+        await userManager.DidNotReceive().AddToRoleAsync(Arg.Any<ApplicationUser>(), Arg.Any<string>());
+        db.ProfessionalProfiles.DidNotReceive().Add(Arg.Any<ProfessionalProfile>());
+        db.ClientProfiles.DidNotReceive().Add(Arg.Any<ClientProfile>());
+        db.Questionnaires.DidNotReceive().Add(Arg.Any<Questionnaire>());
+        db.UserExternalLogins.DidNotReceive().Add(Arg.Any<UserExternalLogin>());
+    }
 }

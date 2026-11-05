@@ -1,5 +1,6 @@
 using FastEndpoints;
 using FluentValidation;
+using FormUp.Application.Features.Auth.Shared;
 
 namespace FormUp.Application.Features.Auth.SocialLogin.Google;
 
@@ -18,5 +19,13 @@ public class GoogleSocialLoginValidator : Validator<GoogleSocialLoginRequest>
             .WithMessage("Google ID token is required.");
 
         RuleFor(x => x.Nonce).NotEmpty();
+
+        RuleForEach(x => x.Roles)
+            .Must(SocialSignUpRoles.IsAllowed)
+            .WithMessage(SocialSignUpRoles.InvalidRoleMessage);
+
+        RuleFor(x => x.Roles)
+            .Must(roles => !SocialSignUpRoles.MixesClientWithCoach(roles))
+            .WithMessage(SocialSignUpRoles.ClientCoachMixMessage);
     }
 }
