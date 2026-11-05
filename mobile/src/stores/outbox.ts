@@ -21,6 +21,8 @@ import { isDroppedEntry, isOutboxEntry, isSyncConflict } from '@/lib/outbox/vali
 export const OUTBOX_STORAGE_KEY = 'outbox.v2';
 /** The single-slot document written before queues were kept per user; it has no owner. */
 const LEGACY_STORAGE_KEY = 'outbox.v1';
+/** Holds the last document that could not be read, for support; never loaded back as a queue. */
+const CORRUPT_BACKUP_KEY = 'outbox.v2.corrupt';
 const MAX_DROPPED = 50;
 const MAX_CONFLICTS = 50;
 
@@ -77,18 +79,34 @@ const isExpired = (entry: OutboxEntry): boolean => Date.now() - Date.parse(entry
 const isEmptySlot = (slot: StoredSlot): boolean =>
   slot.entries.length === 0 && slot.droppedEntries.length === 0 && slot.syncConflicts.length === 0;
 
+/** The users in a stored document, or null when the text is not a document of the expected shape. */
+function parseUsers(raw: string): StoredUsers | null {
+  try {
+    const document: unknown = JSON.parse(raw);
+    if (!isRecord(document) || !isRecord(document.users)) return null;
+    const users: StoredUsers = {};
+    for (const [userId, slot] of Object.entries(document.users)) users[userId] = parseSlot(slot);
+    return users;
+  } catch {
+    return null;
+  }
+}
+
 /**
- * Every user's queue on disk. Nothing stored is an empty result; a failed read, bad JSON or a document of an
- * unknown shape throws, so no caller writes a document built from a partial read over other users' queues.
+ * Every user's queue on disk. Nothing stored is an empty result. A failed storage call throws, so no caller writes
+ * a document built from a partial read over other users' queues. Content that cannot be read is copied to a backup
+ * key first and then cleared, so the outbox starts empty and can write again; if the copy fails it throws instead,
+ * and the raw document is never discarded without a backup. Only the writer chain may call this: the repair must
+ * not interleave with a write.
  */
 async function readUsers(): Promise<StoredUsers> {
   const raw = await Storage.getItemAsync(OUTBOX_STORAGE_KEY);
   if (!raw) return {};
-  const document: unknown = JSON.parse(raw);
-  if (!isRecord(document) || !isRecord(document.users)) throw new Error('The outbox document has an unknown shape');
-  const users: StoredUsers = {};
-  for (const [userId, slot] of Object.entries(document.users)) users[userId] = parseSlot(slot);
-  return users;
+  const users = parseUsers(raw);
+  if (users) return users;
+  await Storage.setItemAsync(CORRUPT_BACKUP_KEY, raw);
+  await Storage.removeItemAsync(OUTBOX_STORAGE_KEY);
+  return {};
 }
 
 /** The owner-less queue from before per-user slots; only its entries are worth adopting. */
@@ -145,9 +163,9 @@ async function writeUsers(users: StoredUsers): Promise<void> {
 // Each write re-reads the document and replaces only the active user's queue, so other users' queues survive.
 let writeChain: Promise<unknown> = Promise.resolve();
 
-/** Queues a disk task behind the earlier ones; resolves true only when it wrote. */
-function chained(task: () => Promise<boolean>): Promise<boolean> {
-  const run = writeChain.then(task);
+/** Queues a disk task behind the earlier ones; a task that rejected does not stop the later ones. */
+function chained<T>(task: () => Promise<T>): Promise<T> {
+  const run = writeChain.then(task, task);
   writeChain = run;
   return run;
 }
@@ -179,6 +197,7 @@ function persistNow(): Promise<boolean> {
   });
 }
 
+/** Resolves without writing when `persistNow` skips; memory keeps the change and the next change tries the disk again. */
 const persist = (): Promise<void> => persistNow().then(() => undefined);
 
 /** Removes one user's queue from disk, in the same chain as the writes so a write cannot overtake it. */
@@ -242,7 +261,7 @@ export const useOutboxStore = create<OutboxState>((set, get) => ({
     hydration = (async () => {
       let users: StoredUsers;
       try {
-        users = await readUsers();
+        users = await chained(readUsers);
       } catch {
         // Not loaded: nothing is written for this user until a later load succeeds, and the disk stays as it is.
         if (epoch === startedAt) hydration = null;
@@ -284,6 +303,7 @@ export const useOutboxStore = create<OutboxState>((set, get) => ({
   enqueue: (entry) => {
     if (!get().ownerUserId) return Promise.reject(new Error('No signed-in user owns the outbox'));
     set((state) => ({ entries: [...state.entries, entry] }));
+    // Resolves even when the disk write was skipped; the entry is queued in memory and written by the next change.
     return persist();
   },
 
