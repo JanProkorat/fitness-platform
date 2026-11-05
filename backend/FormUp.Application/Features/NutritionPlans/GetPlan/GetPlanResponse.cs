@@ -79,6 +79,36 @@ public class MealEatenStatusDto
 }
 
 /// <summary>
+/// Whether the coach may edit one stored plan meal, and why not.
+/// </summary>
+public class MealLockDto
+{
+    /// <summary>The <see cref="PlanMeal.MealId"/> this verdict belongs to.</summary>
+    public Guid MealId { get; set; }
+
+    /// <summary>Week the meal sits in.</summary>
+    public int WeekNumber { get; set; }
+
+    /// <summary>Day of the week the meal sits in (1 = Monday).</summary>
+    public int DayOfWeek { get; set; }
+
+    /// <summary>Calendar date of the slot; null when the plan has no start date.</summary>
+    public DateOnly? Date { get; set; }
+
+    /// <summary>Whether the meal may not be changed, moved or deleted.</summary>
+    public bool IsLocked { get; set; }
+
+    /// <summary>Why the meal is locked, or Open.</summary>
+    public MealLockState LockState { get; set; }
+
+    /// <summary>Ids of the meal's items the client ate.</summary>
+    public List<Guid> EatenItemIds { get; set; } = [];
+
+    /// <summary>Items as they stood when first eaten. Set only for a locked meal that has a snapshot.</summary>
+    public List<EatenMealItem>? EatenSnapshot { get; set; }
+}
+
+/// <summary>
 /// Detailed nutrition plan response including all weeks, days, meals, and foods.
 /// </summary>
 public class GetPlanResponse
@@ -165,6 +195,17 @@ public class GetPlanResponse
     /// plan ownership gate above the MealLog query — filtering by PlanId is safe.
     /// </summary>
     public List<MealEatenStatusDto> MealLogs { get; set; } = [];
+
+    /// <summary>
+    /// The client's local calendar date today, the cut-off after which a day is locked.
+    /// Populated by the get endpoint only.
+    /// </summary>
+    public DateOnly ClientToday { get; set; }
+
+    /// <summary>
+    /// One lock verdict per stored meal. Populated by the get endpoint only.
+    /// </summary>
+    public List<MealLockDto> MealLocks { get; set; } = [];
 
     /// <summary>
     /// Supplement recommendations attached to this plan.

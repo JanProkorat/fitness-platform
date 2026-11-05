@@ -19,8 +19,12 @@ namespace FormUp.Application.Features.NutritionPlans.GetPlan;
 /// <param name="db">PostgreSQL context — resolves the client's PublicId for the response.</param>
 /// <param name="linkAuthorizationService">Resolves link capabilities — authorship identifies the
 /// plan, the caller's live link to its client decides access.</param>
+/// <param name="timeProvider">Clock used to find the client's local today.</param>
 public class GetPlanEndpoint(
-    IMongoContext mongo, IApplicationDbContext db, IClientLinkAuthorizationService linkAuthorizationService)
+    IMongoContext mongo,
+    IApplicationDbContext db,
+    IClientLinkAuthorizationService linkAuthorizationService,
+    TimeProvider timeProvider)
     : Endpoint<GetPlanRequest, GetPlanResponse>
 {
     /// <inheritdoc />
@@ -85,6 +89,22 @@ public class GetPlanEndpoint(
                 EatenState = meal.State,
                 EatenItemIds = meal.EatenItemIds.ToList(),
                 EatenAt = meal.EatenAt
+            })
+            .ToList();
+
+        var clientTimeZone = await db.ResolveClientTimeZoneAsync(plan.ClientId, ct);
+        response.ClientToday = ClientLocalDateResolver.ResolveLocalDate(timeProvider.GetUtcNow().UtcDateTime, clientTimeZone);
+        response.MealLocks = PlanMealLockResolver.Resolve(plan, mealLogs, response.ClientToday)
+            .Select(mealLock => new MealLockDto
+            {
+                MealId = mealLock.Meal.MealId,
+                WeekNumber = mealLock.WeekNumber,
+                DayOfWeek = mealLock.DayOfWeek,
+                Date = mealLock.Date,
+                IsLocked = mealLock.IsLocked,
+                LockState = mealLock.State,
+                EatenItemIds = mealLock.EatenItemIds.ToList(),
+                EatenSnapshot = mealLock.IsLocked ? mealLock.EatenSnapshot?.ToList() : null
             })
             .ToList();
 

@@ -161,7 +161,8 @@ public class PlanGoalFieldsTests
             new MockDbBuilder().Build(),
             Substitute.For<IRealtimeNotifier>(),
             new PlanConcurrencyGuard(),
-            EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService(),
+            TimeProvider.System);
 
         var req = new UpdatePlanRequest
         {
@@ -214,7 +215,8 @@ public class PlanGoalFieldsTests
             new MockDbBuilder().Build(),
             Substitute.For<IRealtimeNotifier>(),
             new PlanConcurrencyGuard(),
-            EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService(),
+            TimeProvider.System);
 
         // Simulate a legacy client payload: Goal and TargetWeightKg are null (omitted)
         // while another field (Name) is legitimately updated.
@@ -264,7 +266,8 @@ public class PlanGoalFieldsTests
             new MockDbBuilder().Build(),
             Substitute.For<IRealtimeNotifier>(),
             new PlanConcurrencyGuard(),
-            EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService(),
+            TimeProvider.System);
 
         var req = new UpdatePlanRequest
         {

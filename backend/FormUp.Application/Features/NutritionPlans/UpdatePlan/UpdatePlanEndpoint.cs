@@ -27,6 +27,7 @@ namespace FormUp.Application.Features.NutritionPlans.UpdatePlan;
 /// <param name="guard">Shared version-gated fetch-check-replace-409 skeleton.</param>
 /// <param name="linkAuthorizationService">Resolves link capabilities — authorship identifies the
 /// plan, the caller's live link to its client decides access.</param>
+/// <param name="timeProvider">Clock used to find the client's local today for the meal lock.</param>
 [RemovedCoachRole(AppRoles.Nutritionist, RemovedCoachRoleMode.WhilePlanInProgress)]
 public class UpdatePlanEndpoint(
     IMongoContext mongo,
@@ -34,7 +35,8 @@ public class UpdatePlanEndpoint(
     IApplicationDbContext db,
     IRealtimeNotifier notifier,
     PlanConcurrencyGuard guard,
-    IClientLinkAuthorizationService linkAuthorizationService)
+    IClientLinkAuthorizationService linkAuthorizationService,
+    TimeProvider timeProvider)
     : Endpoint<UpdatePlanRequest, GetPlanResponse>
 {
     /// <inheritdoc />
@@ -46,7 +48,16 @@ public class UpdatePlanEndpoint(
         {
             s.Summary = "Full-state update of a nutrition plan";
             s.Description = "Replaces the plan's name, global settings, and all weeks/days/meals/foods. " +
-                            "Per-week publish status is preserved. Uses optimistic concurrency via version field.";
+                            "Per-week publish status is preserved. Uses optimistic concurrency via version field. " +
+                            "Meals the client ate (fully or partly) and meals on days before the client's local today " +
+                            "are locked: changing, moving or deleting one returns 409 MEAL_LOCKED, adding a meal to a " +
+                            "past day returns 409 PAST_DAY_LOCKED. With PreserveLockedMeals the locked and past-day " +
+                            "meals are kept as stored instead and the rest of the payload is applied.";
+            s.Responses[StatusCodes.Status200OK] = "Updated plan";
+            s.Responses[StatusCodes.Status401Unauthorized] = "Missing or unreadable caller claim";
+            s.Responses[StatusCodes.Status404NotFound] = "Plan not found, or not editable by the caller";
+            s.Responses[StatusCodes.Status409Conflict] =
+                "PLAN_VERSION_CONFLICT, MEAL_LOCKED or PAST_DAY_LOCKED";
         });
     }
 
@@ -220,6 +231,23 @@ public class UpdatePlanEndpoint(
             }
         }
 
+        // Lock rule: judged on the stored plan before it is replaced. The stored start date dates the
+        // slots; it can only change while no day has started, so it never moves a day out of the past.
+        var clientToday = await ResolveClientTodayAsync(plan, ct);
+        var lockedMeals = PlanMealLockResolver
+            .Resolve(plan, await LoadMealLogsAsync(plan, ct), clientToday)
+            .Where(mealLock => mealLock.IsLocked)
+            .GroupBy(mealLock => mealLock.Meal.MealId)
+            .ToDictionary(group => group.Key, group => group.First());
+        var storedStartDate = plan.StartDate;
+
+        if (!req.PreserveLockedMeals
+            && FindLockViolation(req, storedStartDate, lockedMeals, clientToday) is { } violation)
+        {
+            await this.SendProblemAsync(409, violation.ErrorCode, violation.Message, ct);
+            return false;
+        }
+
         // Meal ids key the client's diary photo folder, so a caller-sent id may not collide with
         // another plan: foreign ids and repeats later in the request get a fresh id, silently.
         var foreignMealIds = await FindForeignMealIdsAsync(plan, req, ct);
@@ -274,6 +302,8 @@ public class UpdatePlanEndpoint(
             };
         }).ToList();
 
+        KeepLockedMeals(plan, existingWeeks, lockedMeals, req.PreserveLockedMeals, storedStartDate, clientToday);
+
         StampChangedMeals(plan, storedMeals, plan.Version + 1);
         RecordRemovedMeals(plan, storedMeals, plan.Version + 1, DateTime.UtcNow);
 
@@ -298,6 +328,162 @@ public class UpdatePlanEndpoint(
         plan.Version += 1;
 
         return true;
+    }
+
+    private async Task<DateOnly> ResolveClientTodayAsync(NutritionPlan plan, CancellationToken ct)
+    {
+        var timeZone = await db.ResolveClientTimeZoneAsync(plan.ClientId, ct);
+
+        return ClientLocalDateResolver.ResolveLocalDate(timeProvider.GetUtcNow().UtcDateTime, timeZone);
+    }
+
+    private async Task<List<MealLog>> LoadMealLogsAsync(NutritionPlan plan, CancellationToken ct)
+    {
+        var cursor = await mongo.MealLogs.FindAsync(
+            Builders<MealLog>.Filter.Eq(log => log.PlanId, plan.ExternalId), cancellationToken: ct);
+
+        return await cursor.ToListAsync(ct);
+    }
+
+    /// <summary>
+    /// The first way the request breaks the lock: a locked meal that is missing, moved or changed
+    /// (<see cref="ErrorCodes.MealLocked"/>), or any other meal placed on a past day
+    /// (<see cref="ErrorCodes.PastDayLocked"/>). Null when the request is allowed.
+    /// </summary>
+    private static (string ErrorCode, string Message)? FindLockViolation(
+        UpdatePlanRequest req,
+        DateTime? storedStartDate,
+        Dictionary<Guid, PlanMealLock> lockedMeals,
+        DateOnly clientToday)
+    {
+        var seenLockedIds = new HashSet<Guid>();
+
+        foreach (var week in req.Weeks)
+        {
+            foreach (var day in week.Days)
+            {
+                foreach (var meal in day.Meals)
+                {
+                    if (meal.MealId is { } mealId
+                        && lockedMeals.TryGetValue(mealId, out var mealLock)
+                        && seenLockedIds.Add(mealId))
+                    {
+                        if (mealLock.WeekNumber != week.WeekNumber
+                            || mealLock.DayOfWeek != day.DayOfWeek
+                            || !HasSameLockedContent(mealLock.Meal, meal))
+                        {
+                            return (ErrorCodes.MealLocked, "A meal the client ate, or one on a past day, cannot be changed or moved.");
+                        }
+
+                        continue;
+                    }
+
+                    if (PlanMealLockResolver.IsPastDay(storedStartDate, week.WeekNumber, day.DayOfWeek, clientToday))
+                    {
+                        return (ErrorCodes.PastDayLocked, "Meals cannot be added to a day that has already passed.");
+                    }
+                }
+            }
+        }
+
+        return lockedMeals.Keys.Any(mealId => !seenLockedIds.Contains(mealId))
+            ? (ErrorCodes.MealLocked, "A meal the client ate, or one on a past day, cannot be deleted.")
+            : null;
+    }
+
+    private static bool HasSameLockedContent(PlanMeal stored, UpdateMealRequest incoming) =>
+        stored.Kind == incoming.Kind
+        && (stored.Time ?? string.Empty) == (incoming.Time ?? string.Empty)
+        && (stored.Note ?? string.Empty) == (incoming.Note ?? string.Empty)
+        && stored.Foods.Select(food => (food.FoodExternalId, food.AmountGrams, Note: food.Note ?? string.Empty))
+            .SequenceEqual(incoming.Foods.Select(food => (food.FoodExternalId, food.AmountGrams, Note: food.Note ?? string.Empty)))
+        && stored.Recipes.Select(recipe => (recipe.RecipeId, recipe.Servings, Note: recipe.Note ?? string.Empty))
+            .SequenceEqual(incoming.Recipes.Select(recipe => (recipe.RecipeId, recipe.Servings, Note: recipe.Note ?? string.Empty)));
+
+    /// <summary>
+    /// Puts the stored instance of every locked meal back into the mapped weeks. In the strict mode
+    /// the request was already proven to match, so each is swapped in place. With
+    /// <paramref name="preserve"/> the locked meals and every past-day meal are removed from the
+    /// payload and the stored locked meals are re-inserted, recreating a week or day the payload omitted.
+    /// </summary>
+    private static void KeepLockedMeals(
+        NutritionPlan plan,
+        Dictionary<int, PlanWeek> existingWeeks,
+        Dictionary<Guid, PlanMealLock> lockedMeals,
+        bool preserve,
+        DateTime? storedStartDate,
+        DateOnly clientToday)
+    {
+        if (!preserve)
+        {
+            foreach (var meals in plan.Weeks.SelectMany(week => week.Days).Select(day => day.Meals))
+            {
+                for (var index = 0; index < meals.Count; index++)
+                {
+                    if (lockedMeals.TryGetValue(meals[index].MealId, out var mealLock))
+                    {
+                        meals[index] = mealLock.Meal;
+                    }
+                }
+            }
+
+            return;
+        }
+
+        foreach (var week in plan.Weeks)
+        {
+            foreach (var day in week.Days)
+            {
+                day.Meals.RemoveAll(meal =>
+                    lockedMeals.ContainsKey(meal.MealId)
+                    || PlanMealLockResolver.IsPastDay(storedStartDate, week.WeekNumber, day.DayOfWeek, clientToday));
+            }
+        }
+
+        var touchedDays = new HashSet<PlanDay>();
+
+        foreach (var mealLock in lockedMeals.Values)
+        {
+            var week = plan.Weeks.FirstOrDefault(candidate => candidate.WeekNumber == mealLock.WeekNumber);
+
+            if (week is null)
+            {
+                var existing = existingWeeks.GetValueOrDefault(mealLock.WeekNumber);
+                week = new PlanWeek
+                {
+                    WeekNumber = mealLock.WeekNumber,
+                    Status = existing?.Status ?? WeekStatus.Draft,
+                    DatePublished = existing?.DatePublished,
+                    Days = []
+                };
+                plan.Weeks.Add(week);
+            }
+
+            var day = week.Days.FirstOrDefault(candidate => candidate.DayOfWeek == mealLock.DayOfWeek);
+
+            if (day is null)
+            {
+                day = new PlanDay { DayOfWeek = mealLock.DayOfWeek };
+                week.Days.Add(day);
+            }
+
+            day.Meals.Insert(0, mealLock.Meal);
+            touchedDays.Add(day);
+        }
+
+        foreach (var day in touchedDays)
+        {
+            day.Meals = day.Meals.OrderBy(meal => meal.Order).ToList();
+        }
+
+        plan.Weeks = plan.Weeks
+            .OrderBy(week => week.WeekNumber)
+            .Select(week =>
+            {
+                week.Days = week.Days.OrderBy(day => day.DayOfWeek).ToList();
+                return week;
+            })
+            .ToList();
     }
 
     /// <summary>
