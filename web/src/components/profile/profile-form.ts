@@ -169,6 +169,13 @@ export function buildDefaultValues(
   };
 }
 
+/** Appends pending tag text to a list the way TagInput's Enter does (trim, case-insensitive dedupe). */
+export function withPendingTag(list: string[], pending: string): string[] {
+  const next = pending.trim();
+  if (next === '' || list.some((tag) => tag.toLowerCase() === next.toLowerCase())) return list;
+  return [...list, next];
+}
+
 function orNull(value: string): string | null {
   const trimmed = value.trim();
   return trimmed === '' ? null : trimmed;

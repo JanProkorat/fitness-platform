@@ -29,8 +29,11 @@ import {
   createProfileSchema,
   fieldForBackendName,
   fromPriceOf,
+  withPendingTag,
   type ProfileFormValues,
 } from '@/components/profile/profile-form';
+
+type TagField = 'specializations' | 'languages';
 
 interface Props {
   me: GetProfileResponse;
@@ -91,14 +94,30 @@ export default function ProfileForm({ me, trainer }: Props) {
     resolver: zodResolver(schema),
     defaultValues: initialValues,
   });
-  const { handleSubmit, reset, setError, formState } = form;
+  const { handleSubmit, reset, setError, setValue, getValues, formState } = form;
+
+  // Text typed into a tag box without Enter lives here so Save can turn it into a tag before validation.
+  const [drafts, setDrafts] = useState<Record<TagField, string>>({ specializations: '', languages: '' });
+  const setDraft = (field: TagField, value: string) => setDrafts((prev) => ({ ...prev, [field]: value }));
+  const hasPendingDraft = drafts.specializations.trim() !== '' || drafts.languages.trim() !== '';
+  const isDirty = formState.isDirty || hasPendingDraft;
 
   useEffect(() => {
-    if (!formState.isDirty) return;
+    if (!isDirty) return;
     const warn = (event: BeforeUnloadEvent) => event.preventDefault();
     window.addEventListener('beforeunload', warn);
     return () => window.removeEventListener('beforeunload', warn);
-  }, [formState.isDirty]);
+  }, [isDirty]);
+
+  function submit(event: React.FormEvent<HTMLFormElement>) {
+    for (const field of ['specializations', 'languages'] as const) {
+      if (drafts[field].trim() === '') continue;
+      setValue(field, withPendingTag(getValues(field), drafts[field]), { shouldDirty: true });
+    }
+    setDrafts({ specializations: '', languages: '' });
+    // Validation runs after the merge, so a too-long pending tag is rejected like a typed one.
+    void handleSubmit((values) => saveMutation.mutate(values))(event);
+  }
 
   function applyFailure(error: unknown) {
     let mapped = false;
@@ -177,13 +196,11 @@ export default function ProfileForm({ me, trainer }: Props) {
     onError: (error) => showApiError(error, 'profile.saveError'),
   });
 
-  const isDirty = formState.isDirty;
-
   return (
     <FormProvider {...form}>
       <form
         noValidate
-        onSubmit={handleSubmit((values) => saveMutation.mutate(values))}
+        onSubmit={submit}
         className="flex w-full flex-col gap-5"
       >
         <ProfileHeader
@@ -223,7 +240,7 @@ export default function ProfileForm({ me, trainer }: Props) {
             <PhotoNameSection professionalAvatarUrl={trainer.avatarBlobUrl} userAvatarUrl={me.avatarBlobUrl} />
             <AccountSection email={me.email ?? ''} />
             <AboutSection fromPrice={fromPrice} />
-            <ExpertiseSection />
+            <ExpertiseSection drafts={drafts} onDraftChange={setDraft} />
             <CollaborationSection />
             <LinksSection />
             <div className="min-w-0 2xl:col-span-2">
