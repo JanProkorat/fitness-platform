@@ -67,7 +67,7 @@ export default function ClientSidePanel({ clientPublicId, participantName }: Pro
   if (dashboardQuery.isError || !dashboardQuery.data) {
     return (
       <div className="flex min-h-0 flex-1 items-center justify-center p-4">
-        <p className="text-caption text-muted-foreground">{t('common.loadError')}</p>
+        <p className="text-caption text-muted-foreground">{t('common.dataLoadError')}</p>
       </div>
     );
   }

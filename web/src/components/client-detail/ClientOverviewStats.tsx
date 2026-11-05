@@ -91,7 +91,7 @@ export default function ClientOverviewStats({
   if (verdictQuery.isPending) {
     prCaption = undefined;
   } else if (verdictQuery.isError) {
-    prCaption = t('common.loadError');
+    prCaption = t('common.dataLoadError');
   } else {
     if (prCount != null) {
       prValue = prCount;
@@ -110,7 +110,7 @@ export default function ClientOverviewStats({
   if (measurementsPending) {
     weightValue = <Skeleton className="h-8 w-16" />;
   } else if (measurementsError) {
-    weightCaption = t('common.loadError');
+    weightCaption = t('common.dataLoadError');
   } else if (weightChange) {
     weightValue = t('clientDetail.overview.stats.weightChange.value', {
       delta: formatSignedNumber(weightChange.deltaKg),

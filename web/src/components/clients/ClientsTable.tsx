@@ -89,7 +89,7 @@ export default function ClientsTable({
           <TableRow>
             <TableCell colSpan={COLUMN_COUNT} className="py-10 text-center">
               <div className="flex flex-col items-center gap-3">
-                <p className="text-body text-muted-foreground">{t('common.loadError')}</p>
+                <p className="text-body text-muted-foreground">{t('common.dataLoadError')}</p>
                 <Button type="button" variant="outline" size="sm" onClick={onRetry}>
                   {t('clients.retry')}
                 </Button>

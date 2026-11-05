@@ -27,6 +27,7 @@
     "total": "Celkem {{count}}",
     "error": "Chyba",
     "loadError": "Plán se nepodařilo načíst. Zkuste stránku obnovit.",
+    "dataLoadError": "Data se nepodařilo načíst. Zkuste stránku obnovit.",
     "success": "Úspěch",
     "clear": "Vymazat",
     "delete": "Smazat",
