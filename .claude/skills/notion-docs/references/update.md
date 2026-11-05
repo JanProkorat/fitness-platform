@@ -21,7 +21,7 @@ merge and rebase merges). Then:
 - **Affected screens:** entries whose `files` globs match any changed path.
 - **New / removed screens:** compare `screens.json` before and after the merge.
 - **Affected API tags:** the Swagger tags of the endpoints in changed
-  `backend/FitnessPlatform.Application/Features/<Area>/` folders, plus the
+  `backend/FormUp.Application/Features/<Area>/` folders, plus the
   Swagger tags of every endpoint listed by a new or changed `screens.json`
   entry (an entry whose `endpoints` list changed counts as changed). Republish
   only these tags; published pages are enriched, so raw `wiki-api.py` output

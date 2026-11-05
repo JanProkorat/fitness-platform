@@ -4,7 +4,7 @@ import { loadEnv } from 'vite'
 const AASA_PATH = '/.well-known/apple-app-site-association'
 const ASSETLINKS_PATH = '/.well-known/assetlinks.json'
 
-const DEFAULT_APP_ID = 'com.gfplatform.mobile'
+const DEFAULT_APP_ID = 'com.formup.mobile'
 const PLACEHOLDER_TEAM_ID = 'APPLE_TEAM_ID_NOT_SET'
 const PLACEHOLDER_SHA256 = 'ANDROID_APP_SHA256_NOT_SET'
 

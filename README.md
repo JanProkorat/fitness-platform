@@ -1,7 +1,7 @@
-# Fitness Platform
+# Form Up
 
-[![Backend CI](https://github.com/JanProkorat/fitness-platform/actions/workflows/backend.yml/badge.svg)](https://github.com/JanProkorat/fitness-platform/actions/workflows/backend.yml)
-[![Web CI](https://github.com/JanProkorat/fitness-platform/actions/workflows/web.yml/badge.svg)](https://github.com/JanProkorat/fitness-platform/actions/workflows/web.yml)
+[![Backend CI](https://github.com/JanProkorat/form-up/actions/workflows/backend.yml/badge.svg)](https://github.com/JanProkorat/form-up/actions/workflows/backend.yml)
+[![Web CI](https://github.com/JanProkorat/form-up/actions/workflows/web.yml/badge.svg)](https://github.com/JanProkorat/form-up/actions/workflows/web.yml)
 
 Fitness & nutrition platform connecting trainers, nutritionists, and clients.
 
@@ -9,7 +9,7 @@ Fitness & nutrition platform connecting trainers, nutritionists, and clients.
 
 ```
 ├── backend/
-│   └── FitnessPlatform.Application/   # Single-project vertical slice architecture
+│   └── FormUp.Application/   # Single-project vertical slice architecture
 │       ├── Domain/                     # Entities, enums, base classes
 │       ├── Infrastructure/             # EF Core, data access, external services
 │       ├── Features/                   # Vertical slices (endpoints + logic)
@@ -29,8 +29,8 @@ Fitness & nutrition platform connecting trainers, nutritionists, and clients.
 
 ```bash
 # 1. Clone the repo
-git clone https://github.com/JanProkorat/fitness-platform.git
-cd fitness-platform
+git clone https://github.com/JanProkorat/form-up.git
+cd form-up
 
 # 2. Full setup (.env, Docker, migrations, seed) — one command
 make setup

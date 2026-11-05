@@ -99,7 +99,7 @@ builder.Services
         o.ShortSchemaNames = true;
         o.DocumentSettings = s =>
         {
-            s.Title = "Fitness Platform API";
+            s.Title = "Form Up API";
             s.Version = "v1";
         };
     });

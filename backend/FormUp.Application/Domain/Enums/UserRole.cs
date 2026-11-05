@@ -1,7 +1,7 @@
 namespace FormUp.Application.Domain.Enums;
 
 /// <summary>
-/// Defines the available roles within the fitness platform.
+/// Defines the available roles within Form Up.
 /// </summary>
 public enum UserRole
 {

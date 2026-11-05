@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace FormUp.Application.Infrastructure.Data;
 
 /// <summary>
-/// Main database context for the fitness platform, extending ASP.NET Identity context.
+/// Main database context for Form Up, extending ASP.NET Identity context.
 /// </summary>
 /// <param name="options">Database context options.</param>
 public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)

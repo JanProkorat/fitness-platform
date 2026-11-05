@@ -24,13 +24,13 @@ them as plain POCOs next to their parent.
 
 ## File to create
 
-`backend/FitnessPlatform.Application/Domain/Documents/<Name>.cs`:
+`backend/FormUp.Application/Domain/Documents/<Name>.cs`:
 
 ```csharp
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 
-namespace FitnessPlatform.Application.Domain.Documents;
+namespace FormUp.Application.Domain.Documents;
 
 /// <summary>
 /// MongoDB document representing a ... [one-line description of the aggregate].

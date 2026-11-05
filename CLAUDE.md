@@ -1,4 +1,4 @@
-# GoodFellas — Fitness & Nutrition Platform
+# Form Up — Fitness & Nutrition Platform
 
 ## Project Overview
 
@@ -18,7 +18,7 @@ mobile app.
 
 ```bash
 # Backend (requires .NET 10, PostgreSQL, MongoDB)
-cd backend/FitnessPlatform.Application
+cd backend/FormUp.Application
 dotnet run                          # http://localhost:5000
 dotnet run -- --seed                # seed exercise/food databases
 
@@ -77,7 +77,7 @@ Hub at `/hubs/notifications`.
 ### Structure
 
 ```
-FitnessPlatform.Application/
+FormUp.Application/
   Domain/
     Entities/          — 36 EF Core entities (PostgreSQL)
     Documents/         — 47 MongoDB document classes
@@ -118,7 +118,7 @@ FitnessPlatform.Application/
     Services/          — 32 services (email, push, blob, macro calc, etc.)
     SignalR/           — NotificationHub, PresenceTracker
   Middleware/          — Global exception handler
-FitnessPlatform.Tests/ — 411 test classes, 3200+ tests, xUnit + Testcontainers
+FormUp.Tests/ — 411 test classes, 3200+ tests, xUnit + Testcontainers
 ```
 
 ### Key conventions

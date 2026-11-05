@@ -12,7 +12,7 @@ description: EF Core rules for entities, DbContext, and queries
 > version of that section — which prescribed a global string-enum convention
 > this codebase has never had — nearly produced a destructive ~30-table
 > migration. Those four describe what
-> `backend/FitnessPlatform.Application` actually does. The remaining sections
+> `backend/FormUp.Application` actually does. The remaining sections
 > have not been audited against the code; treat them as guidance, not as
 > verified description.
 
@@ -96,7 +96,7 @@ Descriptive name (rules/naming.md#migrations). Review generated SQL before commi
 
 ## Enum storage
 
-> **Descriptive.** Measured against `backend/FitnessPlatform.Application` while
+> **Descriptive.** Measured against `backend/FormUp.Application` while
 > implementing #593. This section previously prescribed a global
 > string-conversion convention the codebase has never had; it was reconciled
 > after the stale rule nearly produced a destructive migration.

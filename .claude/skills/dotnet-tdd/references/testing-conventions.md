@@ -6,7 +6,7 @@ searching. Where the two disagree, the rule wins — fix this file.
 
 ## Test stack
 
-One project, `backend/FitnessPlatform.Tests`: xUnit v3, FluentAssertions,
+One project, `backend/FormUp.Tests`: xUnit v3, FluentAssertions,
 NSubstitute (+ `MockQueryable.NSubstitute`), `FastEndpoints.Testing`,
 Testcontainers for PostgreSQL and MongoDB. No Moq, no FakeItEasy, no Respawn,
 no separate unit/integration projects.
@@ -14,9 +14,9 @@ no separate unit/integration projects.
 ## File location
 
 Mirror the feature path: `Features/{Area}/{Action}/` →
-`FitnessPlatform.Tests/Endpoints/{Area}/{Action}EndpointTests.cs`. Validator
+`FormUp.Tests/Endpoints/{Area}/{Action}EndpointTests.cs`. Validator
 tests are `{Action}ValidatorTests.cs`, either beside them or under
-`FitnessPlatform.Tests/Validators/` — match the area's existing tests.
+`FormUp.Tests/Validators/` — match the area's existing tests.
 
 ## Collection attribute
 

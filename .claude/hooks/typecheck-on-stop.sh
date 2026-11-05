@@ -19,7 +19,7 @@
 #   - $STATE_DIR/web.done, $STATE_DIR/mobile.done — created on completion
 #                                                    (contains exit code)
 #
-# Escape hatch: set FITNESS_PLATFORM_WEB_ONLY=1 to skip mobile typechecks.
+# Escape hatch: set FORM_UP_WEB_ONLY=1 to skip mobile typechecks.
 
 set -euo pipefail
 
@@ -70,7 +70,7 @@ while IFS= read -r line; do
     esac
 done <<< "$status"
 
-if [[ "${FITNESS_PLATFORM_WEB_ONLY:-0}" == "1" ]]; then
+if [[ "${FORM_UP_WEB_ONLY:-0}" == "1" ]]; then
     mobile_changed=0
 fi
 

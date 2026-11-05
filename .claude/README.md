@@ -1,6 +1,6 @@
 # `.claude/` — Structure & Navigation
 
-This folder is the Claude Code setup for **fitness-platform**, a multi-package
+This folder is the Claude Code setup for **form-up**, a multi-package
 project (ASP.NET Core 10 backend + React 19 web portal + React Native / Expo
 mobile app). It wires an issue → design-review → dev → qa → pr-review → merge
 pipeline on top of rules, sub-agents, skills, and hooks.

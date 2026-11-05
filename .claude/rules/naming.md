@@ -7,7 +7,7 @@ description: Naming conventions for files, types, routes, and identifiers
 # Naming Conventions
 
 > **Descriptive.** Counts below were measured against
-> `backend/FitnessPlatform.Application` on `develop` at `dc990021` (issue
+> `backend/FormUp.Application` on `develop` at `dc990021` (issue
 > #937).
 
 ## Files and types

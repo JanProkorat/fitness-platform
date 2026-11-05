@@ -1,6 +1,6 @@
 {
   "common": {
-    "appName": "GoodFellas",
+    "appName": "Form Up",
     "loading": "Laden...",
     "save": "Änderungen speichern",
     "saving": "Speichern...",
@@ -171,12 +171,12 @@
   },
   "downloadApp": {
     "title": "App herunterladen",
-    "subtitle": "Die GF Platform für Klienten ist ausschließlich als mobile App verfügbar.",
+    "subtitle": "Form Up für Klienten ist ausschließlich als mobile App verfügbar.",
     "description": "Laden Sie die App herunter, um sich mit Ihrem Trainer zu verbinden, Fortschritte zu verfolgen und personalisierte Pläne zu befolgen.",
     "appStore": "Im App Store laden",
     "googlePlay": "Bei Google Play laden",
     "comingSoon": "Mobile App kommt bald",
-    "comingSoonHint": "Wir arbeiten an der mobilen GF Platform App. Bleiben Sie dran!"
+    "comingSoonHint": "Wir arbeiten an der mobilen Form-Up-App. Bleiben Sie dran!"
   },
   "shell": {
     "comingSoon": "Diese Seite ist in Vorbereitung.",
@@ -5254,7 +5254,7 @@
     "weekCountRange": "Die Anzahl der Wochen muss zwischen 1 und 52 liegen."
   },
   "entry": {
-    "brand": "GoodFellas",
+    "brand": "Form Up",
     "login": {
       "title": "Willkommen zurück",
       "lede": "Im Trainerportal anmelden.",

@@ -1,6 +1,6 @@
 # E2E fixture credentials
 
-The compose harness (`docker-compose.test.yml`) seeds a deterministic set of QA users via `backend/FitnessPlatform.Application/Seed/QaSeedRunner.cs` before the API service starts.
+The compose harness (`docker-compose.test.yml`) seeds a deterministic set of QA users via `backend/FormUp.Application/Seed/QaSeedRunner.cs` before the API service starts.
 
 The harness API listens on `https://localhost:<ephemeral-port>` with a self-signed dev cert — pass `-k` to curl, or `rejectUnauthorized: false` to Node `https`. The interactive dev API at `:5001` is a **separate** stack with a separate database; never point Playwright at it.
 

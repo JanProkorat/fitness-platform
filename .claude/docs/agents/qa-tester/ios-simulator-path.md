@@ -64,7 +64,7 @@ The flow is:
 3. **Install + launch** via `xcrun simctl`:
    ```
    xcrun simctl install booted "$APP"
-   xcrun simctl launch booted com.gfplatform.mobile
+   xcrun simctl launch booted com.formup.mobile
    ```
    `booted` resolves to the booted simulator from step 2. If multiple
    simulators are booted, replace with the explicit `<udid>`.
@@ -79,7 +79,7 @@ The flow is:
 
    ```
    T=$(mobile/scripts/qa-fetch-refresh-token.sh client)
-   xcrun simctl openurl booted "fitnessplatform://e2e-auth?token=$T"
+   xcrun simctl openurl booted "formup://e2e-auth?token=$T"
    ```
 
    The handler writes the token to MMKV and calls `restoreSession()`.
@@ -148,7 +148,7 @@ The flow is:
    through `xcrun simctl`):
    ```
    xcrun simctl spawn booted log show --last 60s --predicate \
-     'subsystem == "com.gfplatform.mobile"' --style compact
+     'subsystem == "com.formup.mobile"' --style compact
    ```
    Grep the output for `error`, `Reanimated`, unhandled-promise
    warnings, or any other runtime fault — a green AC on a screen that
@@ -163,7 +163,7 @@ The flow is:
    - verify the auth handler fired:
      ```
      xcrun simctl spawn booted log show --last 30s --predicate \
-       'subsystem == "com.gfplatform.mobile"' --style compact \
+       'subsystem == "com.formup.mobile"' --style compact \
        | grep "\[e2e-auth\] login bypass invoked"
      ```
    If the log line is present AND the screenshot is NOT the login

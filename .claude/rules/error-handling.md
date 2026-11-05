@@ -1,13 +1,13 @@
 ---
 paths:
   - "backend/**"
-description: Error handling strategy for FitnessPlatform backend endpoints
+description: Error handling strategy for FormUp backend endpoints
 ---
 
 # Error Handling Rules
 
 > **Descriptive.** Counts below were measured against
-> `backend/FitnessPlatform.Application/Features` on `develop` at `dc990021`
+> `backend/FormUp.Application/Features` on `develop` at `dc990021`
 > (issue #937).
 
 ## Core principle

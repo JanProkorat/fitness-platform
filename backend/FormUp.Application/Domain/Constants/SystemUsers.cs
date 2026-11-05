@@ -19,5 +19,5 @@ public static class SystemUsers
     /// Email address for the system admin account. Never used to log in — the account is created
     /// with a cryptographically random password that is never logged or revealed.
     /// </summary>
-    public const string AdminEmail = "system@goodfellas.local";
+    public const string AdminEmail = "system@formup.local";
 }

@@ -29,9 +29,9 @@ public class ResendEmailService(IResend resend, IConfiguration configuration, IL
     /// </summary>
     private static readonly Dictionary<string, string> InvitationSubjects = new()
     {
-        ["en"] = "You have been invited to GF Platform",
-        ["cs"] = "Pozvánka na GF Platform",
-        ["de"] = "Einladung zur GF Platform"
+        ["en"] = "You have been invited to Form Up",
+        ["cs"] = "Pozvánka do Form Up",
+        ["de"] = "Einladung zu Form Up"
     };
 
     /// <summary>
@@ -39,9 +39,9 @@ public class ResendEmailService(IResend resend, IConfiguration configuration, IL
     /// </summary>
     private static readonly Dictionary<string, string> PasswordResetSubjects = new()
     {
-        ["en"] = "Reset your GF Platform password",
-        ["cs"] = "Obnovení hesla na GF Platform",
-        ["de"] = "GF Platform Passwort zurücksetzen"
+        ["en"] = "Reset your Form Up password",
+        ["cs"] = "Obnovení hesla ve Form Up",
+        ["de"] = "Form-Up-Passwort zurücksetzen"
     };
 
     /// <summary>
@@ -49,9 +49,9 @@ public class ResendEmailService(IResend resend, IConfiguration configuration, IL
     /// </summary>
     private static readonly Dictionary<string, string> EmailVerificationSubjects = new()
     {
-        ["en"] = "Verify your GF Platform email",
-        ["cs"] = "Ověřte svůj e-mail na GF Platform",
-        ["de"] = "Bestätigen Sie Ihre E-Mail für GF Platform"
+        ["en"] = "Verify your Form Up email",
+        ["cs"] = "Ověřte svůj e-mail ve Form Up",
+        ["de"] = "Bestätigen Sie Ihre E-Mail für Form Up"
     };
 
     /// <summary>
@@ -59,9 +59,9 @@ public class ResendEmailService(IResend resend, IConfiguration configuration, IL
     /// </summary>
     private static readonly Dictionary<string, string> ReauthCodeSubjects = new()
     {
-        ["en"] = "Your GF Platform confirmation code",
-        ["cs"] = "Potvrzovací kód pro GF Platform",
-        ["de"] = "Ihr Bestätigungscode für GF Platform"
+        ["en"] = "Your Form Up confirmation code",
+        ["cs"] = "Potvrzovací kód pro Form Up",
+        ["de"] = "Ihr Bestätigungscode für Form Up"
     };
 
     /// <summary>
@@ -69,9 +69,9 @@ public class ResendEmailService(IResend resend, IConfiguration configuration, IL
     /// </summary>
     private static readonly Dictionary<string, string> BankAccountChangedSubjects = new()
     {
-        ["en"] = "Your GF Platform bank account was changed",
-        ["cs"] = "Bankovní účet na GF Platform byl změněn",
-        ["de"] = "Ihr Bankkonto bei GF Platform wurde geändert"
+        ["en"] = "Your Form Up bank account was changed",
+        ["cs"] = "Bankovní účet ve Form Up byl změněn",
+        ["de"] = "Ihr Bankkonto bei Form Up wurde geändert"
     };
 
     /// <inheritdoc />
@@ -200,7 +200,7 @@ public class ResendEmailService(IResend resend, IConfiguration configuration, IL
         string toEmail, string subject, string htmlBody, CancellationToken ct, (string ContentId, byte[] Png)? inlineImage = null)
     {
         var fromAddress = configuration[ConfigKeys.EmailFromAddress] ?? "noreply@formup.local";
-        var fromName = configuration[ConfigKeys.EmailFromName] ?? "GF Platform";
+        var fromName = configuration[ConfigKeys.EmailFromName] ?? "Form Up";
 
         var message = new EmailMessage
         {

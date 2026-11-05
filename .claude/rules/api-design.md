@@ -1,13 +1,13 @@
 ---
 paths:
   - "backend/**"
-description: FastEndpoints REPR rules for HTTP endpoints in the FitnessPlatform backend
+description: FastEndpoints REPR rules for HTTP endpoints in the FormUp backend
 ---
 
 # API Design Rules
 
 > **Descriptive unless marked otherwise.** Counts below were measured against
-> `backend/FitnessPlatform.Application/Features` on `develop` at `dc990021`
+> `backend/FormUp.Application/Features` on `develop` at `dc990021`
 > (issue #937). **[ASPIRATIONAL]** marks a direction for new code that most
 > existing code does not follow — never a description, and never a finding
 > against existing code.

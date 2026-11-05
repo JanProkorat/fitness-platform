@@ -63,7 +63,7 @@ public static class ApplicationDbContextSeed
                 Email = SystemUsers.AdminEmail,
                 EmailConfirmed = true,
                 IsActive = true,
-                FirstName = "GoodFellas",
+                FirstName = "Form Up",
                 LastName = "System",
                 GdprConsent = true,
             };

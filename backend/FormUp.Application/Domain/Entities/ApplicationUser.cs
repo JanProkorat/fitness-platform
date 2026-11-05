@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Identity;
 namespace FormUp.Application.Domain.Entities;
 
 /// <summary>
-/// Application user extending ASP.NET Identity with fitness platform specific properties.
+/// Application user extending ASP.NET Identity with Form Up-specific properties.
 /// </summary>
 public class ApplicationUser : IdentityUser<Guid>
 {

@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-const require = createRequire('/Users/jan/Projects/fitness-platform/web/package.json');
+const require = createRequire('/Users/jan/Projects/form-up/web/package.json');
 const { chromium } = require('playwright');
 const out = process.argv[2];
 const screens = JSON.parse(readFileSync(join(out, 'screens.json'), 'utf8'));

@@ -39,7 +39,7 @@ Prototype fidelity:
 Additional findings (not in the AC but blocking):
   - e.g. "de locale missing for 2 new keys — hard fail"
   - e.g. "web/src/api/generated.ts hand-edited — blocks PR"
-  - e.g. "unrelated test FitnessPlatform.Tests/Endpoints/Messaging/ArchiveEndpointTests.Archive_WhenAlreadyArchived_Returns409 broke on this branch"
+  - e.g. "unrelated test FormUp.Tests/Endpoints/Messaging/ArchiveEndpointTests.Archive_WhenAlreadyArchived_Returns409 broke on this branch"
   - e.g. "Playwright console: Uncaught TypeError in /nutrition/plans/:id at PlanDetail.tsx:87"
 
 Artifacts:

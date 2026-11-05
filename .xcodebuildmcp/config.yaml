@@ -13,8 +13,8 @@ schemaVersion: 1
 # this list (Claude Code: /mcp restart, or restart the session).
 enabledWorkflows: ["simulator", "ui-automation"]
 
-workspace: mobile/ios/GFPlatform.xcworkspace
-scheme: GFPlatform
+workspace: mobile/ios/FormUp.xcworkspace
+scheme: FormUp
 configuration: Debug
 sdk: iphonesimulator
 

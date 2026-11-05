@@ -73,7 +73,7 @@ The `wiki-api.py` Markdown, plus under each endpoint:
 ## Drafting brief (send to a Sonnet sub-agent per screen)
 
 > Read-only. Write the text for one wiki page about a screen of the
-> GoodFellas app, for a new team member. English, plain, short sentences.
+> Form Up app, for a new team member. English, plain, short sentences.
 > Screen: `<id>` — `<title>`, route `<route>`, roles `<roles>`.
 > Source files: `<files>`. Endpoints: `<endpoints>`.
 > UI labels: read Czech from `web/src/i18n/locales/cs.json` and English from

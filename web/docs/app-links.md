@@ -19,8 +19,8 @@ client bundle. There is no `.env.example`; this list is the reference.
 | Variable | Default | Meaning |
 |---|---|---|
 | `APPLE_TEAM_ID` | none | Apple Developer Team ID (10 characters) |
-| `IOS_BUNDLE_ID` | `com.gfplatform.mobile` | iOS bundle identifier (`mobile/app.json`) |
-| `ANDROID_PACKAGE` | `com.gfplatform.mobile` | Android package name (`mobile/app.json`) |
+| `IOS_BUNDLE_ID` | `com.formup.mobile` | iOS bundle identifier (`mobile/app.json`) |
+| `ANDROID_PACKAGE` | `com.formup.mobile` | Android package name (`mobile/app.json`) |
 | `ANDROID_APP_SHA256` | none | Comma-separated SHA-256 signing certificate fingerprints |
 
 If `APPLE_TEAM_ID` or `ANDROID_APP_SHA256` is unset, the build still succeeds. It
