@@ -77,19 +77,18 @@ const isExpired = (entry: OutboxEntry): boolean => Date.now() - Date.parse(entry
 const isEmptySlot = (slot: StoredSlot): boolean =>
   slot.entries.length === 0 && slot.droppedEntries.length === 0 && slot.syncConflicts.length === 0;
 
-/** Every user's queue on disk; an unreadable store holds nothing worth replaying. */
+/**
+ * Every user's queue on disk. Nothing stored is an empty result; a failed read, bad JSON or a document of an
+ * unknown shape throws, so no caller writes a document built from a partial read over other users' queues.
+ */
 async function readUsers(): Promise<StoredUsers> {
-  try {
-    const raw = await Storage.getItemAsync(OUTBOX_STORAGE_KEY);
-    if (!raw) return {};
-    const document: unknown = JSON.parse(raw);
-    if (!isRecord(document) || !isRecord(document.users)) return {};
-    const users: StoredUsers = {};
-    for (const [userId, slot] of Object.entries(document.users)) users[userId] = parseSlot(slot);
-    return users;
-  } catch {
-    return {};
-  }
+  const raw = await Storage.getItemAsync(OUTBOX_STORAGE_KEY);
+  if (!raw) return {};
+  const document: unknown = JSON.parse(raw);
+  if (!isRecord(document) || !isRecord(document.users)) throw new Error('The outbox document has an unknown shape');
+  const users: StoredUsers = {};
+  for (const [userId, slot] of Object.entries(document.users)) users[userId] = parseSlot(slot);
+  return users;
 }
 
 /** The owner-less queue from before per-user slots; only its entries are worth adopting. */
@@ -144,41 +143,58 @@ async function writeUsers(users: StoredUsers): Promise<void> {
 
 // Writes are chained and read the state when they run, so the last write on disk is always the latest state.
 // Each write re-reads the document and replaces only the active user's queue, so other users' queues survive.
-let writeChain: Promise<void> = Promise.resolve();
-function persist(): Promise<void> {
-  writeChain = writeChain.then(async () => {
+let writeChain: Promise<unknown> = Promise.resolve();
+
+/** Queues a disk task behind the earlier ones; resolves true only when it wrote. */
+function chained(task: () => Promise<boolean>): Promise<boolean> {
+  const run = writeChain.then(task);
+  writeChain = run;
+  return run;
+}
+
+let hydration: Promise<void> | null = null;
+/** Bumped whenever the active user changes so a load that was already running cannot bring entries back. */
+let epoch = 0;
+/** The user whose disk queue has been merged into memory; until then a write would overwrite it with less. */
+let hydratedOwner: string | null = null;
+
+/**
+ * Writes the active user's queue. It does nothing, and keeps the memory state for the next try, when the queue on
+ * disk has not been loaded yet or the document on disk cannot be read as a whole.
+ */
+function persistNow(): Promise<boolean> {
+  return chained(async () => {
     const { ownerUserId, entries, droppedEntries, syncConflicts } = useOutboxStore.getState();
-    if (!ownerUserId) return;
+    if (!ownerUserId || hydratedOwner !== ownerUserId) return false;
     try {
       const users = pruneInactive(await readUsers(), ownerUserId);
       const slot: StoredSlot = { entries, droppedEntries, syncConflicts };
       if (isEmptySlot(slot)) delete users[ownerUserId];
       else users[ownerUserId] = slot;
       await writeUsers(users);
+      return true;
     } catch {
-      // The in-memory queue still works; the next change tries the disk again.
+      return false;
     }
   });
-  return writeChain;
 }
+
+const persist = (): Promise<void> => persistNow().then(() => undefined);
 
 /** Removes one user's queue from disk, in the same chain as the writes so a write cannot overtake it. */
 function eraseUser(userId: string): Promise<void> {
-  writeChain = writeChain.then(async () => {
+  return chained(async () => {
     try {
       const users = pruneInactive(await readUsers(), useOutboxStore.getState().ownerUserId);
       delete users[userId];
       await writeUsers(users);
+      return true;
     } catch {
-      // Nothing more can be done; the queue is already gone from memory.
+      // The document could not be read whole, so it is left as it is rather than rewritten from part of it.
+      return false;
     }
-  });
-  return writeChain;
+  }).then(() => undefined);
 }
-
-let hydration: Promise<void> | null = null;
-/** Bumped whenever the active user changes so a load that was already running cannot bring entries back. */
-let epoch = 0;
 
 export const useOutboxStore = create<OutboxState>((set, get) => ({
   ownerUserId: null,
@@ -191,6 +207,7 @@ export const useOutboxStore = create<OutboxState>((set, get) => ({
     if (get().ownerUserId) await get().release();
     epoch += 1;
     hydration = null;
+    hydratedOwner = null;
     set({ ownerUserId: userId, entries: [], droppedEntries: [], syncConflicts: [] });
     if (options?.discardLegacy) await removeLegacy();
   },
@@ -204,6 +221,7 @@ export const useOutboxStore = create<OutboxState>((set, get) => ({
     await persist();
     epoch += 1;
     hydration = null;
+    hydratedOwner = null;
     set({ ownerUserId: null, entries: [], droppedEntries: [], syncConflicts: [] });
   },
 
@@ -211,6 +229,7 @@ export const useOutboxStore = create<OutboxState>((set, get) => ({
     const target = userId ?? get().ownerUserId;
     epoch += 1;
     hydration = null;
+    hydratedOwner = null;
     set({ ownerUserId: null, entries: [], droppedEntries: [], syncConflicts: [] });
     if (target) await eraseUser(target);
   },
@@ -221,7 +240,14 @@ export const useOutboxStore = create<OutboxState>((set, get) => ({
     if (!owner) return Promise.resolve();
     const startedAt = epoch;
     hydration = (async () => {
-      const users = await readUsers();
+      let users: StoredUsers;
+      try {
+        users = await readUsers();
+      } catch {
+        // Not loaded: nothing is written for this user until a later load succeeds, and the disk stays as it is.
+        if (epoch === startedAt) hydration = null;
+        return;
+      }
       const slot = users[owner] ?? EMPTY_SLOT;
       const legacyEntries = await readLegacyEntries();
       if (epoch !== startedAt) return;
@@ -243,11 +269,14 @@ export const useOutboxStore = create<OutboxState>((set, get) => ({
           ...state.syncConflicts,
         ].slice(-MAX_CONFLICTS),
       }));
+      // Disk and memory are merged now, so writes for this user are safe from here on.
+      hydratedOwner = owner;
       // Writing back also clears expired entries and empty queues of the other users from the disk.
       const prunedOthers = countStored(pruneInactive(users, owner)) !== countStored(users);
-      if (hadLocalChanges || legacyEntries.length > 0 || prunedOthers) await persist();
+      let written = true;
+      if (hadLocalChanges || legacyEntries.length > 0 || prunedOthers) written = await persistNow();
       // Removed only after the adopted entries are safe under the user's own id.
-      if (legacyEntries.length > 0 && epoch === startedAt) await removeLegacy();
+      if (legacyEntries.length > 0 && written && epoch === startedAt) await removeLegacy();
     })();
     return hydration;
   },

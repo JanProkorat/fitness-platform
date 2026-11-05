@@ -7,7 +7,6 @@ import type { OutboxKind } from '@/lib/outbox/types';
 import { useAuthStore } from '@/stores/auth';
 import { useOutboxStore } from '@/stores/outbox';
 
-export { OUTBOX_MAX_AGE_MS };
 const BACKOFF_BASE_MS = 30_000;
 const BACKOFF_MAX_MS = 5 * 60_000;
 

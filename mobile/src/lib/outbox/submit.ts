@@ -55,6 +55,10 @@ export function submitWrite(write: OutboxWrite, options: { occurredAt?: string }
     }
     try {
       const response = await sendEntry(entry, { fromOutbox: false });
+      // The write went out, but if its session ended meanwhile its notice must not land in the next user's queue.
+      if (useAuthStore.getState().sessionGeneration !== generation || useOutboxStore.getState().ownerUserId !== userId) {
+        return 'sent';
+      }
       await recordSyncOutcome(entry, response);
       return 'sent';
     } catch (error: unknown) {
