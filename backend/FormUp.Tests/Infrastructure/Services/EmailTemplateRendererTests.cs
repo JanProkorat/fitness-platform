@@ -106,6 +106,29 @@ public class EmailTemplateRendererTests
         html.Should().NotContainEquivalentOf("kouč");
     }
 
+    private static readonly string[] RemovedLabels =
+    [
+        "CONFIRM EMAIL", "POTVRZENÍ E-MAILU", "E-MAIL BESTÄTIGEN",
+        "PASSWORD RESET", "OBNOVENÍ HESLA", "PASSWORT ZURÜCKSETZEN",
+        "INVITATION", "POZVÁNKA", "EINLADUNG",
+        "PAYMENT REQUEST", "ŽÁDOST O PLATBU", "ZAHLUNGSAUFFORDERUNG",
+        "SECURITY", "ZABEZPEČENÍ", "SICHERHEIT"
+    ];
+
+    [Theory]
+    [MemberData(nameof(EveryTemplateInEveryLanguage))]
+    public void Render_EveryTemplate_HasNoSmallLabelAboveTheHeading(string template, string language)
+    {
+        var html = RenderTemplate(Renderer(), template, language);
+
+        html.Should().NotContain("letter-spacing:2px");
+
+        foreach (var label in RemovedLabels)
+        {
+            html.Should().NotContain(label, "the label above the heading was dropped from every email");
+        }
+    }
+
     [Theory]
     [InlineData("cs", "Váš plán. Společně.")]
     [InlineData("en", "Your plan. Together.")]
