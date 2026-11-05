@@ -258,6 +258,19 @@ public class SendMessageEndpoint(
                     "Failed to create the new-message notice for user {UserId} in conversation {ConversationId}",
                     recipientUserId, conversation.PublicId);
             }
+
+            // Opens or extends the burst that the grouped email is sent for; the scheduler sends it later.
+            try
+            {
+                await db.UpsertPendingNotificationEmailAsync(
+                    recipientUserId, NotificationEvent.NewMessage, conversation.PublicId, message.DateCreated, ct);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                logger.LogWarning(ex,
+                    "Failed to queue the grouped new-message email for user {UserId} in conversation {ConversationId}",
+                    recipientUserId, conversation.PublicId);
+            }
         }
 
         await Send.OkAsync(new SendMessageResponse

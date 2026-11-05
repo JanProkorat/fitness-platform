@@ -45,7 +45,6 @@ public class NotificationEmailSender(
         IReadOnlyDictionary<string, string> values,
         CancellationToken ct)
     {
-        // The new-message email has no template yet.
         if (EmailTemplateRenderer.TemplateFor(notificationEvent) is null)
         {
             return;
@@ -96,6 +95,13 @@ public class NotificationEmailSender(
     private string BuildActionUrl(NotificationEvent notificationEvent, IReadOnlyDictionary<string, string> values)
     {
         var baseUrl = (configuration[ConfigKeys.AppBaseUrl] ?? "http://localhost:5173").TrimEnd('/');
+
+        if (notificationEvent == NotificationEvent.NewMessage)
+        {
+            return values.TryGetValue(NotificationEmailWorkItem.ClientPublicIdKey, out var inboxClientPublicId)
+                ? $"{baseUrl}/inbox?client={WebUtility.UrlEncode(inboxClientPublicId)}"
+                : $"{baseUrl}/inbox";
+        }
 
         if (notificationEvent == NotificationEvent.JoinRequest
             || !values.TryGetValue(NotificationEmailWorkItem.ClientPublicIdKey, out var clientPublicId))

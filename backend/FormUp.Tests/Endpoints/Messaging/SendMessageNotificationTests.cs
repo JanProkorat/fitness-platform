@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using FluentAssertions;
+using FormUp.Application.Domain.Entities;
 using FormUp.Application.Domain.Enums;
 using FormUp.Application.Infrastructure.Data;
 using FormUp.Tests.Builders;
@@ -11,7 +12,8 @@ using Microsoft.Extensions.DependencyInjection;
 namespace FormUp.Tests.Endpoints.Messaging;
 
 /// <summary>
-/// The new-message in-app notice from POST /conversations/{id}/messages: only the coach gets one.
+/// The coach-side effects of POST /conversations/{id}/messages: the in-app notice and the grouped-email burst. Only
+/// a client's message to the coach creates either, and a failing burst upsert never fails the send.
 /// </summary>
 [Collection(TestCollection.Name)]
 public class SendMessageNotificationTests(FitnessApiFactory factory)
@@ -53,6 +55,82 @@ public class SendMessageNotificationTests(FitnessApiFactory factory)
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         (await NewMessageNoticeCountAsync(coach.UserId)).Should().Be(1);
         (await NewMessageNoticeCountAsync(client.UserId)).Should().Be(0);
+    }
+
+    private async Task<List<PendingNotificationEmail>> PendingEmailsAsync(Guid recipientUserId)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        return await db.PendingNotificationEmails.AsNoTracking()
+            .Where(p => p.RecipientUserId == recipientUserId)
+            .ToListAsync(TestContext.Current.CancellationToken);
+    }
+
+    [Fact]
+    public async Task Send_ClientWritesToCoach_OpensOneGroupedEmailBurstForTheConversation()
+    {
+        var (coach, client, conversationId) = await SeedConversationAsync();
+
+        foreach (var text in new[] { "one", "two", "three" })
+        {
+            (await client.Http.PostAsJsonAsync(
+                $"/conversations/{conversationId}/messages", new { Text = text }, TestContext.Current.CancellationToken))
+                .StatusCode.Should().Be(HttpStatusCode.OK);
+        }
+
+        var burst = (await PendingEmailsAsync(coach.UserId)).Should().ContainSingle().Subject;
+        burst.Event.Should().Be(NotificationEvent.NewMessage);
+        burst.GroupId.Should().Be(conversationId);
+        burst.DueAt.Should().BeAfter(burst.LastEventAt);
+        (await NewMessageNoticeCountAsync(coach.UserId)).Should().Be(3, "the per-message in-app notice is unchanged");
+        (await PendingEmailsAsync(client.UserId)).Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Send_CoachWritesToClient_OpensNoEmailBurst()
+    {
+        var (coach, client, conversationId) = await SeedConversationAsync();
+
+        var response = await coach.Http.PostAsJsonAsync(
+            $"/conversations/{conversationId}/messages", new { Text = "Hello client" }, TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await PendingEmailsAsync(client.UserId)).Should().BeEmpty();
+        (await PendingEmailsAsync(coach.UserId)).Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Send_BurstUpsertFails_StillReturns200AndSavesTheMessage()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var (coach, client, conversationId) = await SeedConversationAsync();
+        var blocker = "ck_test_block_" + Guid.NewGuid().ToString("N");
+
+        // A constraint that rejects only this coach's rows makes the upsert fail for real, without touching other tests.
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            await db.Database.ExecuteSqlRawAsync(
+                "ALTER TABLE pending_notification_emails ADD CONSTRAINT " + blocker
+                + " CHECK (recipient_user_id <> '" + coach.UserId + "')", ct);
+        }
+
+        try
+        {
+            var response = await client.Http.PostAsJsonAsync(
+                $"/conversations/{conversationId}/messages", new { Text = "Hello coach" }, ct);
+
+            response.StatusCode.Should().Be(HttpStatusCode.OK);
+            (await PendingEmailsAsync(coach.UserId)).Should().BeEmpty();
+            (await NewMessageNoticeCountAsync(coach.UserId)).Should().Be(1);
+        }
+        finally
+        {
+            using var scope = factory.Services.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            await db.Database.ExecuteSqlRawAsync("ALTER TABLE pending_notification_emails DROP CONSTRAINT " + blocker, ct);
+        }
     }
 
     [Fact]
