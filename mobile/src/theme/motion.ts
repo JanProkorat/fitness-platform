@@ -81,6 +81,11 @@ export const noteExpandMotion = {
   duration: 240,
 } as const;
 
+/** Offline banner sliding down from the top when the app goes offline, and back up when it returns, in ms. */
+export const offlineBannerMotion = {
+  duration: 240,
+} as const;
+
 /** Meal row expanding or collapsing on the plan week view and the Nutrition tab, in ms. */
 export const mealExpandMotion = {
   duration: 240,
