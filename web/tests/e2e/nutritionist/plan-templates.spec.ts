@@ -13,7 +13,7 @@
 import { request as apiRequest } from '@playwright/test';
 import { nutritionistTest as test, trainerTest, expect } from '../fixtures/auth';
 
-const NUTRITIONIST_EMAIL = 'qa.nutri@fitnessplatform.test';
+const NUTRITIONIST_EMAIL = 'qa.nutri@formup.test';
 /** The meal chips that start selected in the New template drawer. */
 const DEFAULT_CHIPS = ['Breakfast', 'Morning snack', 'Lunch', 'Dinner'];
 

@@ -61,7 +61,7 @@ return immediately with a request to run design-review first.
 
 ## Layout (canonical)
 ```
-FitnessPlatform.Application/
+FormUp.Application/
   Domain/{Entities,Documents,Enums,Interfaces,Constants}
   Features/<Area>/<Action>/      # one folder per endpoint — a vertical slice
     <Action>Endpoint.cs
@@ -69,7 +69,7 @@ FitnessPlatform.Application/
     <Action>Response.cs
     <Action>Validator.cs
   Infrastructure/{Data,Services,SignalR}
-FitnessPlatform.Tests/Endpoints/<Area>/<Action>Tests.cs
+FormUp.Tests/Endpoints/<Area>/<Action>Tests.cs
 ```
 
 ## Vertical slice architecture (how to build features)
@@ -109,7 +109,7 @@ its tests. The only layers below a slice are the shared primitives in
      `IRealtimeNotifier`, etc.)
    - Nothing else. Features do not reference each other's types.
 5. **Tests mirror the slice.** One test class per action at
-   `FitnessPlatform.Tests/Endpoints/<Area>/<Action>Tests.cs`. Don't share
+   `FormUp.Tests/Endpoints/<Area>/<Action>Tests.cs`. Don't share
    test helpers across slices beyond the existing `EndpointTestHelpers` and
    `Builders`.
 6. **Concurrency/transactions live inside the slice.** If the feature needs
@@ -134,7 +134,7 @@ Features/NutritionPlans/PublishWeek/
 
 Its test file:
 ```
-FitnessPlatform.Tests/Endpoints/NutritionPlans/PublishWeekEndpointTests.cs
+FormUp.Tests/Endpoints/NutritionPlans/PublishWeekEndpointTests.cs
     [Fact] Publish_WithValidWeek_Returns200_AndBroadcasts
     [Fact] Publish_ByNonOwner_Returns403
     [Fact] Publish_AlreadyPublished_Returns409
@@ -166,7 +166,7 @@ Repo-specific implementation names (`IApplicationDbContext`, `IMongoContext`,
 than re-deriving it.
 
 ## Tests
-- Mirror the feature path under `FitnessPlatform.Tests/Endpoints/<Area>/`.
+- Mirror the feature path under `FormUp.Tests/Endpoints/<Area>/`.
 - Use `EndpointTestHelpers` and the shared `Builders` for test data.
 - Integration tests hit real PostgreSQL and MongoDB via Testcontainers — never
   mock the DB. Docker must be running.
@@ -268,7 +268,7 @@ Then, for the rest of the task:
 ## EF Core migrations — apply to the local dev DB (mandatory, pre-QA)
 
 **Every time** you generate or modify an EF migration (anything under
-`backend/FitnessPlatform.Application/Infrastructure/Data/Migrations/`) you
+`backend/FormUp.Application/Infrastructure/Data/Migrations/`) you
 MUST apply it to the local dev PostgreSQL **before handing the slice back to
 the orchestrator**. Not optional. Not "final polish". If the apply fails,
 you STOP and report — you do **not** hand off a migration file for QA
@@ -322,7 +322,7 @@ the user knows which destructive op they're approving rather than
 just "approve dotnet ef database update".
 
 The connection string lives in
-`backend/FitnessPlatform.Application/appsettings.Development.Local.json`
+`backend/FormUp.Application/appsettings.Development.Local.json`
 (key: `ConnectionStrings.PostgreSQL`). The `ConnectionStringFactory`
 re-reads `POSTGRES_PASSWORD` as a separate env var even when the password
 is inline in the connection string — extract it from the JSON first.
@@ -333,7 +333,7 @@ defensively).
 ### Exact command
 
 ```bash
-cd backend/FitnessPlatform.Application
+cd backend/FormUp.Application
 ASPNETCORE_ENVIRONMENT=Development.Local \
   POSTGRES_PASSWORD=<password-from-appsettings.Development.Local.json> \
   MONGO_PASSWORD=<mongo-password-from-same-file> \

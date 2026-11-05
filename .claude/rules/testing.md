@@ -7,7 +7,7 @@ paths:
 
 > **Descriptive.** Written in #1104 after the suite was cut from 15 min to
 > ~1.5 min locally on the same 2528 tests, then trimmed to 2381. Applies to
-> `backend/FitnessPlatform.Tests`. Every rule below exists because breaking it
+> `backend/FormUp.Tests`. Every rule below exists because breaking it
 > cost real minutes or hid a real bug.
 
 ## Time budget
@@ -137,7 +137,7 @@ hung test instead of stalling the whole run.
 
 ## Running tests
 
-- Scoped runs: `dotnet test backend/FitnessPlatform.Tests/FitnessPlatform.Tests.csproj -- --filter-class "<FQN>"`.
+- Scoped runs: `dotnet test backend/FormUp.Tests/FormUp.Tests.csproj -- --filter-class "<FQN>"`.
   Plain `--filter` is silently ignored and runs everything.
 - Timing a full run: block sleep (`caffeinate -i`) and make sure no other test
   suite is running — both have produced numbers that were off by 10×.

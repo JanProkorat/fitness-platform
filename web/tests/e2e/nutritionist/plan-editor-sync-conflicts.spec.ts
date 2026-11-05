@@ -11,7 +11,7 @@
 import { request as apiRequest, type APIRequestContext, type Page } from '@playwright/test';
 import { nutritionistTest as test, expect } from '../fixtures/auth';
 
-const NUTRITIONIST_EMAIL = 'qa.nutri@fitnessplatform.test';
+const NUTRITIONIST_EMAIL = 'qa.nutri@formup.test';
 const CLIENT_PROFILE_ID = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
 const PLAN_NAME = 'QA SyncConflicts';
 const DAY_MS = 24 * 60 * 60 * 1000;

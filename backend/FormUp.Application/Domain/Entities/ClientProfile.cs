@@ -1,0 +1,78 @@
+using System.ComponentModel.DataAnnotations;
+using FormUp.Application.Domain.Common;
+
+namespace FormUp.Application.Domain.Entities;
+
+/// <summary>
+/// Profile information for users in the Client role.
+/// </summary>
+public class ClientProfile : PublicTimestampableEntity
+{
+    /// <summary>
+    /// Foreign key to the associated <see cref="ApplicationUser"/>.
+    /// </summary>
+    public Guid UserId { get; set; }
+
+    /// <summary>
+    /// Client's date of birth.
+    /// </summary>
+    public DateTime? DateOfBirth { get; set; }
+
+    /// <summary>
+    /// Client's height in centimeters.
+    /// </summary>
+    public decimal? HeightCm { get; set; }
+
+    /// <summary>
+    /// Client's current weight in kilograms.
+    /// </summary>
+    public decimal? WeightKg { get; set; }
+
+    /// <summary>
+    /// Client's fitness or health goals.
+    /// </summary>
+    [MaxLength(500)]
+    public string? Goals { get; set; }
+
+    /// <summary>
+    /// Medical notes relevant to training and nutrition (GDPR Art. 9 special category).
+    /// </summary>
+    [MaxLength(500)]
+    public string? MedicalNotes { get; set; }
+
+    /// <summary>
+    /// Known injuries or physical limitations.
+    /// </summary>
+    [MaxLength(500)]
+    public string? Injuries { get; set; }
+
+    /// <summary>
+    /// Whether the client has completed the onboarding questionnaire.
+    /// </summary>
+    public bool IsOnboardingComplete { get; set; }
+
+    /// <summary>
+    /// Navigation property to the onboarding questionnaire data.
+    /// </summary>
+    public ClientOnboardingData? OnboardingData { get; set; }
+
+    /// <summary>
+    /// Navigation property to the associated user.
+    /// </summary>
+    public ApplicationUser User { get; set; } = null!;
+
+    /// <summary>
+    /// Collection of links to professionals (trainers/nutritionists) managing this client.
+    /// </summary>
+    public ICollection<ClientProfessionalLink> ProfessionalLinks { get; set; } = [];
+
+    /// <summary>
+    /// Collection of body measurements recorded for this client.
+    /// </summary>
+    public ICollection<BodyMeasurement> BodyMeasurements { get; set; } = [];
+
+    /// <summary>
+    /// Collection of plan-scoped photos uploaded for this client (body, food, free-form).
+    /// </summary>
+    public ICollection<PlanPhoto> PlanPhotos { get; set; } = [];
+}

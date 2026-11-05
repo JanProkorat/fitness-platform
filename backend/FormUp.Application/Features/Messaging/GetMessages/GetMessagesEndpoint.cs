@@ -1,0 +1,214 @@
+using System.Security.Claims;
+using FastEndpoints;
+using FormUp.Application.Domain.Constants;
+using FormUp.Application.Domain.Enums;
+using FormUp.Application.Domain.Interfaces;
+using FormUp.Application.Domain.Services;
+using FormUp.Application.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
+
+namespace FormUp.Application.Features.Messaging.GetMessages;
+
+/// <summary>
+/// Returns paginated messages for a conversation.
+/// </summary>
+/// <param name="db">Relational database context.</param>
+/// <param name="blobStorage">Signs each message's stored image key into a short-lived read URL.</param>
+/// <param name="timeProvider">Clock used to derive invite expiry.</param>
+public class GetMessagesEndpoint(IApplicationDbContext db, IBlobStorageService blobStorage, TimeProvider timeProvider)
+    : Endpoint<GetMessagesRequest, GetMessagesResponse>
+{
+    public override void Configure()
+    {
+        Get("/conversations/{ConversationId}/messages");
+        Roles(AppRoles.Trainer, AppRoles.Nutritionist, AppRoles.Client);
+        Summary(s =>
+        {
+            s.Summary = "Get conversation messages";
+            s.Description = "Returns messages for a conversation with cursor-based pagination.";
+        });
+    }
+
+    public override async Task HandleAsync(GetMessagesRequest req, CancellationToken ct)
+    {
+        var userId = User.FindFirstValue(AppClaims.UserId);
+        if (userId is null) { await Send.UnauthorizedAsync(ct); return; }
+
+        var userGuid = Guid.Parse(userId);
+
+        // Verify user is a participant
+        var conversation = await db.Conversations
+            .AsNoTracking()
+            .FirstOrDefaultAsync(c =>
+                c.PublicId == req.ConversationId &&
+                (c.ProfessionalUserId == userGuid || c.ClientUserId == userGuid), ct);
+
+        if (conversation is null)
+        {
+            await Send.NotFoundAsync(ct);
+            return;
+        }
+
+        var limit = req.Limit is > 0 and <= 50 ? req.Limit.Value : 30;
+
+        var query = db.ChatMessages
+            .AsNoTracking()
+            .Where(m => m.ConversationId == conversation.Id)
+            .OrderByDescending(m => m.DateCreated)
+            .ThenByDescending(m => m.Id);
+
+        if (req.Cursor.HasValue)
+        {
+            var cursorMsg = await db.ChatMessages
+                .AsNoTracking()
+                .FirstOrDefaultAsync(m => m.PublicId == req.Cursor.Value, ct);
+
+            if (cursorMsg is not null)
+            {
+                var cursorDate = cursorMsg.DateCreated;
+                var cursorId = cursorMsg.Id;
+                query = (IOrderedQueryable<Domain.Entities.ChatMessage>)query
+                    .Where(m => m.DateCreated < cursorDate ||
+                                (m.DateCreated == cursorDate && m.Id < cursorId));
+            }
+        }
+
+        var rows = await query
+            .Take(limit)
+            .Select(m => new MessageRow
+            {
+                Id = m.PublicId,
+                SenderId = m.SenderUserId,
+                Text = m.Text,
+                Timestamp = m.DateCreated,
+                IsRead = m.IsRead,
+                ImageBlobUrl = m.ImageBlobUrl,
+                ImageWidth = m.ImageWidth,
+                ImageHeight = m.ImageHeight,
+                Kind = m.Kind,
+                EventType = m.EventType,
+                EventSourceId = m.EventSourceId,
+            })
+            .ToListAsync(ct);
+
+        var statuses = await ResolveEventStatusesAsync(rows, ct);
+
+        // Sign each stored image key into a fresh, short-lived read URL — never surface
+        // ImageBlobUrl (the permanent, unsigned identity value) to the client.
+        var items = new List<MessageDto>(rows.Count);
+        foreach (var row in rows)
+        {
+            items.Add(new MessageDto
+            {
+                Id = row.Id,
+                SenderId = row.SenderId,
+                Text = row.Text,
+                Timestamp = row.Timestamp,
+                IsRead = row.IsRead,
+                ImageUrl = row.ImageBlobUrl is not null
+                    ? await blobStorage.GenerateReadUrlAsync(row.ImageBlobUrl, ct) ?? string.Empty
+                    : null,
+                ImageWidth = row.ImageWidth,
+                ImageHeight = row.ImageHeight,
+                Kind = row.Kind,
+                EventType = row.EventType,
+                EventSourceId = row.EventSourceId,
+                EventStatus = row.EventSourceId is { } sourceId && statuses.TryGetValue(sourceId, out var state)
+                    ? StatusFor(row.EventType, state)
+                    : null,
+            });
+        }
+
+        Guid? nextCursor = null;
+        if (items.Count == limit)
+            nextCursor = items[^1].Id;
+
+        await Send.OkAsync(new GetMessagesResponse { Items = items, Cursor = nextCursor }, ct);
+    }
+
+    /// <summary>
+    /// Resolves the current status of every invite or request the page's event messages point at,
+    /// with one batched lookup per table.
+    /// </summary>
+    private async Task<Dictionary<Guid, CooperationSourceState>> ResolveEventStatusesAsync(
+        List<MessageRow> rows, CancellationToken ct)
+    {
+        var sourceIds = rows
+            .Where(r => r.Kind == ChatMessageKind.Event && r.EventSourceId.HasValue)
+            .Select(r => r.EventSourceId!.Value)
+            .Distinct()
+            .ToList();
+
+        return await CooperationStatusResolver.ResolveAsync(
+            db, sourceIds, timeProvider.GetUtcNow().UtcDateTime, ct);
+    }
+
+    /// <summary>
+    /// The card status for one event. A proposal card still reading Pending after the proposal stopped waiting
+    /// (the coach withdrew it), and a Withdrawn card on a request that is pending again, are Cancelled.
+    /// </summary>
+    private static CooperationCardStatus StatusFor(ChatEventType? eventType, CooperationSourceState state) =>
+        state.Status == CooperationCardStatus.Pending
+            && (eventType == ChatEventType.Withdrawn || (eventType == ChatEventType.ProposalSent && !state.ProposalOpen))
+            ? CooperationCardStatus.Cancelled
+            : state.Status;
+
+    /// <summary>Internal EF projection shape — carries the raw, unsigned <c>ImageBlobUrl</c> before signing.</summary>
+    private sealed class MessageRow
+    {
+        public Guid Id { get; set; }
+        public Guid SenderId { get; set; }
+        public string Text { get; set; } = string.Empty;
+        public DateTime Timestamp { get; set; }
+        public bool IsRead { get; set; }
+        public string? ImageBlobUrl { get; set; }
+        public int? ImageWidth { get; set; }
+        public int? ImageHeight { get; set; }
+        public ChatMessageKind Kind { get; set; }
+        public ChatEventType? EventType { get; set; }
+        public Guid? EventSourceId { get; set; }
+    }
+}
+
+public class GetMessagesRequest
+{
+    public Guid ConversationId { get; set; }
+    [QueryParam] public int? Limit { get; set; }
+    [QueryParam] public Guid? Cursor { get; set; }
+}
+
+public class GetMessagesResponse
+{
+    public List<MessageDto> Items { get; set; } = [];
+    public Guid? Cursor { get; set; }
+}
+
+public class MessageDto
+{
+    public Guid Id { get; set; }
+    public Guid SenderId { get; set; }
+    public string Text { get; set; } = string.Empty;
+    public DateTime Timestamp { get; set; }
+    public bool IsRead { get; set; }
+
+    /// <summary>Short-lived signed URL for the image attachment, or null for a text-only message.</summary>
+    public string? ImageUrl { get; set; }
+
+    public int? ImageWidth { get; set; }
+    public int? ImageHeight { get; set; }
+
+    /// <summary>Discriminates a plain message from a system-generated cooperation event.</summary>
+    public ChatMessageKind Kind { get; set; }
+
+    /// <summary>The cooperation event type, when <see cref="Kind"/> is <see cref="ChatMessageKind.Event"/>.</summary>
+    public ChatEventType? EventType { get; set; }
+
+    /// <summary>Public id of the invite or request the event refers to, or null for a plain message.</summary>
+    public Guid? EventSourceId { get; set; }
+
+    /// <summary>
+    /// Current status of the linked invite or request, for the chat card label. Null for a plain
+    /// message, or when the event has no resolvable source.
+    /// </summary>
+    public CooperationCardStatus? EventStatus { get; set; }
+}

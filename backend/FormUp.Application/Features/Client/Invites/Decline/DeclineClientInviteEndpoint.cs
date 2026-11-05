@@ -1,0 +1,98 @@
+using System.Security.Claims;
+using FastEndpoints;
+using FormUp.Application.Domain.Constants;
+using FormUp.Application.Domain.Enums;
+using FormUp.Application.Domain.Interfaces;
+using FormUp.Application.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
+
+namespace FormUp.Application.Features.Client.Invites.Decline;
+
+/// <summary>
+/// Client declines a pending invite. Marks it as declined without creating a link.
+/// </summary>
+public class DeclineClientInviteEndpoint(
+    IApplicationDbContext db,
+    IRealtimeNotifier notifier,
+    IConversationSeedService conversationSeedService) : Endpoint<DeclineClientInviteRequest>
+{
+    public override void Configure()
+    {
+        Post("/client/invites/{Id}/decline");
+        Roles(AppRoles.Client);
+        Summary(s =>
+        {
+            s.Summary = "Decline a pending invite";
+            s.Description = "Declines a pending invitation. The invite is consumed but no link is created.";
+        });
+    }
+
+    public override async Task HandleAsync(DeclineClientInviteRequest req, CancellationToken ct)
+    {
+        var userId = User.FindFirstValue(AppClaims.UserId);
+        if (userId is null) { await Send.UnauthorizedAsync(ct); return; }
+
+        var userGuid = Guid.Parse(userId);
+
+        // Invites addressed to a coaching account are silent rows — never actionable by it.
+        if (User.IsInRole(AppRoles.Trainer) || User.IsInRole(AppRoles.Nutritionist))
+        {
+            await Send.NotFoundAsync(ct);
+            return;
+        }
+
+        var caller = await db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == userGuid, ct);
+        if (caller is null) { await Send.UnauthorizedAsync(ct); return; }
+
+        // Use NormalizedEmail (uppercase, set by Identity) for reliable matching.
+        // PendingInvite.Email stores the original casing from the trainer, so compare
+        // using UPPER() on both sides. Folding this into the lookup itself (rather than
+        // checking after) means a GUID that belongs to someone else's invite falls
+        // through to the same 404 as an unknown/consumed invite — never a distinct 403
+        // that would confirm the GUID exists.
+        var normalizedEmail = caller.NormalizedEmail ?? caller.Email?.ToUpper() ?? string.Empty;
+
+        var invite = await db.PendingInvites
+            .Include(pi => pi.ProfessionalProfile)
+            .FirstOrDefaultAsync(pi => pi.PublicId == req.Id && pi.Status == PendingInviteStatus.Pending
+                && pi.Email.ToUpper() == normalizedEmail, ct);
+
+        if (invite is null)
+        {
+            await Send.NotFoundAsync(ct);
+            return;
+        }
+
+        invite.Status = PendingInviteStatus.Declined;
+        await db.SaveChangesAsync(ct);
+
+        // Ensure the invite's Invited event + message exist (idempotent no-op if already
+        // written), then record this Declined event — same "ensure then append" shape as
+        // the accept paths.
+        await conversationSeedService.AppendCooperationEventAsync(
+            invite.ProfessionalProfile.UserId, userGuid, invite.ProfessionalProfile.UserId,
+            ChatEventType.Invited, invite.PublicId, invite.Message,
+            createConversationIfMissing: true, ct);
+
+        await conversationSeedService.AppendCooperationEventAsync(
+            invite.ProfessionalProfile.UserId, userGuid, userGuid,
+            ChatEventType.Declined, invite.PublicId, messageText: null,
+            createConversationIfMissing: true, ct);
+
+        // Notify the professional that the invite was declined
+        var clientName = $"{caller.FirstName} {caller.LastName}";
+
+        await notifier.NotifyAsync(
+            invite.ProfessionalProfile.UserId,
+            "invitedeclined",
+            new { clientName, inviteId = invite.PublicId },
+            ct);
+
+        await Send.NoContentAsync(ct);
+    }
+}
+
+public class DeclineClientInviteRequest
+{
+    public Guid Id { get; set; }
+}

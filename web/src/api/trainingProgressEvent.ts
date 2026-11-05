@@ -6,7 +6,7 @@
  * auto-generated and write-locked.
  *
  * Source of truth:
- *   backend/FitnessPlatform.Application/Features/ClientTraining/TrainingProgressUpdatedEvent.cs
+ *   backend/FormUp.Application/Features/ClientTraining/TrainingProgressUpdatedEvent.cs
  *
  * SignalR event name: "trainingprogressupdated"  (hub convention: lowercase)
  */

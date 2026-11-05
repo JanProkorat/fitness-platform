@@ -1,13 +1,13 @@
 ---
 paths:
   - "backend/**"
-description: FluentValidation rules for request DTOs in the FitnessPlatform backend
+description: FluentValidation rules for request DTOs in the FormUp backend
 ---
 
 # Validation Rules
 
 > **Descriptive.** Counts below were measured against
-> `backend/FitnessPlatform.Application` on `develop` at `dc990021` (issue
+> `backend/FormUp.Application` on `develop` at `dc990021` (issue
 > #937).
 
 ## Two levels
@@ -89,7 +89,7 @@ The dotted `"{Domain}.{ErrorName}"` format this file used to prescribe has
 ## Testing validators
 
 Unit test with `.TestValidate(...)` — 228 call sites in
-`FitnessPlatform.Tests`. No FastEndpoints host needed.
+`FormUp.Tests`. No FastEndpoints host needed.
 
 ```csharp
 var result = new CreatePlanValidator().TestValidate(new CreatePlanRequest { Name = "" });

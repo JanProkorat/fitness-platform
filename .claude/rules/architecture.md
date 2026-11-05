@@ -1,27 +1,27 @@
 ---
 paths:
   - "backend/**"
-description: Vertical slice architecture rules for the FitnessPlatform .NET backend
+description: Vertical slice architecture rules for the FormUp .NET backend
 ---
 
 # Architecture Rules
 
 > **Descriptive unless marked otherwise.** Every claim below was measured
-> against `backend/FitnessPlatform.Application` on `develop` at `dc990021`
+> against `backend/FormUp.Application` on `develop` at `dc990021`
 > (issue #937). Where a rule is aspirational — a direction for new code that
 > most of the existing code does not follow — it is labelled
 > **[ASPIRATIONAL]** and states the current count. Do not read an
 > aspirational rule as a description of the codebase, and do not open a
 > finding against existing code for failing it.
 
-The backend is **one project** — `FitnessPlatform.Application` (plus
-`FitnessPlatform.Tests`). Feature code is organised as vertical slices under
+The backend is **one project** — `FormUp.Application` (plus
+`FormUp.Tests`). Feature code is organised as vertical slices under
 `Features/`; everything shared across slices lives under `Domain/` or
 `Infrastructure/`. See #vertical-slice-layout and #shared-layers.
 
 ## Vertical slice layout
 
-Every feature lives in `FitnessPlatform.Application/Features/{Area}/` — one
+Every feature lives in `FormUp.Application/Features/{Area}/` — one
 type per file, co-located, nested one folder per action. 233 endpoint files
 across 27 area folders follow this shape; the per-action nesting is
 universal, not optional.
@@ -153,13 +153,13 @@ See `rules/naming.md#files-and-types`.
 
 Two projects, no `.Shared` / `.Infrastructure` split:
 
-- `FitnessPlatform.Application` — `Microsoft.NET.Sdk.Web`, `net10.0`,
+- `FormUp.Application` — `Microsoft.NET.Sdk.Web`, `net10.0`,
   `Nullable`/`ImplicitUsings` enabled, `GenerateDocumentationFile=true` with
   `NoWarn=1591`. Holds endpoints, domain, infrastructure wiring, migrations,
   seed data.
-- `FitnessPlatform.Tests` — xUnit v3 + Testcontainers.
+- `FormUp.Tests` — xUnit v3 + Testcontainers.
 
 Types shared with the web and mobile clients are not shared via a project
 reference — the clients consume generated TypeScript from Swagger (see the
-`regen-api` skill). There is no `FitnessPlatform.Shared` project; do not
+`regen-api` skill). There is no `FormUp.Shared` project; do not
 cite one.

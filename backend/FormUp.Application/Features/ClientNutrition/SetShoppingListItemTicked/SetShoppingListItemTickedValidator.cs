@@ -1,0 +1,25 @@
+using FastEndpoints;
+using FormUp.Application.Domain.Extensions;
+using FluentValidation;
+
+namespace FormUp.Application.Features.ClientNutrition.SetShoppingListItemTicked;
+
+/// <summary>
+/// Validates the <see cref="SetShoppingListItemTickedRequest"/>.
+/// </summary>
+public class SetShoppingListItemTickedValidator : Validator<SetShoppingListItemTickedRequest>
+{
+    /// <summary>
+    /// Initializes validation rules for ticking a shopping-list item.
+    /// </summary>
+    public SetShoppingListItemTickedValidator()
+    {
+        RuleFor(x => x.WeekNumber)
+            .GreaterThanOrEqualTo(1);
+
+        RuleFor(x => x.FoodExternalId)
+            .NotEmpty();
+
+        this.AddOfflineSyncRules(x => x.OccurredAt, x => x.ClientRequestId);
+    }
+}

@@ -6,7 +6,7 @@
 import { request as apiRequest, type Page } from '@playwright/test';
 import { nutritionistTest as test, expect } from '../fixtures/auth';
 
-const NUTRITIONIST_EMAIL = 'qa.nutri@fitnessplatform.test';
+const NUTRITIONIST_EMAIL = 'qa.nutri@formup.test';
 const WHEEL_STEP_PX = 30;
 const WHEEL_STEPS = 8;
 

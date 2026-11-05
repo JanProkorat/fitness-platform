@@ -37,7 +37,7 @@
 import { request as apiRequest, type APIRequestContext, type Page } from '@playwright/test';
 import { trainerTest as test, expect } from '../fixtures/auth';
 
-const CLIENT2_EMAIL = 'qa.client2@fitnessplatform.test';
+const CLIENT2_EMAIL = 'qa.client2@formup.test';
 /** QaSeedRunner.TrainerProfilePublicId — qa.trainer's ProfessionalProfile.PublicId. */
 const TRAINER_PROFESSIONAL_PUBLIC_ID = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
 const CLIENT2_DISPLAY_NAME = 'QA Client2';

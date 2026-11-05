@@ -5,7 +5,7 @@
 --   Report all current Admin role holders so an operator can verify that only
 --   legitimately seeded/out-of-band Admin accounts exist in the database.
 --   The only expected Admin account in a standard deployment is
---   admin@goodfellas.local (seeded by ApplicationDbContextSeed).
+--   admin@formup.local (seeded by ApplicationDbContextSeed).
 --   Any additional Admin holder should be correlated against documented
 --   out-of-band grants from the #230 history.
 --

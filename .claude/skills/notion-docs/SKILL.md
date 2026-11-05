@@ -1,6 +1,6 @@
 ---
 name: notion-docs
-description: Build and update the GoodFellas Notion wiki — app → area → screen pages explaining every control, real-app screenshots, and an API reference generated from Swagger. Two modes — update (after every merge into `develop`: a standalone task PR or an epic PR, never a task PR into an epic branch) and build (recovery rebuild). Main thread only. Invoke on "update the wiki", "update the docs", "rebuild the wiki", or after any PR merges into `develop`.
+description: Build and update the Form Up Notion wiki — app → area → screen pages explaining every control, real-app screenshots, and an API reference generated from Swagger. Two modes — update (after every merge into `develop`: a standalone task PR or an epic PR, never a task PR into an epic branch) and build (recovery rebuild). Main thread only. Invoke on "update the wiki", "update the docs", "rebuild the wiki", or after any PR merges into `develop`.
 ---
 
 # notion-docs — the Notion wiki

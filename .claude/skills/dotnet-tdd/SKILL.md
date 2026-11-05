@@ -47,7 +47,7 @@ One test case per tick — not the whole endpoint.
 Always scope a run to the class you are working on:
 
 ```bash
-dotnet test backend/FitnessPlatform.Tests/FitnessPlatform.Tests.csproj -- --filter-class "FitnessPlatform.Tests.Endpoints.{Area}.{Action}EndpointTests"
+dotnet test backend/FormUp.Tests/FormUp.Tests.csproj -- --filter-class "FormUp.Tests.Endpoints.{Area}.{Action}EndpointTests"
 ```
 
 Plain `dotnet test --filter …` is silently ignored and runs the whole suite

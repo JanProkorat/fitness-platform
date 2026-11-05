@@ -1,20 +1,20 @@
 ---
 paths:
   - "backend/**"
-description: C# language and style rules for the FitnessPlatform backend
+description: C# language and style rules for the FormUp backend
 ---
 
 # C# Style Rules
 
 > **Descriptive unless marked otherwise.** Counts below were measured against
-> `backend/FitnessPlatform.Application` on `develop` at `dc990021` (issue
+> `backend/FormUp.Application` on `develop` at `dc990021` (issue
 > #937). **[ASPIRATIONAL]** marks a direction for new code that most existing
 > code does not follow — never a description of the codebase, and never a
 > finding against existing code.
 
 ## Language version
 
-.NET 10 / C# 14. `FitnessPlatform.Application.csproj` sets
+.NET 10 / C# 14. `FormUp.Application.csproj` sets
 `<TargetFramework>net10.0</TargetFramework>`, `<Nullable>enable</Nullable>`,
 `<ImplicitUsings>enable</ImplicitUsings>`, `<GenerateDocumentationFile>true</GenerateDocumentationFile>`
 and `<NoWarn>$(NoWarn);1591</NoWarn>`. There is no `Directory.Build.props`

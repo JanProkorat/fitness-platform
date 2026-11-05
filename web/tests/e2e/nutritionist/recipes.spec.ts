@@ -22,7 +22,7 @@ const IMAGE_A_PATH = path.resolve(__dirname, '..', 'fixtures', 'ingredient-pictu
 // which cannot resolve the internal minio-test host for stored pictures (routed below).
 const IN_CONTAINER = process.env['PLAYWRIGHT_IN_CONTAINER'] === 'true';
 
-const NUTRITIONIST_EMAIL = 'qa.nutri@fitnessplatform.test';
+const NUTRITIONIST_EMAIL = 'qa.nutri@formup.test';
 
 interface LoginResponseBody {
   accessToken: string;

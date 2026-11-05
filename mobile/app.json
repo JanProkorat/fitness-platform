@@ -1,17 +1,17 @@
 {
   "expo": {
-    "name": "GF Platform",
-    "slug": "gf-platform",
+    "name": "Form Up",
+    "slug": "form-up",
     "owner": "proky",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "fitnessplatform",
+    "scheme": "formup",
     "userInterfaceStyle": "automatic",
     "ios": {
       "icon": "./assets/expo.icon",
       "supportsTablet": true,
-      "bundleIdentifier": "com.gfplatform.mobile",
+      "bundleIdentifier": "com.formup.mobile",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "CFBundleAllowMixedLocalizations": true
@@ -23,7 +23,7 @@
       "de": "./native-locales/de.json"
     },
     "android": {
-      "package": "com.gfplatform.mobile",
+      "package": "com.formup.mobile",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
@@ -44,8 +44,8 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "GoodFellas uses your photos to upload your progress pictures.",
-          "cameraPermission": "GoodFellas uses the camera to take your progress pictures.",
+          "photosPermission": "Form Up uses your photos to upload your progress pictures.",
+          "cameraPermission": "Form Up uses the camera to take your progress pictures.",
           "microphonePermission": false
         }
       ],

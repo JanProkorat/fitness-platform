@@ -5,12 +5,12 @@
  * Runs under the `public` project (playwright.config.ts) — no `setup`
  * dependency, no `storageState`, so the browser context starts genuinely
  * signed out. Credentials come from QA_SEED_PASSWORD against the seeded
- * `qa.trainer@fitnessplatform.test` fixture (QaSeedRunner), same as
+ * `qa.trainer@formup.test` fixture (QaSeedRunner), same as
  * tests/e2e/auth.setup.ts.
  */
 import { test, expect } from '@playwright/test';
 
-const TRAINER_EMAIL = 'qa.trainer@fitnessplatform.test';
+const TRAINER_EMAIL = 'qa.trainer@formup.test';
 
 // The app defaults to 'cs' when no 'lang' key exists in localStorage (see
 // src/i18n/index.ts). Force English so this spec's text assertions are

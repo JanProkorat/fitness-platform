@@ -1,4 +1,4 @@
-# GoodFellas — Orchestration & Sub-agent Routing
+# Form Up — Orchestration & Sub-agent Routing
 
 This file supplements the root `CLAUDE.md`. It tells the main (orchestrator)
 Claude how to route work to specialist sub-agents so each package's conventions
@@ -33,8 +33,8 @@ Project-local workflow agents (also in `.claude/agents/`):
 
 ## Project facts
 
-- **Repo:** `JanProkorat/fitness-platform`
-- **Local path:** `/Users/jan/Projects/fitness-platform`
+- **Repo:** `JanProkorat/form-up`
+- **Local path:** `/Users/jan/Projects/form-up`
 - **Active base branch:** `develop` (release: `main`)
 
 ## Label taxonomy

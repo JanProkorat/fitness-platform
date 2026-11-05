@@ -4,7 +4,7 @@
 # from launchSettings.json automatically, but `dotnet ef` does not — so any
 # target that invokes the EF design-time tooling must pass them explicitly.
 # Values mirror the `https` profile in
-# backend/FitnessPlatform.Application/Properties/launchSettings.json.
+# backend/FormUp.Application/Properties/launchSettings.json.
 DEV_ENV := ASPNETCORE_ENVIRONMENT=Development \
 	POSTGRES_PASSWORD=fitness_dev_password \
 	MONGO_PASSWORD=mongo_dev_password \
@@ -22,7 +22,7 @@ down:
 
 # Run backend API
 backend:
-	cd backend/FitnessPlatform.Application && ASPNETCORE_ENVIRONMENT=Development dotnet run
+	cd backend/FormUp.Application && ASPNETCORE_ENVIRONMENT=Development dotnet run
 
 # Run web dev server
 web:
@@ -30,11 +30,11 @@ web:
 
 # Run EF Core migrations
 migrate:
-	cd backend && $(DEV_ENV) dotnet ef database update --project FitnessPlatform.Application
+	cd backend && $(DEV_ENV) dotnet ef database update --project FormUp.Application
 
 # Seed the database
 seed:
-	cd backend/FitnessPlatform.Application && ASPNETCORE_ENVIRONMENT=Development dotnet run -- --seed
+	cd backend/FormUp.Application && ASPNETCORE_ENVIRONMENT=Development dotnet run -- --seed
 
 # Run all tests
 test:
@@ -59,9 +59,9 @@ setup:
 	@echo "==> Waiting for PostgreSQL to be ready..."
 	@until docker exec fitness-postgres pg_isready -U fitness_admin -d fitness_dev > /dev/null 2>&1; do sleep 1; done
 	@echo "==> Applying EF Core migrations..."
-	cd backend && $(DEV_ENV) dotnet ef database update --project FitnessPlatform.Application
+	cd backend && $(DEV_ENV) dotnet ef database update --project FormUp.Application
 	@echo "==> Seeding database (roles)..."
-	cd backend/FitnessPlatform.Application && ASPNETCORE_ENVIRONMENT=Development dotnet run -- --seed
+	cd backend/FormUp.Application && ASPNETCORE_ENVIRONMENT=Development dotnet run -- --seed
 	@echo "==> Setup complete!"
 	@echo ""
 	@echo "Services:"

@@ -1,0 +1,124 @@
+using System.Security.Claims;
+using FastEndpoints;
+using FormUp.Application.Domain.Constants;
+using FormUp.Application.Domain.Entities;
+using FormUp.Application.Domain.Enums;
+using FormUp.Application.Domain.Interfaces;
+using FormUp.Application.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
+
+namespace FormUp.Application.Features.Trainers.GetClientVerdict;
+
+/// <summary>
+/// Returns the on-track verdict and supporting signals for a specific client.
+/// Trainer must have an active link to the client. Returns 403 if not linked.
+/// </summary>
+/// <param name="db">Database context.</param>
+/// <param name="verdictService">Computes the verdict and its supporting signals.</param>
+/// <param name="linkAuthorizationService">
+/// Resolves the caller's link capabilities to the client. Called only after the caller's own
+/// professional profile and the target client profile are separately confirmed to exist (both
+/// still 404 on their own), so a <see langword="null"/> result here can only mean "no active
+/// link" — preserving the endpoint's deliberate 403 (not 404) for that case.
+/// </param>
+public class GetClientVerdictEndpoint(
+    IApplicationDbContext db,
+    IClientVerdictService verdictService,
+    IClientLinkAuthorizationService linkAuthorizationService)
+    : Endpoint<GetClientVerdictRequest, GetClientVerdictResponse>
+{
+    /// <inheritdoc />
+    public override void Configure()
+    {
+        Get("/trainer/clients/{clientId}/verdict");
+        Roles(AppRoles.Trainer, AppRoles.Nutritionist);
+        Summary(s =>
+        {
+            s.Summary = "Get client on-track verdict";
+            s.Description = "Returns the on-track verdict and supporting signals (compliance, weight, training frequency, activity, PRs) for a specific client managed by the authenticated trainer.";
+        });
+    }
+
+    /// <inheritdoc />
+    public override async Task HandleAsync(GetClientVerdictRequest req, CancellationToken ct)
+    {
+        var userId = User.FindFirstValue(AppClaims.UserId);
+
+        if (userId is null)
+        {
+            await Send.UnauthorizedAsync(ct);
+            return;
+        }
+
+        var trainerUserId = Guid.Parse(userId);
+
+        // Locate the trainer's professional profile
+        var professionalProfile = await db.ProfessionalProfiles
+            .AsNoTracking()
+            .FirstOrDefaultAsync(pp => pp.UserId == trainerUserId, ct);
+
+        if (professionalProfile is null)
+        {
+            await Send.NotFoundAsync(ct);
+            return;
+        }
+
+        // Locate the client profile by PublicId
+        var clientProfile = await db.ClientProfiles
+            .AsNoTracking()
+            .Include(cp => cp.OnboardingData)
+            .FirstOrDefaultAsync(cp => cp.PublicId == req.ClientId, ct);
+
+        if (clientProfile is null)
+        {
+            await Send.NotFoundAsync(ct);
+            return;
+        }
+
+        // Verify an active trainer-client link exists; return 403 (not 404) when missing. The
+        // professional and client profiles are already confirmed to exist above, so a null
+        // result here can only mean "no active link" — not "no professional/client profile".
+        var capabilities = await linkAuthorizationService.GetCapabilitiesByClientPublicIdAsync(
+            trainerUserId, req.ClientId, ct);
+
+        if (capabilities is null)
+        {
+            await Send.ForbiddenAsync(ct);
+            return;
+        }
+
+        // The link's existence decides who may reach the route; its flags decide which halves of
+        // the response they see. A link carrying neither flag grants no per-client plan visibility
+        // at all — the same deny the dashboard, timeline and plan-list routes already carry.
+        if (capabilities.Value.GrantsNothing)
+        {
+            await Send.ForbiddenAsync(ct);
+            return;
+        }
+
+        var targetWeightKg = clientProfile.OnboardingData?.TargetWeightKg;
+
+        // clientProfile.UserId is the ApplicationUser.Id (Guid) used by all Mongo documents
+        // (WorkoutLog, MealLog, NutritionPlan, TrainingPlan, PersonalRecord).
+        // clientProfile.Id is the long PK used by BodyMeasurement (keyed on ClientProfileId).
+        var result = await verdictService.ComputeAsync(
+            clientUserId: clientProfile.UserId,
+            clientProfileId: clientProfile.Id,
+            targetWeightKg: targetWeightKg,
+            capabilities: capabilities.Value,
+            ct: ct,
+            planAuthorUserId: trainerUserId);
+
+        await Send.OkAsync(new GetClientVerdictResponse
+        {
+            Verdict = result.Verdict,
+            CompliancePercent = result.CompliancePercent,
+            WeightDeltaToGoal = result.WeightDeltaToGoal,
+            WeightDirection = result.WeightDirection,
+            TrainingFrequencyActual = result.TrainingFrequencyActual,
+            TrainingFrequencyPrescribed = result.TrainingFrequencyPrescribed,
+            LastActiveAt = result.LastActiveAt,
+            PrCountThisMonth = result.PrCountThisMonth
+        }, ct);
+    }
+}

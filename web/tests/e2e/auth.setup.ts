@@ -23,10 +23,10 @@
  * .env.test.example to .env.test and set a value before running.
  *
  * The seeded emails are stable fixture constants defined in QaSeedRunner.cs:
- *   qa.trainer@fitnessplatform.test
- *   qa.client@fitnessplatform.test
- *   qa.nutri@fitnessplatform.test
- *   qa.coach@fitnessplatform.test (Trainer + Nutritionist)
+ *   qa.trainer@formup.test
+ *   qa.client@formup.test
+ *   qa.nutri@formup.test
+ *   qa.coach@formup.test (Trainer + Nutritionist)
  *
  * Error handling:
  *   - Missing QA_SEED_PASSWORD → fail fast with a clear message pointing at
@@ -44,22 +44,22 @@ import path from 'node:path';
 const ROLES = [
   {
     role: 'trainer',
-    email: 'qa.trainer@fitnessplatform.test',
+    email: 'qa.trainer@formup.test',
     storageStatePath: path.resolve('.auth/trainer.json'),
   },
   {
     role: 'client',
-    email: 'qa.client@fitnessplatform.test',
+    email: 'qa.client@formup.test',
     storageStatePath: path.resolve('.auth/client.json'),
   },
   {
     role: 'nutritionist',
-    email: 'qa.nutri@fitnessplatform.test',
+    email: 'qa.nutri@formup.test',
     storageStatePath: path.resolve('.auth/nutritionist.json'),
   },
   {
     role: 'coach',
-    email: 'qa.coach@fitnessplatform.test',
+    email: 'qa.coach@formup.test',
     storageStatePath: path.resolve('.auth/coach.json'),
   },
 ] as const;

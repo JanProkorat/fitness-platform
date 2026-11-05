@@ -36,8 +36,8 @@
  *   families". RefreshTokenEndpoint.cs's HandleRevokedTokenAsync calls
  *   RevokeRefreshTokenFamilyAsync(token.UserId, ...) — "family" is scoped to
  *   the USER, not to a login lineage, and every trainer spec authenticates
- *   as the same qa.trainer@fitnessplatform.test user (same for
- *   qa.nutri@fitnessplatform.test). Two independently-minted tokens for
+ *   as the same qa.trainer@formup.test user (same for
+ *   qa.nutri@formup.test). Two independently-minted tokens for
  *   that user are NOT isolated from each other by the backend; this fix
  *   works only because a per-attempt token is never replayed, so the
  *   theft-detection branch never fires in the first place. If a future test
@@ -58,12 +58,12 @@ import path from 'node:path';
 type Role = 'trainer' | 'nutritionist' | 'coach';
 
 const ROLE_EMAILS: Record<Role, string> = {
-  trainer: 'qa.trainer@fitnessplatform.test',
-  nutritionist: 'qa.nutri@fitnessplatform.test',
-  coach: 'qa.coach@fitnessplatform.test',
+  trainer: 'qa.trainer@formup.test',
+  nutritionist: 'qa.nutri@formup.test',
+  coach: 'qa.coach@formup.test',
 };
 
-const CLIENT_EMAIL = 'qa.client@fitnessplatform.test';
+const CLIENT_EMAIL = 'qa.client@formup.test';
 
 interface LoginResponseBody {
   accessToken: string;

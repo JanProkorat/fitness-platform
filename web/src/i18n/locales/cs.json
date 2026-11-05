@@ -1,6 +1,6 @@
 {
   "common": {
-    "appName": "GoodFellas",
+    "appName": "Form Up",
     "loading": "Načítání...",
     "save": "Uložit změny",
     "saving": "Ukládám...",
@@ -171,12 +171,12 @@
   },
   "downloadApp": {
     "title": "Stáhněte si aplikaci",
-    "subtitle": "Klientská část GF Platform je dostupná výhradně v mobilní aplikaci.",
+    "subtitle": "Klientská část Form Up je dostupná výhradně v mobilní aplikaci.",
     "description": "Stáhněte si aplikaci pro spojení s koučem, sledování pokroku a plnění personalizovaných plánů.",
     "appStore": "Stáhnout na App Store",
     "googlePlay": "Stáhnout na Google Play",
     "comingSoon": "Mobilní aplikace se připravuje",
-    "comingSoonHint": "Pracujeme na mobilní aplikaci GF Platform. Sledujte novinky!"
+    "comingSoonHint": "Pracujeme na mobilní aplikaci Form Up. Sledujte novinky!"
   },
   "shell": {
     "comingSoon": "Tato stránka je připravována.",
@@ -5439,7 +5439,7 @@
     "weekCountRange": "Počet týdnů musí být 1 až 52."
   },
   "entry": {
-    "brand": "GoodFellas",
+    "brand": "Form Up",
     "login": {
       "title": "Vítejte zpět",
       "lede": "Přihlaste se do trenérského portálu.",

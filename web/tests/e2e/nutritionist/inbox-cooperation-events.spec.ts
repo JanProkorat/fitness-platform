@@ -33,7 +33,7 @@
 import { request as apiRequest, type APIRequestContext, type Page } from '@playwright/test';
 import { nutritionistTest as test, expect } from '../fixtures/auth';
 
-const CLIENT2_EMAIL = 'qa.client2@fitnessplatform.test';
+const CLIENT2_EMAIL = 'qa.client2@formup.test';
 /** QaSeedRunner.NutriProfilePublicId — qa.nutri's ProfessionalProfile.PublicId. */
 const NUTRITIONIST_PROFESSIONAL_PUBLIC_ID = 'cccccccc-cccc-cccc-cccc-cccccccccccc';
 const CLIENT2_DISPLAY_NAME = 'QA Client2';

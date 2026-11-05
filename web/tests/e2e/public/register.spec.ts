@@ -5,12 +5,12 @@
  * dependency, no `storageState`, genuinely signed-out context, matching
  * entry.spec.ts. globalSetup's POST /test/reset still runs once before the
  * whole Playwright invocation, so the QA seed baseline (including
- * qa.trainer@fitnessplatform.test, used below as a known-duplicate email)
+ * qa.trainer@formup.test, used below as a known-duplicate email)
  * is guaranteed present.
  */
 import { test, expect, type Page } from '@playwright/test';
 
-const DUPLICATE_EMAIL = 'qa.trainer@fitnessplatform.test';
+const DUPLICATE_EMAIL = 'qa.trainer@formup.test';
 const VALID_PASSWORD = 'CorrectHorse9';
 
 // The app defaults to 'cs' when no 'lang' key exists in localStorage (see

@@ -1,0 +1,94 @@
+using FormUp.Application.Domain.Documents;
+using FormUp.Application.Domain.Enums;
+using FormUp.Application.Domain.Interfaces;
+using FormUp.Application.Infrastructure.Data.MongoDb;
+using MongoDB.Driver;
+
+namespace FormUp.Application.Infrastructure.Services;
+
+/// <summary>
+/// Detects personal records by comparing against previous best performances in MongoDB.
+/// </summary>
+public class PrDetectionService(IMongoContext mongo) : IPrDetectionService
+{
+    /// <inheritdoc />
+    public async Task<List<string>> DetectAndMarkPRsAsync(SessionExecution execution, CancellationToken ct)
+    {
+        var prDescriptions = new List<string>();
+
+        foreach (var exercise in execution.Exercises)
+        {
+            // Get all previous completed session executions (that actually carry Performance
+            // data — checkbox-only completions have no set-by-set history to compare against)
+            // for this client and exercise.
+            var filter = Builders<SessionExecution>.Filter.Eq(w => w.ClientId, execution.ClientId)
+                         & Builders<SessionExecution>.Filter.Eq(w => w.Status, SessionExecutionStatus.Completed)
+                         & Builders<SessionExecution>.Filter.Exists(w => w.Performance)
+                         & Builders<SessionExecution>.Filter.Ne(w => w.ExternalId, execution.ExternalId);
+
+            var cursor = await mongo.SessionExecutions.FindAsync(filter, cancellationToken: ct);
+            var previousExecutions = await cursor.ToListAsync(ct);
+
+            // Find previous best weight and reps for this exercise
+            decimal? bestWeight = null;
+            int? bestReps = null;
+
+            foreach (var prev in previousExecutions)
+            {
+                var prevExercise = prev.Exercises
+                    .FirstOrDefault(e => e.ExerciseExternalId == exercise.ExerciseExternalId);
+
+                if (prevExercise is null) continue;
+
+                foreach (var set in prevExercise.Sets)
+                {
+                    if (set.WeightKg.HasValue && (bestWeight is null || set.WeightKg.Value > bestWeight.Value))
+                        bestWeight = set.WeightKg.Value;
+
+                    if (set.Reps.HasValue && set.WeightKg.HasValue && set.WeightKg.Value == bestWeight)
+                    {
+                        if (bestReps is null || set.Reps.Value > bestReps.Value)
+                            bestReps = set.Reps.Value;
+                    }
+                }
+            }
+
+            // Check current sets for PRs
+            foreach (var set in exercise.Sets)
+            {
+                var isPR = false;
+
+                if (set.WeightKg.HasValue)
+                {
+                    if (bestWeight is null || set.WeightKg.Value > bestWeight.Value)
+                    {
+                        isPR = true;
+                    }
+                    else if (set.WeightKg.Value == bestWeight && set.Reps.HasValue)
+                    {
+                        if (bestReps is null || set.Reps.Value > bestReps.Value)
+                        {
+                            isPR = true;
+                        }
+                    }
+                }
+
+                if (isPR)
+                {
+                    set.IsPR = true;
+                    var weightStr = set.WeightKg.HasValue ? $"{set.WeightKg.Value} kg" : "";
+                    var repsStr = set.Reps.HasValue ? $"× {set.Reps.Value}" : "";
+                    prDescriptions.Add($"{exercise.ExerciseName}: {weightStr} {repsStr}".Trim());
+
+                    // Update best for subsequent sets in the same exercise
+                    if (set.WeightKg.HasValue)
+                        bestWeight = set.WeightKg.Value;
+                    if (set.Reps.HasValue)
+                        bestReps = set.Reps.Value;
+                }
+            }
+        }
+
+        return prDescriptions;
+    }
+}

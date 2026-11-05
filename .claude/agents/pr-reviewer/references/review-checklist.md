@@ -70,7 +70,7 @@ follow-up issue → **BLOCKING**.
 **Citation:** [`rules/code-style.md#no-hardcoded-api-base-urls`](../../../rules/code-style.md#no-hardcoded-api-base-urls)
 
 ```bash
-git diff origin/<base>...HEAD | grep -E 'https?://(localhost|[0-9.]+|api\.|fitness-platform)'
+git diff origin/<base>...HEAD | grep -E 'https?://(localhost|[0-9.]+|api\.|form-up)'
 ```
 
 Anything new in TS/JS/JSX/TSX → **BLOCKING**. Web reads `import.meta.env`,

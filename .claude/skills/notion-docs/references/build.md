@@ -41,7 +41,7 @@ For each entry in `screens.json`:
 Create one child page of "API reference" per file in `<scratchpad>/wiki-api/`,
 titled with the file's H1 (the Swagger tag), not the file name. Before publishing, enrich each endpoint with the
 **error codes** and **validation rules** section (see `page-templates.md`),
-read from the endpoint folder under `backend/FitnessPlatform.Application/Features/`.
+read from the endpoint folder under `backend/FormUp.Application/Features/`.
 Replace each `Used by` screen id with a mention of that screen's page.
 
 ## 5. Glossary

@@ -75,7 +75,7 @@ def main() -> int:
     # while a worktree is active.
     check("denies subagent editing main backend/ when a worktree exists",
           decision(run({**SUBAGENT, "tool_input": {
-              "file_path": os.path.join(wt, "backend/FitnessPlatform.Application/Foo.cs")}}, wt)),
+              "file_path": os.path.join(wt, "backend/FormUp.Application/Foo.cs")}}, wt)),
           "deny")
 
     check("denies main web/ too",
@@ -91,7 +91,7 @@ def main() -> int:
     # The correct destination must stay open, or the hook breaks the pipeline.
     check("allows the same relative path INSIDE the worktree",
           decision(run({**SUBAGENT, "tool_input": {"file_path": os.path.join(
-              wt, ".worktrees/935-client-timezone/backend/FitnessPlatform.Application/Foo.cs")}}, wt)),
+              wt, ".worktrees/935-client-timezone/backend/FormUp.Application/Foo.cs")}}, wt)),
           "allow")
 
     # Handoffs are written to the MAIN .claude/state/ by design.

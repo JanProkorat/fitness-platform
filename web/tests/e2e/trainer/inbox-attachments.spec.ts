@@ -22,7 +22,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { trainerTest as test, expect, openClientContext } from '../fixtures/auth';
 
-const TRAINER_EMAIL = 'qa.trainer@fitnessplatform.test';
+const TRAINER_EMAIL = 'qa.trainer@formup.test';
 
 // ESM-safe __dirname substitute (package.json has "type":"module"), same pattern as
 // playwright.config.ts. Resolving against __dirname rather than process.cwd() keeps
