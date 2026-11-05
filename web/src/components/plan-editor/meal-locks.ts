@@ -1,17 +1,51 @@
 import { createContext, useContext } from 'react';
-import { MealLockState, type EatenMealItem, type GetPlanResponse } from '@/api/generated';
+import {
+  MealLockState,
+  type EatenMealItem,
+  type GetPlanResponse,
+  type MealItemConflictTag,
+  type MealKind,
+  type MealLockConflictDto,
+  type OfflineSyncConflictKind,
+} from '@/api/generated';
+import { foodTotals, recipeTotals, type MealItemEntry, type Totals } from '@/components/plan-editor/plan-editor-nutrition';
 import type { EditorDocument, EditorMeal } from '@/components/plan-editor/plan-editor-types';
 
+/** The offline-sync conflict behind a locked meal, as the plan response carries it. */
+export interface MealLockConflict {
+  conflictId: string;
+  kind: OfflineSyncConflictKind | undefined;
+  basedOnPlanVersion: number | undefined;
+  currentPlanVersion: number | undefined;
+  /** How each differing item (by plan item id) differs between what the client ate and the coach's meal. */
+  itemTags: ReadonlyMap<string, MealItemConflictTag>;
+}
+
+/** What the client ate of one meal: the snapshot, the eaten items and the conflict behind it, if any. */
+export interface EatenView {
+  /** The items as they stood when first eaten; empty when the meal has no snapshot. */
+  snapshot: EatenMealItem[];
+  eatenItemIds: string[];
+  /** When the whole meal was eaten; the server has one time per meal, set only once every item is eaten. */
+  eatenAt?: string;
+  conflict?: MealLockConflict;
+}
+
 /** What the server says about one stored meal: whether it may change, and what the client ate of it. */
-export interface MealLockInfo {
+export interface MealLockInfo extends EatenView {
   mealId: string;
   state: MealLockState;
   locked: boolean;
-  eatenItemIds: string[];
-  /** The items as they stood when first eaten; empty when the meal has no snapshot. */
-  snapshot: EatenMealItem[];
-  /** When the whole meal was eaten; the server has one time per meal, set only once every item is eaten. */
-  eatenAt?: string;
+}
+
+/** A meal the client ate that the coach has since removed from the plan. It is never part of the document. */
+export interface RemovedEatenMeal extends EatenView {
+  mealId: string;
+  /** 1-based week number of the slot it sat in. */
+  weekNumber: number;
+  /** 1 to 7, Monday = 1. */
+  dayOfWeek: number;
+  kind: MealKind;
 }
 
 /** The lock picture of a client plan, from the plan response the page already holds. */
@@ -22,6 +56,8 @@ export interface PlanMealLocks {
   startDate: string | undefined;
   clientName: string;
   meals: ReadonlyMap<string, MealLockInfo>;
+  /** Eaten meals that left the plan; the editor shows them read-only where they sat. */
+  removed: readonly RemovedEatenMeal[];
 }
 
 /** What a slot's cell, popover and drag rules need to know about one meal. */
@@ -155,15 +191,34 @@ export function useMealLocks(): PlanMealLocks | null {
   return useContext(MealLocksContext);
 }
 
+function toLockConflict(conflict: MealLockConflictDto | undefined): MealLockConflict | undefined {
+  if (!conflict?.conflictId) {
+    return undefined;
+  }
+  const itemTags = new Map<string, MealItemConflictTag>();
+  for (const entry of conflict.itemTags ?? []) {
+    if (entry.itemId && entry.tag) {
+      itemTags.set(entry.itemId, entry.tag);
+    }
+  }
+  return {
+    conflictId: conflict.conflictId,
+    kind: conflict.kind,
+    basedOnPlanVersion: conflict.basedOnPlanVersion,
+    currentPlanVersion: conflict.currentPlanVersion,
+    itemTags,
+  };
+}
+
 /** Reads the server's verdicts; null while the response carries no `clientToday` (nothing is judged then). */
 export function buildPlanMealLocks(plan: GetPlanResponse, clientName: string): PlanMealLocks | null {
   if (!plan.clientToday) {
     return null;
   }
   const meals = new Map<string, MealLockInfo>();
+  const removed: RemovedEatenMeal[] = [];
   for (const lock of plan.mealLocks ?? []) {
-    // A meal the coach removed after the client ate it is not in the plan's weeks; it is handled elsewhere.
-    if (!lock.mealId || lock.isRemovedFromPlan) {
+    if (!lock.mealId) {
       continue;
     }
     const log = (plan.mealLogs ?? []).find(
@@ -171,13 +226,24 @@ export function buildPlanMealLocks(plan: GetPlanResponse, clientName: string): P
         candidate.mealId === lock.mealId &&
         (!lock.date || !candidate.logDate || candidate.logDate.slice(0, 10) === lock.date.slice(0, 10)),
     );
-    meals.set(lock.mealId, {
-      mealId: lock.mealId,
-      state: lock.lockState ?? MealLockState.Open,
-      locked: lock.isLocked ?? false,
+    const eaten: EatenView = {
       eatenItemIds: lock.eatenItemIds ?? [],
       snapshot: lock.eatenSnapshot ?? [],
       eatenAt: log?.eatenAt,
+      conflict: toLockConflict(lock.conflict),
+    };
+    if (lock.isRemovedFromPlan) {
+      // A meal the coach removed after the client ate it is not in the plan's weeks; it is placed by its slot.
+      if (lock.weekNumber !== undefined && lock.dayOfWeek !== undefined && lock.mealKind) {
+        removed.push({ ...eaten, mealId: lock.mealId, weekNumber: lock.weekNumber, dayOfWeek: lock.dayOfWeek, kind: lock.mealKind });
+      }
+      continue;
+    }
+    meals.set(lock.mealId, {
+      ...eaten,
+      mealId: lock.mealId,
+      state: lock.lockState ?? MealLockState.Open,
+      locked: lock.isLocked ?? false,
     });
   }
   return {
@@ -185,7 +251,129 @@ export function buildPlanMealLocks(plan: GetPlanResponse, clientName: string): P
     startDate: plan.startDate ? plan.startDate.slice(0, 10) : undefined,
     clientName,
     meals,
+    removed,
   };
+}
+
+/** One eaten-but-removed meal placed in a week, ready to draw as a read-only tile or card. */
+export interface RemovedGhost {
+  /** The conflict's id when the meal has one (so "Show" can address it), otherwise a stable id of its own. */
+  id: string;
+  lock: RemovedEatenMeal;
+  weekIndex: number;
+  dayOfWeek: number;
+  kind: MealKind;
+}
+
+/** The removed-but-eaten meals of a week (zero-based index), optionally of one weekday. */
+export function removedGhosts(locks: PlanMealLocks, weekIndex: number, dayOfWeek?: number): RemovedGhost[] {
+  return locks.removed
+    .filter((lock) => lock.weekNumber - 1 === weekIndex && (dayOfWeek === undefined || lock.dayOfWeek === dayOfWeek))
+    .map((lock) => ({
+      id: lock.conflict?.conflictId ?? `removed:${lock.mealId}`,
+      lock,
+      weekIndex,
+      dayOfWeek: lock.dayOfWeek,
+      kind: lock.kind,
+    }));
+}
+
+/** One row of a locked meal's card: the item and whether the client ate it. */
+export interface LockedEntry {
+  entry: MealItemEntry;
+  eaten: boolean;
+  /** Library id of the food or recipe, for the info popover. */
+  sourceId: string | undefined;
+}
+
+/** The snapshot's items as card rows; `index` runs across the whole snapshot so every row has its own. */
+export function snapshotEntries(snapshot: readonly EatenMealItem[], eatenItemIds: readonly string[]): LockedEntry[] {
+  const ids = new Set(eatenItemIds);
+  return snapshot.map((item, index) => ({
+    entry: {
+      type: item.kind === 'Recipe' ? 'recipe' : 'food',
+      index,
+      name: item.name ?? '',
+      amount: item.amount ?? 0,
+      totals: {
+        kcal: item.kcal ?? 0,
+        protein: item.protein ?? 0,
+        carbs: item.carbs ?? 0,
+        fat: item.fat ?? 0,
+        fiber: item.fibre ?? 0,
+      },
+    },
+    eaten: item.itemId !== undefined && ids.has(item.itemId),
+    sourceId: item.refId,
+  }));
+}
+
+/** Sums a locked card's rows. */
+export function sumEntries(rows: readonly LockedEntry[]): Totals {
+  return rows.reduce<Totals>(
+    (sum, row) => ({
+      kcal: sum.kcal + row.entry.totals.kcal,
+      protein: sum.protein + row.entry.totals.protein,
+      carbs: sum.carbs + row.entry.totals.carbs,
+      fat: sum.fat + row.entry.totals.fat,
+      fiber: sum.fiber + row.entry.totals.fiber,
+    }),
+    { kcal: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 },
+  );
+}
+
+/** Eaten when every snapshot item was ticked (or none are listed), otherwise partly eaten. */
+export function eatenViewState(eaten: EatenView): MealLockState {
+  const ids = new Set(eaten.eatenItemIds);
+  const all = ids.size === 0 || eaten.snapshot.every((item) => item.itemId !== undefined && ids.has(item.itemId));
+  return all ? MealLockState.Eaten : MealLockState.PartlyEaten;
+}
+
+/** kcal of the snapshot items the client ate; every item counts when the lock lists none as eaten. */
+export function eatenSnapshotKcal(eaten: EatenView): number {
+  const ids = new Set(eaten.eatenItemIds);
+  return eaten.snapshot
+    .filter((item) => ids.size === 0 || (item.itemId !== undefined && ids.has(item.itemId)))
+    .reduce((sum, item) => sum + (item.kcal ?? 0), 0);
+}
+
+/** kcal of the plan meal's own items the client ate, for a lock that kept no snapshot. */
+function eatenPlanMealKcal(meal: EditorMeal, eatenItemIds: readonly string[]): number {
+  const ids = new Set(eatenItemIds);
+  let kcal = 0;
+  for (const food of meal.foods) {
+    kcal += food.itemId !== undefined && ids.has(food.itemId) ? foodTotals(food).kcal : 0;
+  }
+  for (const recipe of meal.recipes) {
+    kcal += recipe.itemId !== undefined && ids.has(recipe.itemId) ? recipeTotals(recipe).kcal : 0;
+  }
+  return kcal;
+}
+
+/**
+ * What the client ate on one day, in kcal: the snapshot items they ticked (the plan meal's items for a lock without
+ * a snapshot), removed-from-plan meals included. Never read from the meal log.
+ */
+export function dayEatenKcal(
+  locks: PlanMealLocks,
+  weekNumber: number,
+  dayOfWeek: number,
+  meals: readonly EditorMeal[],
+): number {
+  let kcal = 0;
+  for (const meal of meals) {
+    const info = locks.meals.get(meal.mealId);
+    if (!info || info.eatenItemIds.length === 0) {
+      continue;
+    }
+    kcal += info.snapshot.length > 0 ? eatenSnapshotKcal(info) : eatenPlanMealKcal(meal, info.eatenItemIds);
+  }
+  for (const lock of locks.removed) {
+    if (lock.weekNumber === weekNumber && lock.dayOfWeek === dayOfWeek) {
+      kcal += eatenSnapshotKcal(lock);
+    }
+  }
+  return Math.round(kcal);
 }
 
 /** The calendar date (YYYY-MM-DD) of a week's weekday; null when the plan has no start date. */

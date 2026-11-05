@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
-import { ChevronRight, History, X } from 'lucide-react';
+import { ChevronRight, History, Lock, X } from 'lucide-react';
+import type { EatenView } from '@/components/plan-editor/meal-locks';
 import ConflictComparison from '@/components/plan-editor/sync-conflicts/ConflictComparison';
 import MarkReviewedButton from '@/components/plan-editor/sync-conflicts/MarkReviewedButton';
 import type { SyncConflictsModel } from '@/components/plan-editor/sync-conflicts/SyncConflictsContext';
@@ -9,13 +10,15 @@ import { useConflictFacts } from '@/components/plan-editor/sync-conflicts/useCon
 interface Props {
   placed: PlacedConflict;
   model: SyncConflictsModel;
+  /** What the plan response holds for the meal: its snapshot and the server's item tags. */
+  eaten: EatenView | undefined;
   onClose: () => void;
 }
 
 /** The week view's conflict popover: what happened, the two columns, "Open <day>" and "Mark reviewed". */
-export default function SyncConflictPopoverBody({ placed, model, onClose }: Props) {
+export default function SyncConflictPopoverBody({ placed, model, eaten, onClose }: Props) {
   const { t } = useTranslation();
-  const facts = useConflictFacts(placed, model);
+  const facts = useConflictFacts(placed, model, eaten);
   const key = facts.removed ? 'removed' : 'changed';
   const client = model.clientName;
 
@@ -49,7 +52,6 @@ export default function SyncConflictPopoverBody({ placed, model, onClose }: Prop
           clientName={client}
           sawVersion={facts.sawVersion}
           nowVersion={facts.nowVersion}
-          variant="popover"
         />
       ) : (
         <p data-testid="conflict-text-only" className="rounded-xl border border-line bg-muted px-4 py-3 text-body text-ink">
@@ -60,6 +62,11 @@ export default function SyncConflictPopoverBody({ placed, model, onClose }: Prop
           })}
         </p>
       )}
+
+      <p className="flex items-center gap-1.5 text-body text-muted-foreground">
+        <Lock className="size-3.5 shrink-0" aria-hidden="true" />
+        {t('planEditor.syncConflicts.popover.lockedNote')}
+      </p>
 
       <div className="flex items-center justify-between gap-3">
         {placed.dayOfWeek !== null ? (

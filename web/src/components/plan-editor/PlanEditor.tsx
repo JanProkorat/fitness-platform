@@ -28,6 +28,7 @@ import LockedMealPopover from '@/components/plan-editor/LockedMealPopover';
 import MealDetail from '@/components/plan-editor/MealDetail';
 import MealLockLegend from '@/components/plan-editor/MealLockLegend';
 import {
+  dayEatenKcal,
   dayHasLock,
   isPastDay,
   findStoredMeal,
@@ -508,13 +509,12 @@ export default function PlanEditor({
   // A selection that no longer points at a row (after a removal or an undo) selects nothing.
   const activeSelected = selected && selected.rowIndex < rows.length ? selected : null;
   const activeDay = week?.days.find((candidate) => candidate.dayOfWeek === dayOfWeek);
+  const activeDayPast = locks && week ? isPastDay(locks, week.weekNumber, dayOfWeek) : false;
   const showPicker = !readOnly && rows.length === 0;
   const conflictsModel = syncConflicts
     ? buildSyncConflictsModel(
         syncConflicts,
-        placeConflicts(syncConflicts.conflicts, doc),
-        openGhostId,
-        setOpenGhostId,
+        placeConflicts(syncConflicts.conflicts, doc, locks),
         openConflictDay,
       )
     : null;
@@ -786,7 +786,14 @@ export default function PlanEditor({
     // A meal with an unreviewed conflict opens the comparison first; "Open <day>" leads on to editing it.
     const conflict = conflictsModel?.forMeal(currentIndex, meal.mealId);
     if (conflict && conflictsModel) {
-      return <SyncConflictPopoverBody placed={conflict} model={conflictsModel} onClose={() => setDetailCell(null)} />;
+      return (
+        <SyncConflictPopoverBody
+          placed={conflict}
+          model={conflictsModel}
+          eaten={locks?.meals.get(meal.mealId)}
+          onClose={() => setDetailCell(null)}
+        />
+      );
     }
     const lock = locks ? mealLockView(locks, meal.mealId, week.weekNumber, cell.dayOfWeek) : null;
     if (locks && lock?.locked) {
@@ -1712,9 +1719,19 @@ export default function PlanEditor({
                   kcalTarget={dailyKcalTarget}
                   note={activeDay?.note}
                   readOnly={readOnly}
-                  addMealDisabled={allKindsPresent || (activeDay?.meals.length ?? 0) >= MAX_MEALS_PER_DAY}
+                  eatenKcal={
+                    locks &&
+                    week &&
+                    (activeDayPast ||
+                      (activeDay?.meals ?? []).some((meal) => (locks.meals.get(meal.mealId)?.eatenItemIds.length ?? 0) > 0))
+                      ? dayEatenKcal(locks, week.weekNumber, dayOfWeek, activeDay?.meals ?? [])
+                      : undefined
+                  }
+                  addMealDisabled={activeDayPast || allKindsPresent || (activeDay?.meals.length ?? 0) >= MAX_MEALS_PER_DAY}
                   addMealTitle={
-                    allKindsPresent
+                    activeDayPast
+                      ? t('planEditor.locks.addMealPast')
+                      : allKindsPresent
                       ? t('planEditor.day.allKindsAdded')
                       : (activeDay?.meals.length ?? 0) >= MAX_MEALS_PER_DAY
                         ? t('planEditor.day.limitReached', { max: MAX_MEALS_PER_DAY })
@@ -1802,6 +1819,9 @@ export default function PlanEditor({
                   detailCell={detailCell}
                   renderDetail={renderDetail}
                   onDetailClose={() => setDetailCell(null)}
+                  openGhostId={openGhostId}
+                  onOpenGhost={setOpenGhostId}
+                  onOpenDay={openDay}
                   onEdit={edit}
                   onRemoveRow={requestRemoveRow}
                   onInsertBetween={insertBetween}

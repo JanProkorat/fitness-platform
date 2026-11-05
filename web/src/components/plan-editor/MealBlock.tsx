@@ -1,7 +1,8 @@
 import { useCallback, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useDraggable, useDroppable } from '@dnd-kit/react';
-import { GripVertical, StickyNote, Trash2 } from 'lucide-react';
+import { Check, Contrast, GripVertical, History, Lock, StickyNote, Trash2, X } from 'lucide-react';
+import { MealLockState } from '@/api/generated';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import MacroDots from '@/components/plan-editor/MacroDots';
@@ -32,7 +33,10 @@ import {
 import { Button } from '@/components/ui/button';
 import {
   isRejectedTile,
+  lockedTileSurfaceClass,
   mealLockView,
+  snapshotEntries,
+  sumEntries,
   useLockRejection,
   useMealLocks,
   useRestoreRejected,
@@ -41,6 +45,13 @@ import SyncConflictDayPanel from '@/components/plan-editor/sync-conflicts/SyncCo
 import { useSyncConflicts } from '@/components/plan-editor/sync-conflicts/SyncConflictsContext';
 import { MAX_NOTE_LENGTH, type EditorMeal } from '@/components/plan-editor/plan-editor-types';
 import type { PlanEditorState } from '@/components/plan-editor/usePlanEditorState';
+
+const STATE_CHIP_CLASS: Record<MealLockState, string> = {
+  [MealLockState.Open]: '',
+  [MealLockState.Eaten]: 'text-success-ink',
+  [MealLockState.PartlyEaten]: 'text-caution-ink',
+  [MealLockState.Missed]: 'text-error',
+};
 
 const SHARE_CHIP_CLASS: Record<ShareStatus, string> = {
   none: 'bg-muted text-muted-foreground',
@@ -96,7 +107,9 @@ export default function MealBlock({
   const rejected = isRejectedTile(useLockRejection(), meal.mealId, weekIndex + 1, dayOfWeek);
   const restore = useRestoreRejected();
   // A locked meal reads like a read-only one: it neither moves nor takes a drop, and its controls are gone.
-  const locked = locks ? mealLockView(locks, meal.mealId, weekIndex + 1, dayOfWeek).locked : false;
+  const lockView = locks ? mealLockView(locks, meal.mealId, weekIndex + 1, dayOfWeek) : undefined;
+  const locked = lockView?.locked ?? false;
+  const info = lockView?.info;
   const frozen = readOnly || locked;
   const draggable = !frozen && mealItemCount(meal) > 0;
   const { ref: dropRef, isDropTarget } = useDroppable({
@@ -120,8 +133,28 @@ export default function MealBlock({
     [dropRef, dragRef, draggable],
   );
   const shown = display ?? meal;
-  const totals = mealTotals(shown);
-  const entries = mealItemEntries(shown, language);
+  // A locked meal shows what the client ate (its snapshot); without one, the meal's own items.
+  const lockedRows = locked
+    ? info && info.snapshot.length > 0
+      ? snapshotEntries(info.snapshot, info.eatenItemIds)
+      : mealItemEntries(shown, language).map((entry) => {
+          const itemId = entry.type === 'recipe' ? shown.recipes[entry.index]?.itemId : shown.foods[entry.index]?.itemId;
+          return {
+            entry,
+            eaten: itemId !== undefined && (info?.eatenItemIds ?? []).includes(itemId),
+            sourceId: entry.type === 'recipe' ? shown.recipes[entry.index]?.recipeId : shown.foods[entry.index]?.foodExternalId,
+          };
+        })
+    : null;
+  const totals = lockedRows ? sumEntries(lockedRows) : mealTotals(shown);
+  const entries = lockedRows ? lockedRows.map((row) => row.entry) : mealItemEntries(shown, language);
+  const lockState = lockView?.state ?? MealLockState.Open;
+  const StateIcon = lockState === MealLockState.Eaten ? Check : lockState === MealLockState.PartlyEaten ? Contrast : X;
+  const eatenCount = lockedRows ? lockedRows.filter((row) => row.eaten).length : 0;
+  const eatenTime =
+    lockState === MealLockState.Eaten && info?.eatenAt
+      ? new Intl.DateTimeFormat(language, { hour: '2-digit', minute: '2-digit' }).format(new Date(info.eatenAt))
+      : null;
   const share = mealDayShareStatus(totals.kcal, dayKcal, shown.kind);
   const kindLabel = t(`planEditor.rows.${mealKindLabelKey(shown.kind)}`);
   const cellDrag = drag?.kind === 'cell' ? drag : null;
@@ -140,6 +173,7 @@ export default function MealBlock({
       data-drop-target={dropMode}
       data-conflict={conflict ? conflict.id : undefined}
       data-lock-rejected={rejected ? 'true' : undefined}
+      data-lock={locked ? lockState : undefined}
       tabIndex={readOnly ? undefined : 0}
       aria-label={kindLabel}
       onClick={onSelect}
@@ -154,7 +188,8 @@ export default function MealBlock({
       className={cn(
         'relative flex flex-col gap-3 rounded-2xl border border-raised-line bg-raised p-5 shadow-raised outline-none transition-[background-color,border-color,box-shadow,transform] duration-150 focus-visible:ring-3 focus-visible:ring-ring/50',
         draggable && !isDragging && 'hover:-translate-y-px hover:shadow-raised-hover motion-reduce:hover:translate-y-0',
-        conflict && 'border-caution-ink',
+        locked && lockedTileSurfaceClass(lockState),
+        conflict && 'border-caution-ink bg-caution-soft',
         selected && 'ring-2 ring-ink ring-inset',
         rejected && 'border-error ring-2 ring-error ring-inset',
         isDropTarget && !isDragging && 'border-nutrition bg-nutrition-soft',
@@ -168,6 +203,7 @@ export default function MealBlock({
       <div data-flip-key={meal.mealId} className="relative flex flex-col gap-3">
         <div className={cn('flex flex-wrap items-center gap-x-3 gap-y-1.5', draggable && 'cursor-grab active:cursor-grabbing')}>
           {draggable && <GripVertical className="size-4 shrink-0 text-faint" aria-hidden="true" />}
+          {locked && <Lock data-testid="meal-lock-icon" className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />}
           <h3 className="font-display text-card-title font-semibold text-ink">{kindLabel}</h3>
           <span className="text-copy font-semibold text-ink">
             {t('planEditor.cell.kcal', { kcal: Math.round(totals.kcal) })}
@@ -182,6 +218,39 @@ export default function MealBlock({
               className={cn('rounded-full px-2.5 py-1 text-meta font-semibold', SHARE_CHIP_CLASS[share.status])}
             >
               {t('planEditor.day.percentOfDay', { percent: Math.round((totals.kcal / dayKcal) * 100) })}
+            </span>
+          )}
+          {locked && lockState !== MealLockState.Open && (
+            <span
+              data-testid="meal-lock-chip"
+              data-state={lockState}
+              className={cn(
+                'inline-flex items-center gap-1 rounded-full bg-card/70 px-2.5 py-1 text-meta font-semibold',
+                STATE_CHIP_CLASS[lockState],
+              )}
+            >
+              <StateIcon className="size-3" aria-hidden="true" />
+              {lockState === MealLockState.Eaten
+                ? t('planEditor.locks.state.eaten')
+                : lockState === MealLockState.PartlyEaten
+                  ? t('planEditor.locks.state.partly', { eaten: eatenCount, total: entries.length })
+                  : t('planEditor.locks.state.missed')}
+            </span>
+          )}
+          {conflict && (
+            <span
+              data-testid="meal-conflict-chip"
+              className="inline-flex items-center gap-1 rounded-full bg-card/70 px-2.5 py-1 text-meta font-semibold text-caution-ink"
+            >
+              <History className="size-3" aria-hidden="true" />
+              {t('planEditor.locks.planChangedLater')}
+            </span>
+          )}
+          {locked && (eatenTime || lockState === MealLockState.Missed) && (
+            <span data-testid="meal-eaten-at" className="ml-auto text-body text-muted-foreground">
+              {lockState === MealLockState.Missed
+                ? t('planEditor.locks.notMarkedEaten')
+                : t(conflict ? 'planEditor.locks.eatenAtOffline' : 'planEditor.locks.eatenAt', { time: eatenTime })}
             </span>
           )}
           {rejected && restore && (
@@ -218,21 +287,24 @@ export default function MealBlock({
           )}
         </div>
 
-        {conflict && conflicts && <SyncConflictDayPanel placed={conflict} model={conflicts} />}
+        {conflict && conflicts && <SyncConflictDayPanel placed={conflict} model={conflicts} eaten={info} />}
 
         {entries.length > 0 ? (
           <ul className="flex flex-col gap-2.5">
-            {entries.map((entry) => (
+            {entries.map((entry, position) => (
               <MealItemRow
                 key={`${entry.type}:${entry.index}`}
                 entry={entry}
                 readOnly={frozen}
                 variant="day"
                 position={{ weekIndex, dayOfWeek, mealId: meal.mealId }}
+                eatenMark={lockedRows ? lockedRows[position].eaten : undefined}
                 sourceId={
-                  entry.type === 'recipe'
-                    ? shown.recipes[entry.index]?.recipeId
-                    : shown.foods[entry.index]?.foodExternalId
+                  lockedRows
+                    ? lockedRows[position].sourceId
+                    : entry.type === 'recipe'
+                      ? shown.recipes[entry.index]?.recipeId
+                      : shown.foods[entry.index]?.foodExternalId
                 }
                 onAmount={(value) =>
                   onEdit(
