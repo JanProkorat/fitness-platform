@@ -66,7 +66,7 @@ public class NotificationEmailGroupingSchedulerTests(FitnessApiFactory factory) 
 
     private static async Task MarkReadAsync(Actor reader, Guid conversationId)
     {
-        var response = await reader.Http.PostAsync($"/conversations/{conversationId}/read", null, Ct);
+        var response = await reader.Http.PostAsJsonAsync($"/conversations/{conversationId}/read", new { }, Ct);
 
         response.StatusCode.Should().Be(HttpStatusCode.NoContent);
     }
