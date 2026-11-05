@@ -44,6 +44,15 @@ interface FormProps {
   onPendingChange: (pending: boolean) => void;
 }
 
+type TagField = 'allergies' | 'dislikes' | 'habits';
+
+/** Appends pending tag text to a list the way TagInput's Enter does (trim, case-insensitive dedupe). */
+function withPendingTag(list: string[], pending: string): string[] {
+  const next = pending.trim();
+  if (next === '' || list.some((tag) => tag.toLowerCase() === next.toLowerCase())) return list;
+  return [...list, next];
+}
+
 function ProfileForm({ clientId, onboarding, onClose, onPendingChange }: FormProps) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -53,6 +62,8 @@ function ProfileForm({ clientId, onboarding, onClose, onPendingChange }: FormPro
     control,
     register,
     handleSubmit,
+    getValues,
+    setValue,
     formState: { errors },
   } = useForm<NutritionProfileFormValues>({
     resolver: zodResolver(nutritionProfileSchema),
@@ -63,6 +74,10 @@ function ProfileForm({ clientId, onboarding, onClose, onPendingChange }: FormPro
       fibreGrams: onboarding.fibreGrams != null ? String(onboarding.fibreGrams) : '',
     },
   });
+
+  // Text typed into a tag box without Enter lives here so Save can turn it into a tag before validation.
+  const [drafts, setDrafts] = useState<Record<TagField, string>>({ allergies: '', dislikes: '', habits: '' });
+  const setDraft = (field: TagField) => (value: string) => setDrafts((prev) => ({ ...prev, [field]: value }));
 
   const saveMutation = useMutation({
     mutationFn: (values: NutritionProfileFormValues) =>
@@ -95,8 +110,18 @@ function ProfileForm({ clientId, onboarding, onClose, onPendingChange }: FormPro
         ? t('clientDetail.nutrition.profile.edit.allergiesInvalid')
         : undefined;
 
+  function submit(event: React.FormEvent<HTMLFormElement>) {
+    for (const field of ['allergies', 'dislikes', 'habits'] as const) {
+      if (drafts[field].trim() === '') continue;
+      setValue(field, withPendingTag(getValues(field), drafts[field]));
+    }
+    setDrafts({ allergies: '', dislikes: '', habits: '' });
+    // Validation runs after the merge, so a too-long pending tag is rejected like a typed one.
+    void handleSubmit((values) => saveMutation.mutate(values))(event);
+  }
+
   return (
-    <form onSubmit={handleSubmit((values) => saveMutation.mutate(values))} className="grid gap-4" noValidate>
+    <form onSubmit={submit} className="grid gap-4" noValidate>
       <DialogHeader>
         <DialogTitle>{t('clientDetail.nutrition.profile.edit.title')}</DialogTitle>
         <DialogDescription>{t('clientDetail.nutrition.profile.edit.description')}</DialogDescription>
@@ -110,6 +135,8 @@ function ProfileForm({ clientId, onboarding, onClose, onPendingChange }: FormPro
           render={({ field }) => (
             <TagInput
               id="nutrition-profile-allergies"
+              draft={drafts.allergies}
+              onDraftChange={setDraft('allergies')}
               value={field.value}
               onChange={field.onChange}
               invalid={Boolean(errors.allergies)}
@@ -133,6 +160,8 @@ function ProfileForm({ clientId, onboarding, onClose, onPendingChange }: FormPro
           render={({ field }) => (
             <TagInput
               id="nutrition-profile-dislikes"
+              draft={drafts.dislikes}
+              onDraftChange={setDraft('dislikes')}
               value={field.value}
               onChange={field.onChange}
               invalid={Boolean(errors.dislikes)}
@@ -156,6 +185,8 @@ function ProfileForm({ clientId, onboarding, onClose, onPendingChange }: FormPro
           render={({ field }) => (
             <TagInput
               id="nutrition-profile-habits"
+              draft={drafts.habits}
+              onDraftChange={setDraft('habits')}
               value={field.value}
               onChange={field.onChange}
               invalid={Boolean(errors.habits)}
