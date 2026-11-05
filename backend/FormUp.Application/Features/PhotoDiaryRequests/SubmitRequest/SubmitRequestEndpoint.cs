@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Security.Claims;
 using FastEndpoints;
 using FormUp.Application.Domain.Constants;
@@ -21,6 +22,8 @@ namespace FormUp.Application.Features.PhotoDiaryRequests.SubmitRequest;
 public class SubmitRequestEndpoint(
     IApplicationDbContext db,
     IRealtimeNotifier notifier,
+    INotificationService notificationService,
+    INotificationEmailSender notificationEmails,
     ILogger<SubmitRequestEndpoint> logger)
     : Endpoint<SubmitRequestRequest, SubmitRequestResponse>
 {
@@ -97,12 +100,64 @@ public class SubmitRequestEndpoint(
                 request.Id, request.ProfessionalId);
         }
 
+        await NotifyProfessionalAsync(request, clientUserId, emailClaim, ct);
+
         await Send.OkAsync(new SubmitRequestResponse
         {
             Id = request.Id,
             Status = request.Status,
             CompletedAt = request.CompletedAt,
         }, ct);
+    }
+
+    /// <summary>
+    /// In-app notice plus email for the professional. Best-effort: the submit already succeeded.
+    /// Also covers food-diary requests, so the copy says photos generically.
+    /// </summary>
+    private async Task NotifyProfessionalAsync(
+        Domain.Entities.PhotoDiaryRequest request, Guid clientUserId, string? clientEmail, CancellationToken ct)
+    {
+        try
+        {
+            var clientProfilePublicId = request.Link?.ClientProfile?.PublicId
+                ?? await db.ClientProfiles
+                    .AsNoTracking()
+                    .Where(cp => cp.UserId == clientUserId)
+                    .Select(cp => (Guid?)cp.PublicId)
+                    .FirstOrDefaultAsync(ct);
+            var clientName = ResolveClientName(request, clientEmail);
+            var photoCount = await db.PlanPhotos.CountAsync(p => p.DiaryRequestId == request.Id, ct);
+
+            var noticeParameters = new Dictionary<string, string>
+            {
+                ["clientName"] = clientName,
+                ["photoCount"] = photoCount.ToString(CultureInfo.InvariantCulture),
+                ["requestId"] = request.Id.ToString(),
+            };
+            var emailValues = new Dictionary<string, string>
+            {
+                [NotificationEmailWorkItem.ClientNameKey] = clientName,
+                [NotificationEmailWorkItem.PhotoCountKey] = photoCount.ToString(CultureInfo.InvariantCulture),
+                [NotificationEmailWorkItem.RequestDateKey] = request.CreatedAt.UtcDateTime.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+            };
+
+            if (clientProfilePublicId is { } publicId)
+            {
+                noticeParameters["clientId"] = publicId.ToString();
+                emailValues[NotificationEmailWorkItem.ClientPublicIdKey] = publicId.ToString();
+            }
+
+            await notificationService.CreateAsync(
+                request.ProfessionalId, NotificationType.ProgressPhotosSubmitted, noticeParameters, ct: ct);
+            await notificationEmails.SendAsync(
+                request.ProfessionalId, NotificationEvent.ProgressPhotosSubmitted, emailValues, ct);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            logger.LogWarning(ex,
+                "Failed to notify professional {ProfessionalId} of submitted photos for request {RequestId}",
+                request.ProfessionalId, request.Id);
+        }
     }
 
     /// <summary>

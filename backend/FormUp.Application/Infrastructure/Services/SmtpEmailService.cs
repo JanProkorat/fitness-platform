@@ -120,6 +120,16 @@ public class SmtpEmailService(IConfiguration configuration, ILogger<SmtpEmailSer
         logger.LogInformation("Payment request email sent (lang={Language})", lang);
     }
 
+    /// <inheritdoc />
+    public async Task SendNotificationEmailAsync(NotificationEmailWorkItem item, CancellationToken ct)
+    {
+        var (subject, html) = _renderer.RenderNotification(item);
+
+        await SendEmailAsync(item.Email, subject, html, ct);
+
+        logger.LogInformation("Notification email {Event} sent to user {UserId}", item.Event, item.UserId);
+    }
+
     private string BaseUrl => configuration[ConfigKeys.AppBaseUrl] ?? "http://localhost:5173";
 
     /// <summary>

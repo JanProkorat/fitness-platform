@@ -133,10 +133,22 @@ public class EmailDispatchWorker(
                                 invitation.Email, invitation.TrainerName, invitation.Token, invitation.Language,
                                 invitation.PersonalMessage, invitation.Package, CancellationToken.None);
                             break;
+                        case NotificationEmailWorkItem notification:
+                            await emailService.SendNotificationEmailAsync(notification, CancellationToken.None);
+                            break;
                         default:
                             throw new NotSupportedException(
                                 $"EmailDispatchWorker does not know how to dispatch {item.GetType().Name}.");
                     }
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException && item is NotificationEmailWorkItem)
+                {
+                    // Notification items log the recipient's user id only, never the address.
+                    var notification = (NotificationEmailWorkItem)item;
+
+                    logger.LogError(ex,
+                        "EmailDispatchWorker: failed to send {Event} notification email to user {UserId}.",
+                        notification.Event, notification.UserId);
                 }
                 catch (Exception ex) when (ex is not OperationCanceledException)
                 {

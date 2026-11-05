@@ -223,6 +223,7 @@ builder.Services.AddScoped<ICoachDisciplineAccess, CoachDisciplineAccess>();
 builder.Services.AddScoped<ICoachRoleRemover, CoachRoleRemover>();
 builder.Services.AddScoped<IPrDetectionService, PrDetectionService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<INotificationEmailSender, NotificationEmailSender>();
 builder.Services.AddScoped<IWorkoutCompletionService, WorkoutCompletionService>();
 builder.Services.AddScoped<IEmailVerificationTokenService, EmailVerificationTokenService>();
 // Registers IHttpClientFactory — consumed by ExpoPushNotificationService below

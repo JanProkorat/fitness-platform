@@ -85,6 +85,50 @@ public class FakeEmailService : IEmailService
         return Task.CompletedTask;
     }
 
+    private readonly List<NotificationEmailWorkItem> _notificationsSent = [];
+    private readonly HashSet<Guid> _notificationFailuresByUser = [];
+
+    /// <summary>
+    /// Snapshot of coach notification emails sent during the test.
+    /// </summary>
+    public IReadOnlyList<NotificationEmailWorkItem> SentNotifications
+    {
+        get
+        {
+            lock (_sync)
+            {
+                return _notificationsSent.ToArray();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Makes <see cref="SendNotificationEmailAsync"/> throw for the given recipient only.
+    /// </summary>
+    public void FailNotificationsFor(Guid userId)
+    {
+        lock (_sync)
+        {
+            _notificationFailuresByUser.Add(userId);
+        }
+    }
+
+    /// <inheritdoc />
+    public Task SendNotificationEmailAsync(NotificationEmailWorkItem item, CancellationToken ct)
+    {
+        lock (_sync)
+        {
+            if (_notificationFailuresByUser.Contains(item.UserId))
+            {
+                throw new InvalidOperationException("Simulated mail provider failure for a notification email.");
+            }
+
+            _notificationsSent.Add(item);
+        }
+
+        return Task.CompletedTask;
+    }
+
     /// <summary>
     /// Snapshot of bank account re-authentication code emails sent during the test.
     /// </summary>
@@ -249,6 +293,8 @@ public class FakeEmailService : IEmailService
             _verificationsSent.Clear();
             _paymentRequestsSent.Clear();
             _paymentRequestFailuresByEmail.Clear();
+            _notificationsSent.Clear();
+            _notificationFailuresByUser.Clear();
         }
     }
 

@@ -18,6 +18,7 @@ public class SendClientRequestEndpoint(
     IApplicationDbContext db,
     IRealtimeNotifier notifier,
     INotificationService notificationService,
+    INotificationEmailSender notificationEmails,
     IConversationSeedService conversationSeedService,
     EntitlementService entitlementService,
     ILogger<SendClientRequestEndpoint> logger)
@@ -166,6 +167,23 @@ public class SendClientRequestEndpoint(
             ClientLastName = clientUser.LastName,
             clientRequest.Message
         }, ct);
+
+        var emailValues = new Dictionary<string, string>
+        {
+            [NotificationEmailWorkItem.ClientNameKey] = clientName.Trim(),
+        };
+
+        if (!string.IsNullOrWhiteSpace(req.Message))
+        {
+            emailValues[NotificationEmailWorkItem.MessageKey] = req.Message;
+        }
+
+        if (package is not null)
+        {
+            emailValues[NotificationEmailWorkItem.PackageNameKey] = package.Name;
+        }
+
+        await notificationEmails.SendAsync(professionalProfile.UserId, NotificationEvent.JoinRequest, emailValues, ct);
 
         logger.LogInformation(
             "Client request sent from {ClientId} to professional {ProfessionalId}",

@@ -90,5 +90,14 @@ public enum NotificationType
     ClientRequestProposalDeclined,
 
     /// <summary>A coach withdrew their package proposal; delivered to the client.</summary>
-    ClientRequestProposalWithdrawn
+    ClientRequestProposalWithdrawn,
+
+    /// <summary>A client wrote to a coach in chat; delivered to the coach.</summary>
+    NewMessage,
+
+    /// <summary>A client submitted the photos a coach asked for; delivered to the coach.</summary>
+    ProgressPhotosSubmitted,
+
+    /// <summary>A client finished a plan workout; delivered to the plan's author.</summary>
+    WorkoutFinished
 }

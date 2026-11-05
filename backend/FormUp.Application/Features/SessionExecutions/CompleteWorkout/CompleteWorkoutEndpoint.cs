@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Security.Claims;
 using FastEndpoints;
 using FormUp.Application.Domain.Common;
@@ -11,6 +12,7 @@ using FormUp.Application.Features.SessionExecutions.Shared;
 using FormUp.Application.Infrastructure.Data;
 using FormUp.Application.Infrastructure.Data.MongoDb;
 using FormUp.Application.Infrastructure.Services;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
 
@@ -41,6 +43,8 @@ namespace FormUp.Application.Features.SessionExecutions.CompleteWorkout;
 /// goes through the shared extension for consistency with the trainer-driven FinishSession path.</param>
 /// <param name="timeProvider">Clock abstraction (#935) — lets tests pin the completion instant
 /// deterministically instead of reading <see cref="DateTime.UtcNow"/> directly.</param>
+/// <param name="notificationService">Creates the trainer's in-app workout-finished notice.</param>
+/// <param name="notificationEmails">Queues the trainer's workout-finished email.</param>
 public class CompleteWorkoutEndpoint(
     IMongoContext mongo,
     IWorkoutCompletionService completionService,
@@ -50,7 +54,9 @@ public class CompleteWorkoutEndpoint(
     IClientLinkAuthorizationService linkAuthorizationService,
     ILogger<CompleteWorkoutEndpoint> logger,
     IApplicationDbContext db,
-    TimeProvider timeProvider) : Endpoint<CompleteWorkoutRequest, WorkoutLogDetail>
+    TimeProvider timeProvider,
+    INotificationService notificationService,
+    INotificationEmailSender notificationEmails) : Endpoint<CompleteWorkoutRequest, WorkoutLogDetail>
 {
     /// <inheritdoc />
     public override void Configure()
@@ -133,6 +139,12 @@ public class CompleteWorkoutEndpoint(
 
                 if (plan is not null)
                 {
+                    // plan.TrainerId / plan.ClientId are both ApplicationUser.Id (#840) — the
+                    // UserId-addressed overload. Plan authorship is permanent, the link is not, so
+                    // every trainer-addressed signal below is gated on the current capability.
+                    var trainerCapabilities = await linkAuthorizationService.GetCapabilitiesByClientUserIdAsync(
+                        plan.TrainerId, plan.ClientId, ct);
+
                     if (released)
                     {
                         // Emit sessioneditlockchanged (state=Stable) to both parties.
@@ -144,16 +156,10 @@ public class CompleteWorkoutEndpoint(
 
                         await notifier.NotifyAsync(clientId, "sessioneditlockchanged", lockPayload, ct);
 
-                        // Gate the trainer-addressed emit on the trainer's CURRENT link capability.
-                        // Plan authorship (plan.TrainerId) is permanent, but the link is not — a
-                        // professional whose collaboration ended (or was narrowed away from training)
+                        // Gate the trainer-addressed emit on the trainer's CURRENT link capability:
+                        // a professional whose collaboration ended (or was narrowed away from training)
                         // must stop receiving live signals of when the client is training and
                         // editing a session (F6/F11 residual).
-                        // plan.TrainerId / plan.ClientId are both ApplicationUser.Id (#840) — the
-                        // UserId-addressed overload.
-                        var trainerCapabilities = await linkAuthorizationService.GetCapabilitiesByClientUserIdAsync(
-                            plan.TrainerId, plan.ClientId, ct);
-
                         if (trainerCapabilities is { CanViewTrainingPlans: true })
                         {
                             await notifier.NotifyAsync(plan.TrainerId, "sessioneditlockchanged", lockPayload, ct);
@@ -172,10 +178,86 @@ public class CompleteWorkoutEndpoint(
                         completedExerciseCount: totalExercises,
                         totalExerciseCount: totalExercises,
                         logger, ct);
+
+                    if (trainerCapabilities is { CanViewTrainingPlans: true })
+                    {
+                        await NotifyTrainerAsync(log, plan, ct);
+                    }
                 }
             }
         }
 
         await Send.OkAsync(WorkoutLogDetail.FromDocument(log), ct);
+    }
+
+    /// <summary>
+    /// In-app notice plus email for the plan's author. Best-effort: the workout is already completed.
+    /// </summary>
+    private async Task NotifyTrainerAsync(SessionExecution log, TrainingPlan plan, CancellationToken ct)
+    {
+        try
+        {
+            var client = await db.ClientProfiles
+                .AsNoTracking()
+                .Where(cp => cp.UserId == log.ClientId)
+                .Select(cp => new { cp.PublicId, cp.User.FirstName, cp.User.LastName })
+                .FirstOrDefaultAsync(ct);
+
+            if (client is null)
+            {
+                return;
+            }
+
+            var clientName = $"{client.FirstName} {client.LastName}".Trim();
+            var sessionName = plan.Weeks
+                .SelectMany(week => week.Days)
+                .SelectMany(day => day.Sessions)
+                .FirstOrDefault(session => session.SessionId == log.SessionId)?.Name;
+
+            if (string.IsNullOrWhiteSpace(sessionName))
+            {
+                sessionName = plan.Name;
+            }
+
+            var exercises = log.Performance?.Exercises ?? [];
+            var emailValues = new Dictionary<string, string>
+            {
+                [NotificationEmailWorkItem.ClientNameKey] = clientName,
+                [NotificationEmailWorkItem.ClientPublicIdKey] = client.PublicId.ToString(),
+                [NotificationEmailWorkItem.SessionNameKey] = sessionName,
+                [NotificationEmailWorkItem.PlanNameKey] = plan.Name,
+                [NotificationEmailWorkItem.ExerciseCountKey] = exercises.Count.ToString(CultureInfo.InvariantCulture),
+                [NotificationEmailWorkItem.SetCountKey] = exercises.Sum(exercise => exercise.Sets.Count).ToString(CultureInfo.InvariantCulture),
+            };
+
+            if (log.Performance is { CompletedAt: { } completedAt } performance
+                && Math.Round((completedAt - performance.StartedAt).TotalMinutes) is > 0 and < 1440 and var minutes)
+            {
+                emailValues[NotificationEmailWorkItem.DurationMinutesKey] = minutes.ToString(CultureInfo.InvariantCulture);
+            }
+
+            if (!string.IsNullOrWhiteSpace(log.Performance?.Notes))
+            {
+                emailValues[NotificationEmailWorkItem.NoteKey] = log.Performance.Notes;
+            }
+
+            await notificationService.CreateAsync(
+                plan.TrainerId,
+                NotificationType.WorkoutFinished,
+                new Dictionary<string, string>
+                {
+                    ["clientName"] = clientName,
+                    ["sessionName"] = sessionName,
+                    ["clientId"] = client.PublicId.ToString(),
+                    ["workoutLogId"] = log.ExternalId.ToString(),
+                },
+                ct: ct);
+            await notificationEmails.SendAsync(plan.TrainerId, NotificationEvent.WorkoutFinished, emailValues, ct);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            logger.LogWarning(ex,
+                "Failed to notify trainer {TrainerId} of finished workout {LogId}", plan.TrainerId, log.ExternalId);
+        }
     }
 }
