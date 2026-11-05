@@ -557,6 +557,63 @@ test.describe('recipe picture', () => {
     }
   });
 
+  test('create with only staged extra pictures promotes the first extra to main', async ({ page, baseURL }) => {
+    test.skip(IN_CONTAINER, 'presigned uploads target the host MinIO port');
+    const origin = baseURL ?? 'http://localhost:5173';
+    const name = `QA Recipe Extras Only ${Date.now()}`;
+    const drawer = page.locator('[data-slot="sheet-content"]');
+
+    try {
+      await useListView(page);
+      await page.goto('/recipes');
+      await page.getByRole('button', { name: 'New Recipe' }).click();
+      await expect(drawer.getByRole('heading', { name: 'New Recipe' })).toBeVisible();
+
+      await drawer.getByLabel(/^Name\b/).fill(name);
+      await drawer.getByLabel(/^Servings\b/).fill('2');
+      await drawer.locator('#recipe-meal-types').click();
+      await page.getByRole('checkbox', { name: 'Lunch' }).click();
+      await page.keyboard.press('Escape');
+      await drawer.getByRole('tab', { name: /Ingredients/ }).click();
+      await drawer.getByRole('searchbox', { name: 'Search ingredients to add' }).fill('Apple');
+      await drawer.getByRole('button', { name: /Apple/ }).first().click();
+      await drawer.getByLabel(/^Amount in grams for/).fill('200');
+
+      // Stage two extras and no main picture.
+      await drawer.getByRole('tab', { name: 'Pictures' }).click();
+      await drawer.getByTestId('recipe-gallery-input').setInputFiles([IMAGE_A_PATH, IMAGE_A_PATH]);
+      await expect(drawer.getByTestId('recipe-gallery-tile')).toHaveCount(2);
+
+      const imageRequests: string[] = [];
+      page.on('request', (request) => {
+        if (/\/recipes\/[^/]+\/image/.test(request.url()) && request.method() === 'POST') {
+          imageRequests.push(new URL(request.url()).searchParams.get('slot') ?? '');
+        }
+      });
+      const createResponse = page.waitForResponse(
+        (response) => response.url().endsWith('/recipes') && response.request().method() === 'POST',
+      );
+      await drawer.getByRole('button', { name: 'Save Recipe' }).click();
+      expect((await createResponse).status()).toBe(201);
+      await expect(drawer).toHaveCount(0);
+
+      // The first extra becomes the main picture; the other one stays in the gallery.
+      await expect.poll(() => imageRequests).toEqual(['main', 'gallery']);
+      const recipeId = await findRecipeIdByName(origin, name);
+      expect(recipeId).toBeDefined();
+      await expect
+        .poll(async () => (await fetchRecipePictures(origin, recipeId as string)).galleryImageUrls.length)
+        .toBe(1);
+      const pictures = await fetchRecipePictures(origin, recipeId as string);
+      expect(pictures.imageUrl).toContain(`${recipeId}/main-`);
+    } finally {
+      const recipeId = await findRecipeIdByName(origin, name);
+      if (recipeId) {
+        await deleteRecipeViaApi(origin, recipeId);
+      }
+    }
+  });
+
   test('upload and remove the main picture', async ({ page, baseURL }) => {
     test.skip(IN_CONTAINER, 'presigned uploads target the host MinIO port');
     const origin = baseURL ?? 'http://localhost:5173';
