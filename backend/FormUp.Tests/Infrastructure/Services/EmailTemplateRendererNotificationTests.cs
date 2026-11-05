@@ -129,18 +129,80 @@ public class EmailTemplateRendererNotificationTests
     }
 
     [Theory]
-    [InlineData("en", "3", "3 photos")]
-    [InlineData("en", "1", "1 photo")]
-    [InlineData("cs", "1", "1 fotku")]
-    [InlineData("cs", "3", "3 fotky")]
-    [InlineData("cs", "5", "5 fotek")]
-    [InlineData("de", "2", "2 Fotos")]
-    public void RenderNotification_Photos_SaysPhotosGenericallyWithTheRightPlural(string language, string count, string expected)
+    [InlineData("en", "3", "3 photos sent")]
+    [InlineData("en", "1", "1 photo sent")]
+    [InlineData("cs", "1", "odeslána 1 fotka")]
+    [InlineData("cs", "2", "odeslány 2 fotky")]
+    [InlineData("cs", "4", "odeslány 4 fotky")]
+    [InlineData("cs", "5", "odesláno 5 fotek")]
+    [InlineData("cs", "21", "odesláno 21 fotek")]
+    [InlineData("de", "2", "2 Fotos gesendet")]
+    public void RenderNotification_RequestAnswer_SaysPhotosGenericallyWithTheRightPlural(string language, string count, string expected)
     {
         var (_, html) = Renderer.RenderNotification(Item(
             NotificationEvent.ProgressPhotosSubmitted, language, (NotificationEmailWorkItem.PhotoCountKey, count)));
 
-        html.Should().Contain(expected);
+        WebUtility.HtmlDecode(html).Should().Contain(expected);
+    }
+
+    [Theory]
+    [InlineData("en", "1", "Petra Svobodova · 1 new progress photo")]
+    [InlineData("en", "3", "Petra Svobodova · 3 new progress photos")]
+    [InlineData("cs", "1", "Petra Svobodova · 1 nová fotka pokroku")]
+    [InlineData("cs", "2", "Petra Svobodova · 2 nové fotky pokroku")]
+    [InlineData("cs", "4", "Petra Svobodova · 4 nové fotky pokroku")]
+    [InlineData("cs", "5", "Petra Svobodova · 5 nových fotek pokroku")]
+    [InlineData("de", "1", "Petra Svobodova · 1 neues Fortschrittsfoto")]
+    [InlineData("de", "3", "Petra Svobodova · 3 neue Fortschrittsfotos")]
+    public void RenderNotification_FreeFormPhotos_LeadsWithTheNameAndTheCountAndNamesNoRequest(string language, string count, string expectedLead)
+    {
+        var (_, html) = Renderer.RenderNotification(Item(
+            NotificationEvent.ProgressPhotosSubmitted, language,
+            (NotificationEmailWorkItem.PhotoCountKey, count),
+            (NotificationEmailWorkItem.FreeFormKey, "true")));
+        var copy = WebUtility.HtmlDecode(html);
+
+        copy.Should().Contain($">{expectedLead}</p>");
+        copy.ToLowerInvariant().Should().NotContain("request").And.NotContain("žádost").And.NotContain("anfrage");
+    }
+
+    [Theory]
+    [InlineData("en", "New progress photos from Petra Svobodova.")]
+    [InlineData("cs", "Nové fotky pokroku od: Petra Svobodova.")]
+    [InlineData("de", "Neue Fortschrittsfotos von Petra Svobodova.")]
+    public void RenderNotification_FreeFormPhotos_PreheaderNamesTheClientWithoutARequest(string language, string expectedPreheader)
+    {
+        var (_, html) = Renderer.RenderNotification(Item(
+            NotificationEvent.ProgressPhotosSubmitted, language,
+            (NotificationEmailWorkItem.PhotoCountKey, "2"),
+            (NotificationEmailWorkItem.FreeFormKey, "true")));
+
+        WebUtility.HtmlDecode(html).Should().Contain(expectedPreheader);
+    }
+
+    [Theory]
+    [InlineData("en", "in reply to your request")]
+    [InlineData("cs", "jako odpověď na vaši žádost")]
+    [InlineData("de", "als Antwort auf Ihre Anfrage")]
+    public void RenderNotification_RequestAnswer_PreheaderStillMentionsTheRequest(string language, string expectedPart)
+    {
+        var (_, html) = Renderer.RenderNotification(Item(
+            NotificationEvent.ProgressPhotosSubmitted, language, (NotificationEmailWorkItem.PhotoCountKey, "2")));
+
+        WebUtility.HtmlDecode(html).Should().Contain(expectedPart);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void RenderNotification_Photos_NeverCarriesAPhotoAddress(bool freeForm)
+    {
+        var (_, html) = Renderer.RenderNotification(Item(
+            NotificationEvent.ProgressPhotosSubmitted, "en",
+            (NotificationEmailWorkItem.PhotoCountKey, "2"),
+            (NotificationEmailWorkItem.FreeFormKey, freeForm ? "true" : "false")));
+
+        html.Should().NotContain("plan-photos").And.NotContain("<img").And.NotContain("blob");
     }
 
     [Fact]
