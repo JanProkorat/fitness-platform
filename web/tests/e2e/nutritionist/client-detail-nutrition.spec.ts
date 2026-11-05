@@ -835,7 +835,7 @@ test.describe('client detail — nutrition tab', () => {
       await openNutritionTab(page);
 
       const card = page.getByRole('region', { name: 'Is it working?' });
-      await expect(card.getByText('Failed to load the plan. Please refresh the page.')).toBeVisible();
+      await expect(card.getByText("Couldn't load the data. Please refresh the page.")).toBeVisible();
       // The rest of the tab is unaffected.
       await expect(page.getByRole('region', { name: 'Past plans' })).toBeVisible();
 

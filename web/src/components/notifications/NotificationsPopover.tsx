@@ -146,7 +146,7 @@ export default function NotificationsPopover({ collapsed, rowClassName, label, o
 
         {notificationsQuery.isError && (
           <div className="flex flex-col items-center gap-3 px-2 py-6">
-            <p className="text-body text-muted-foreground">{t('common.loadError')}</p>
+            <p className="text-body text-muted-foreground">{t('common.dataLoadError')}</p>
             <Button type="button" variant="outline" size="sm" onClick={() => void notificationsQuery.refetch()}>
               {t('clients.retry')}
             </Button>

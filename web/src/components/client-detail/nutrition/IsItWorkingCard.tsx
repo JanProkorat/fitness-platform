@@ -96,7 +96,7 @@ export default function IsItWorkingCard({ clientId, plans, targetWeightKg }: Pro
 
       {measurementsQuery.isError && (
         <div className="flex flex-col items-start gap-2">
-          <p className="text-caption text-muted-foreground">{t('common.loadError')}</p>
+          <p className="text-caption text-muted-foreground">{t('common.dataLoadError')}</p>
           <Button type="button" variant="outline" size="sm" onClick={() => void measurementsQuery.refetch()}>
             {t('clients.retry')}
           </Button>
