@@ -52,6 +52,11 @@ public class ComplianceService : IComplianceService
             }
 
             var meals = await LoadMergedMealsAsync(clientId, from.Date, to.Date, from, to.AddDays(1), nutritionPlans, ct);
+
+            // A meal the client ate that its plan no longer holds (the coach removed it afterwards) is
+            // outside the planned count; it joins it, so it is not over-counted.
+            mealsPlanned += meals.Count(meal =>
+                meal.State != MealEatenState.NotEaten && IsRemovedFromItsPlan(nutritionPlans, meal));
             mealsLogged = meals.Count(meal => meal.State == MealEatenState.Eaten);
             mealsPartlyEaten = meals.Count(meal => meal.State == MealEatenState.PartlyEaten);
             mealsEatenShare = meals.Sum(meal => meal.Share);
@@ -358,6 +363,23 @@ public class ComplianceService : IComplianceService
                 var plan = plans.FirstOrDefault(candidate => candidate.ExternalId == planId);
                 return plan is null ? null : NutritionPlanDayResolver.FindMeal(plan, day, mealId);
             });
+    }
+
+    /// <summary>
+    /// Whether the merged meal belongs to one of the given plans and that plan holds no meal with its id
+    /// any more. A meal of a plan that is not among them is not judged.
+    /// </summary>
+    private static bool IsRemovedFromItsPlan(IReadOnlyList<NutritionPlan> plans, MergedMealLog meal)
+    {
+        if (meal.Meal is not null)
+        {
+            return false;
+        }
+
+        var plan = plans.FirstOrDefault(candidate => candidate.ExternalId == meal.PlanId);
+
+        return plan is not null
+               && !plan.Weeks.SelectMany(week => week.Days).SelectMany(day => day.Meals).Any(m => m.MealId == meal.MealId);
     }
 
     /// <summary>

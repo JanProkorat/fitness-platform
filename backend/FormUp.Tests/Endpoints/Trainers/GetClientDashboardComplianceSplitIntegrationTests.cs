@@ -64,7 +64,8 @@ public class GetClientDashboardComplianceSplitIntegrationTests(FitnessApiFactory
         plan.StartDate = monday;
         plan.Weeks[0].Status = WeekStatus.Published;
         plan.Weeks[0].DatePublished = monday;
-        plan.Weeks[0].Days[isoDayOfWeek - 1].Meals = [PlanTestHelpers.CreateMeal(order: 1)];
+        var plannedMeal = PlanTestHelpers.CreateMeal(order: 1);
+        plan.Weeks[0].Days[isoDayOfWeek - 1].Meals = [plannedMeal];
 
         using var scope = factory.Services.CreateScope();
         var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
@@ -74,7 +75,7 @@ public class GetClientDashboardComplianceSplitIntegrationTests(FitnessApiFactory
             Id = ObjectId.GenerateNewId(),
             ClientId = clientUserId,
             PlanId = plan.ExternalId,
-            MealId = Guid.NewGuid(),
+            MealId = plannedMeal.MealId,
             EatenAt = DateTime.UtcNow,
             FoodsEaten = [],
         }, cancellationToken: Ct);

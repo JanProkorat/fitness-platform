@@ -11,7 +11,10 @@ public class LogMealEatenResponse
     /// <summary>Human-readable confirmation.</summary>
     public string Message { get; set; } = string.Empty;
 
-    /// <summary>False only when the meal is no longer in the plan, so no meal log was written.</summary>
+    /// <summary>
+    /// False only when the meal is no longer in the plan and the request carried no seen items,
+    /// so no meal log was written.
+    /// </summary>
     public bool MealLogged { get; set; } = true;
 
     /// <summary>True when the action collided with a plan change the coach made.</summary>

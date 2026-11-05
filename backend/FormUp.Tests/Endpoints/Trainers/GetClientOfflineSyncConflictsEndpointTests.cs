@@ -84,6 +84,47 @@ public class GetClientOfflineSyncConflictsEndpointTests(FitnessApiFactory factor
     }
 
     [Fact]
+    public async Task Get_SeenItems_CarryTheItemIdAndAllFourMacros()
+    {
+        var coach = await TestActors.Nutritionist(factory).CreateAsync(Ct);
+        var client = await TestActors.Client(factory).CreateAsync(Ct);
+        await TestActors.Link(factory, coach, client).AsRole(UserRole.Nutritionist).CreateAsync(Ct);
+        var itemId = Guid.NewGuid();
+        using (var scope = factory.Services.CreateScope())
+        {
+            var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+            await mongo.OfflineSyncConflicts.InsertOneAsync(new OfflineSyncConflict
+            {
+                ExternalId = Guid.NewGuid(),
+                ClientId = client.UserId,
+                PlanId = Guid.NewGuid(),
+                PlanAuthorId = coach.UserId,
+                Operation = "LogMealEaten",
+                Kind = OfflineSyncConflictKind.PlanChanged,
+                MealId = Guid.NewGuid(),
+                PlanName = "Plan",
+                MealLogged = true,
+                SeenItems =
+                [
+                    new SeenMealItem
+                    {
+                        ItemId = itemId, Kind = SeenMealItemKind.Food, RefId = Guid.NewGuid(), Name = "Rice", Amount = 150m,
+                        Kcal = 195m, Protein = 4m, Carbs = 42m, Fat = 0.5m, Fibre = 1m,
+                    },
+                ],
+            }, cancellationToken: Ct);
+        }
+
+        var response = await GetAsync(coach, client.PublicId);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = (await response.Content.ReadFromJsonAsync<GetClientOfflineSyncConflictsResponse>(Json, Ct))!;
+        var seen = body.Items.Should().ContainSingle().Subject.SeenItems.Should().ContainSingle().Subject;
+        seen.ItemId.Should().Be(itemId);
+        (seen.Kcal, seen.Protein, seen.Carbs, seen.Fat, seen.Fibre).Should().Be((195m, 4m, 42m, 0.5m, 1m));
+    }
+
+    [Fact]
     public async Task Get_LegacyDocumentWithoutNewFields_LoadsAndIsUnreviewed()
     {
         var coach = await TestActors.Nutritionist(factory).CreateAsync(Ct);
