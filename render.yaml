@@ -88,7 +88,7 @@ services:
       - key: MinIO__Endpoint
         sync: false                 # <ACCOUNT_ID>.r2.cloudflarestorage.com
       - key: MinIO__PublicEndpoint
-        value: https://pub-b21414194c8b407492b727f12c20ffcb.r2.dev
+        value: https://pub-72bfe09ff70d45549893e39c7081983d.r2.dev
       - key: MinIO__BucketName
         value: form-up-dev
       - key: MinIO__Secure
