@@ -1,3 +1,4 @@
+import { isAxiosError } from 'axios';
 import Constants from 'expo-constants';
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
@@ -69,7 +70,9 @@ export function usePushRegistration(): void {
         await rememberRegisteredToken(token);
       } catch (error) {
         // Android without FCM configuration fails here; push is simply unavailable then.
-        console.warn('Push registration failed', error);
+        // Never log the error object: an axios error carries the request body, which holds the push token.
+        const status = isAxiosError(error) ? error.response?.status : undefined;
+        console.warn('Push registration failed', status ?? '');
       }
     })();
   }, [sessionGeneration]);
