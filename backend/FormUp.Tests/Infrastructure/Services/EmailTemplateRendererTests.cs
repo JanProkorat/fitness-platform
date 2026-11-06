@@ -286,4 +286,117 @@ public class EmailTemplateRendererTests
 
         html.Should().Contain("href=\"https://app.example.com/r?token=t&amp;email=a%40example.com\"");
     }
+
+    private const string IconsUrl = AssetBaseUrl + "/email/icons/";
+
+    [Theory]
+    [InlineData(EmailTemplateRenderer.EmailVerification, "mail", "#EFF7E6", 20)]
+    [InlineData(EmailTemplateRenderer.PasswordReset, "lock", "#FFE8D2", 20)]
+    [InlineData(EmailTemplateRenderer.ReauthCode, "lock", "#FFE8D2", 20)]
+    [InlineData(EmailTemplateRenderer.Invitation, "user-plus", "#FDE4E1", 20)]
+    [InlineData(EmailTemplateRenderer.PaymentRequest, "banknote", "#FFE8D2", 17)]
+    [InlineData(EmailTemplateRenderer.BankAccountChanged, "banknote", "#FFE8D2", 17)]
+    [InlineData(EmailTemplateRenderer.NewMessage, "message", "#E3EBFA", 20)]
+    [InlineData(EmailTemplateRenderer.CheckIn, "activity", "#FDE4E1", 20)]
+    [InlineData(EmailTemplateRenderer.JoinRequest, "inbox", "#EEE7FA", 20)]
+    [InlineData(EmailTemplateRenderer.Workout, "dumbbell", "#FFE8D2", 20)]
+    [InlineData(EmailTemplateRenderer.Photos, "camera", "#F8E4EF", 20)]
+    public void Wrap_EveryTemplate_PutsTheIconTileAboveTheHeading(string template, string icon, string background, int size)
+    {
+        var html = Renderer().Wrap(template, "en");
+        var tile = html[..html.IndexOf("<h1", StringComparison.Ordinal)];
+
+        tile.Should().Contain($"src=\"{IconsUrl}tile-{icon}-light.png\"").And.Contain($"src=\"{IconsUrl}tile-{icon}-dark.png\"");
+        tile.Should().Contain("width=\"48\" height=\"48\"").And.Contain("border-radius:14px").And.Contain($"background-color:{background}");
+        tile.Should().Contain($"width=\"{size}\" height=\"{size}\" alt=\"\"").And.Contain("margin:0 0 16px");
+        tile.Should().Contain("display:none;mso-hide:all;");
+        html.Should().NotContain("{{HeaderIcon}}").And.NotContain("{{NoteIcon}}");
+    }
+
+    [Theory]
+    [InlineData("cs")]
+    [InlineData("en")]
+    [InlineData("de")]
+    public void Wrap_EveryLanguage_HasTheTileTheNoteIconAndTheDarkModeSwap(string language)
+    {
+        var html = Renderer().Wrap(EmailTemplateRenderer.EmailVerification, language);
+
+        html.Should().Contain("tile-mail-light.png").And.Contain("note-clock-light.png").And.Contain("note-clock-dark.png");
+        html.Should().Contain("margin-right:10px").And.Contain("width=\"16\" height=\"16\" alt=\"\"");
+        html.Should().Contain(".fu-ic-light { display: none !important; }").And.Contain(".fu-ic-dark { display: inline-block");
+        html.Should().Contain(".fu-tile-mail { background-color: rgba(140,193,82,0.12) !important; }");
+        html.Should().Contain(".fu-tile-banknote { background-color: #3A2414 !important; }");
+    }
+
+    [Theory]
+    [InlineData(EmailTemplateRenderer.EmailVerification, "note-clock")]
+    [InlineData(EmailTemplateRenderer.PasswordReset, "note-clock")]
+    [InlineData(EmailTemplateRenderer.Photos, "note-shield")]
+    [InlineData(EmailTemplateRenderer.ReauthCode, null)]
+    [InlineData(EmailTemplateRenderer.Workout, null)]
+    public void Wrap_NoteRow_CarriesItsIconOnlyWhereTheTemplateHasOne(string template, string? noteIcon)
+    {
+        var html = Renderer().Wrap(template, "en");
+
+        if (noteIcon is null)
+        {
+            html.Should().NotContain("/email/icons/note-");
+            return;
+        }
+
+        html.Should().Contain($"{IconsUrl}{noteIcon}-light.png");
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("  ")]
+    public void Wrap_NoAssetBaseUrl_LeavesOutEveryIconAndTile(string? assetBaseUrl)
+    {
+        foreach (var template in new[]
+                 {
+                     EmailTemplateRenderer.EmailVerification, EmailTemplateRenderer.PasswordReset, EmailTemplateRenderer.ReauthCode,
+                     EmailTemplateRenderer.Invitation, EmailTemplateRenderer.PaymentRequest, EmailTemplateRenderer.BankAccountChanged,
+                     EmailTemplateRenderer.NewMessage, EmailTemplateRenderer.CheckIn, EmailTemplateRenderer.JoinRequest,
+                     EmailTemplateRenderer.Workout, EmailTemplateRenderer.Photos
+                 })
+        {
+            var html = Renderer(assetBaseUrl).Wrap(template, "en");
+
+            html.Should().NotContain("/email/icons/").And.NotContain("width=\"48\"").And.NotContain("fu-ic-light\"")
+                .And.NotContain("{{HeaderIcon}}").And.NotContain("{{NoteIcon}}");
+        }
+    }
+
+    [Fact]
+    public void RenderInvitation_WithPackage_ShowsThePackageIconOnlyWithAnAssetBaseUrl()
+    {
+        var package = new InvitationPackageInfo("Online", PackageBillingInterval.Monthly, null);
+
+        Renderer().RenderInvitation("Jan Novák", "https://app.example.com/i", "en", null, package).Html
+            .Should().Contain($"{IconsUrl}package-light.png");
+        Renderer(assetBaseUrl: null).RenderInvitation("Jan Novák", "https://app.example.com/i", "en", null, package).Html
+            .Should().NotContain("package-light.png");
+    }
+
+    [Fact]
+    public void IconFileNames_AllExistInTheStaticAssetsFolder()
+    {
+        var directory = new DirectoryInfo(AppContext.BaseDirectory);
+
+        while (directory is not null && !Directory.Exists(Path.Combine(directory.FullName, "FormUp.Application", "wwwroot")))
+        {
+            directory = directory.Parent;
+        }
+
+        directory.Should().NotBeNull("the source tree is the only place wwwroot lives for a test run");
+
+        var icons = Path.Combine(directory!.FullName, "FormUp.Application", "wwwroot", "email", "icons");
+
+        EmailTemplateRenderer.IconFileNames.Should().NotBeEmpty();
+
+        foreach (var file in EmailTemplateRenderer.IconFileNames)
+        {
+            File.Exists(Path.Combine(icons, file)).Should().BeTrue($"{file} must be served from /email/icons/");
+        }
+    }
 }
