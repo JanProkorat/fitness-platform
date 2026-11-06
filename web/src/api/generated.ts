@@ -20,7 +20,7 @@ export class ApiClient {
 
         this.instance = instance || axios.create();
 
-        this.baseUrl = baseUrl ?? "https://localhost:5001";
+        this.baseUrl = baseUrl ?? "https://localhost:53605";
 
     }
 
@@ -718,7 +718,7 @@ export class ApiClient {
 
     /**
      * Update current user time zone
-     * @return No Content
+     * @return Time zone updated
      */
     updateTimeZoneEndpoint(updateTimeZoneRequest: UpdateTimeZoneRequest, signal?: AbortSignal): Promise<void> {
         let url_ = this.baseUrl + "/users/me/timezone";
@@ -757,20 +757,21 @@ export class ApiClient {
                 }
             }
         }
-        if (status === 204) {
+        if (status === 200) {
             const _responseText = response.data;
             return Promise.resolve<void>(null as any);
 
         } else if (status === 400) {
             const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = JSON.parse(resultData400);
-            return throwException("Bad Request", status, _responseText, _headers, result400);
+            return throwException("Invalid request, or INVALID_TIME_ZONE", status, _responseText, _headers);
 
         } else if (status === 401) {
             const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("User not found", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -781,7 +782,7 @@ export class ApiClient {
 
     /**
      * Update current user profile
-     * @return No Content
+     * @return Profile updated
      */
     updateProfileEndpoint(updateProfileRequest: UpdateProfileRequest, signal?: AbortSignal): Promise<void> {
         let url_ = this.baseUrl + "/users/me";
@@ -820,20 +821,21 @@ export class ApiClient {
                 }
             }
         }
-        if (status === 204) {
+        if (status === 200) {
             const _responseText = response.data;
             return Promise.resolve<void>(null as any);
 
         } else if (status === 400) {
             const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = JSON.parse(resultData400);
-            return throwException("Bad Request", status, _responseText, _headers, result400);
+            return throwException("Invalid request", status, _responseText, _headers);
 
         } else if (status === 401) {
             const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("User not found", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -3159,7 +3161,7 @@ export class ApiClient {
 
     /**
      * Update professional profile
-     * @return No Content
+     * @return Profile updated
      */
     updateProfessionalProfileEndpoint(updateProfessionalProfileRequest: UpdateProfessionalProfileRequest, signal?: AbortSignal): Promise<void> {
         let url_ = this.baseUrl + "/trainer/profile";
@@ -3198,24 +3200,25 @@ export class ApiClient {
                 }
             }
         }
-        if (status === 204) {
+        if (status === 200) {
             const _responseText = response.data;
             return Promise.resolve<void>(null as any);
 
         } else if (status === 400) {
             const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = JSON.parse(resultData400);
-            return throwException("Bad Request", status, _responseText, _headers, result400);
+            return throwException("Invalid request", status, _responseText, _headers);
 
         } else if (status === 401) {
             const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
 
         } else if (status === 403) {
             const _responseText = response.data;
-            return throwException("Forbidden", status, _responseText, _headers);
+            return throwException("The caller is not a trainer or nutritionist", status, _responseText, _headers);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("Professional profile not found", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -7210,10 +7213,7 @@ export class ApiClient {
 
         } else if (status === 400) {
             const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = JSON.parse(resultData400);
-            return throwException("RECIPE_NOT_OWNED or RECIPE_GALLERY_IMAGE_NOT_FOUND", status, _responseText, _headers, result400);
+            return throwException("RECIPE_NOT_OWNED or RECIPE_GALLERY_IMAGE_NOT_FOUND", status, _responseText, _headers);
 
         } else if (status === 401) {
             const _responseText = response.data;
@@ -7222,6 +7222,14 @@ export class ApiClient {
         } else if (status === 403) {
             const _responseText = response.data;
             return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("Recipe not found", status, _responseText, _headers);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            return throwException("RECIPE_VERSION_CONFLICT \u2014 the images changed concurrently", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -13166,10 +13174,7 @@ export class ApiClient {
 
         } else if (status === 400) {
             const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = JSON.parse(resultData400);
-            return throwException("FOOD_NOT_OWNED or FOOD_GALLERY_IMAGE_NOT_FOUND", status, _responseText, _headers, result400);
+            return throwException("FOOD_NOT_OWNED or FOOD_GALLERY_IMAGE_NOT_FOUND", status, _responseText, _headers);
 
         } else if (status === 401) {
             const _responseText = response.data;
@@ -13178,6 +13183,14 @@ export class ApiClient {
         } else if (status === 403) {
             const _responseText = response.data;
             return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("Food not found or soft-deleted", status, _responseText, _headers);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            return throwException("FOOD_IMAGES_CONFLICT \u2014 the images changed concurrently", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -21735,7 +21748,7 @@ export class ApiClient {
 
     /**
      * Reset password
-     * @return No Content
+     * @return Password reset; all sessions revoked
      */
     resetPasswordEndpoint(resetPasswordRequest: ResetPasswordRequest, signal?: AbortSignal): Promise<void> {
         let url_ = this.baseUrl + "/auth/password/reset";
@@ -21774,16 +21787,17 @@ export class ApiClient {
                 }
             }
         }
-        if (status === 204) {
+        if (status === 200) {
             const _responseText = response.data;
             return Promise.resolve<void>(null as any);
 
         } else if (status === 400) {
             const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = JSON.parse(resultData400);
-            return throwException("Invalid input, or invalid/expired reset request", status, _responseText, _headers, result400);
+            return throwException("Invalid input, or invalid/expired reset request", status, _responseText, _headers);
+
+        } else if (status === 429) {
+            const _responseText = response.data;
+            return throwException("Rate limit exceeded", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -21794,7 +21808,7 @@ export class ApiClient {
 
     /**
      * Request password reset
-     * @return No Content
+     * @return Reset link sent (or send failure logged)
      */
     requestPasswordResetEndpoint(requestPasswordResetRequest: RequestPasswordResetRequest, signal?: AbortSignal): Promise<void> {
         let url_ = this.baseUrl + "/auth/password/reset";
@@ -21833,16 +21847,21 @@ export class ApiClient {
                 }
             }
         }
-        if (status === 204) {
+        if (status === 200) {
             const _responseText = response.data;
             return Promise.resolve<void>(null as any);
 
         } else if (status === 400) {
             const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = JSON.parse(resultData400);
-            return throwException("Bad Request", status, _responseText, _headers, result400);
+            return throwException("Invalid request", status, _responseText, _headers);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("No account uses this email", status, _responseText, _headers);
+
+        } else if (status === 429) {
+            const _responseText = response.data;
+            return throwException("Rate limit exceeded", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -22519,27 +22538,20 @@ export interface CreateWorkoutTemplateSetRequest {
     restSeconds?: number | undefined;
 }
 
-/** RFC7807 compatible problem details/ error response class. this can be used by configuring startup like so: app.UseFastEndpoints(c => c.Errors.UseProblemDetails()) */
 export interface ProblemDetails {
     type?: string;
     title?: string;
     status?: number;
     instance?: string;
     traceId?: string;
-    /** the details of the error */
     detail?: string | undefined;
     errors?: ProblemDetails_Error[];
 }
 
-/** the error details object */
 export interface ProblemDetails_Error {
-    /** the name of the error or property of the dto that caused the error */
     name?: string;
-    /** the reason for the error */
     reason?: string;
-    /** the code of the error */
     code?: string | undefined;
-    /** the severity of the error */
     severity?: string | undefined;
 }
 
