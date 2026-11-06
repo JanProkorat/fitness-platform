@@ -20,7 +20,7 @@ export class ApiClient {
 
         this.instance = instance || axios.create();
 
-        this.baseUrl = baseUrl ?? "https://localhost:5001";
+        this.baseUrl = baseUrl ?? "https://localhost:5011";
 
     }
 
@@ -16562,6 +16562,10 @@ export class ApiClient {
             const _responseText = response.data;
             return throwException("Forbidden", status, _responseText, _headers);
 
+        } else if (status === 409) {
+            const _responseText = response.data;
+            return throwException("The diary request is not Accepted/InProgress, or its window has expired (PHOTO_DIARY_REQUEST_EXPIRED)", status, _responseText, _headers);
+
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
@@ -22597,20 +22601,27 @@ export interface CreateWorkoutTemplateSetRequest {
     restSeconds?: number | undefined;
 }
 
+/** RFC7807 compatible problem details/ error response class. this can be used by configuring startup like so: app.UseFastEndpoints(c => c.Errors.UseProblemDetails()) */
 export interface ProblemDetails {
     type?: string;
     title?: string;
     status?: number;
     instance?: string;
     traceId?: string;
+    /** the details of the error */
     detail?: string | undefined;
     errors?: ProblemDetails_Error[];
 }
 
+/** the error details object */
 export interface ProblemDetails_Error {
+    /** the name of the error or property of the dto that caused the error */
     name?: string;
+    /** the reason for the error */
     reason?: string;
+    /** the code of the error */
     code?: string | undefined;
+    /** the severity of the error */
     severity?: string | undefined;
 }
 
@@ -25120,8 +25131,8 @@ export interface SubscriptionPlanDto {
     nameEn?: string;
     /** German plan name. */
     nameDe?: string;
-    /** Which professional role(s) this plan applies to. */
-    applicableRoles?: ApplicableRoles;
+    /** True when the plan covers both professional roles at no extra charge. */
+    bothRolesIncluded?: boolean;
     /** Whether the plan allows creating nutrition/training plans. */
     canCreatePlans?: boolean;
     /** Whether the plan allows messaging clients. */
@@ -25136,23 +25147,21 @@ export interface SubscriptionPlanDto {
     canUsePayments?: boolean;
     /** Maximum number of active clients allowed under this plan. Null means unlimited. */
     maxActiveClients?: number | undefined;
-    /** Plan price, expressed in the smallest unit of Currency. */
+    /** Current plan price, expressed in the smallest unit of Currency. */
     priceMinorUnits?: number;
-    /** ISO 4217 currency code for PriceMinorUnits. */
+    /** Current price of the second-role add-on. Null when both roles are included. */
+    secondRoleAddOnPriceMinorUnits?: number | undefined;
+    /** ISO 4217 currency code for the prices. */
     currency?: string;
     /** Billing cadence for this plan. */
     billingInterval?: BillingInterval;
-    /** External payment-provider price identifier, once billing integration ships. */
+    /** External payment-provider price identifier of the current price, once billing integration ships. */
     externalPriceId?: string | undefined;
     /** Whether the plan is currently offered/selectable. */
     isActive?: boolean;
-}
-
-/** Which professional role(s) a SubscriptionPlan applies to. */
-export enum ApplicableRoles {
-    Trainer = "Trainer",
-    Nutritionist = "Nutritionist",
-    Both = "Both",
+    /** Number of coaches with a live subscription (trialing, active or past due) on this plan.
+Coaches without a subscription row are not counted. */
+    coachCount?: number;
 }
 
 /** Billing cadence for a SubscriptionPlan. */
@@ -25169,8 +25178,14 @@ export interface UpdateSubscriptionPlanRequest {
     nameEn: string;
     /** German plan name. */
     nameDe: string;
-    /** Which professional role(s) this plan applies to. */
-    applicableRoles?: ApplicableRoles;
+    /** True when the plan covers both professional roles at no extra charge. Required; exactly
+one of this and SecondRoleAddOnPriceMinorUnits must be set. */
+    bothRolesIncluded: boolean;
+    /** Price of the second-role add-on. Must be positive; omit when both roles are included. */
+    secondRoleAddOnPriceMinorUnits?: number | undefined;
+    /** When the price changes, mark every coach currently on the plan to move to the new price
+at their next renewal. Defaults to false: coaches keep the price row they pay. */
+    moveExistingCoachesAtNextRenewal?: boolean;
     /** Whether the plan allows creating nutrition/training plans. Required. */
     canCreatePlans: boolean;
     /** Whether the plan allows messaging clients. Required. */
@@ -25228,8 +25243,11 @@ export interface CreateSubscriptionPlanRequest {
     nameEn: string;
     /** German plan name. */
     nameDe: string;
-    /** Which professional role(s) this plan applies to. */
-    applicableRoles?: ApplicableRoles;
+    /** True when the plan covers both professional roles at no extra charge. Exactly one of this
+and SecondRoleAddOnPriceMinorUnits must be set. */
+    bothRolesIncluded?: boolean;
+    /** Price of the second-role add-on. Must be positive; omit when both roles are included. */
+    secondRoleAddOnPriceMinorUnits?: number | undefined;
     /** Whether the plan allows creating nutrition/training plans. */
     canCreatePlans?: boolean;
     /** Whether the plan allows messaging clients. */

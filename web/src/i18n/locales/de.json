@@ -190,6 +190,10 @@
     "navigationTitle": "Navigation"
   },
   "sidebar": {
+    "adminSection": "Form Up Admin",
+    "adminPlans": "Pläne",
+    "adminPromotions": "Aktionen",
+    "adminCoaches": "Trainer",
     "automations": "Automatisierungen",
     "dashboard": "Dashboard",
     "profile": "Profil",
@@ -3178,6 +3182,10 @@
     }
   },
   "apiErrors": {
+    "FREE_PLAN_LOCKED": "Der Plan Free lässt sich so nicht ändern: Sein Preis bleibt bei 0 und er wird immer angeboten.",
+    "SUBSCRIPTION_PLAN_CODE_ALREADY_EXISTS": "Ein Plan mit diesem Code existiert bereits.",
+    "SUBSCRIPTION_PLAN_NOT_FOUND": "Dieser Plan existiert nicht mehr.",
+    "SECOND_ROLE_OPTION_INVALID": "Wählen Sie entweder ein kostenpflichtiges Zusatzangebot für die zweite Rolle oder die zweite Rolle im Preis inklusive.",
     "PAYMENTS_NOT_ENTITLED": "Zahlungen sind im Tarif nicht enthalten.",
     "BANK_ACCOUNT_NOT_SET": "Vor einer Zahlungsanforderung muss in den Einstellungen ein Bankkonto hinterlegt sein.",
     "PAYMENT_ALREADY_PAID": "Diese Zahlung wurde bereits als bezahlt markiert.",
@@ -6303,6 +6311,118 @@
         "note": "Notiz",
         "notePlaceholder": "Zum Beispiel Knieverletzung"
       }
+    }
+  },
+  "adminPlans": {
+    "title": "Pläne",
+    "subtitle": "Was Trainer kaufen können. Eine Preisänderung erzeugt in Stripe einen neuen Preis; Trainer, die schon zahlen, behalten ihren.",
+    "newPlan": "Neuer Plan",
+    "note": "Jeder Trainer startet mit Free. Aktionen senken diese Preise für eine Weile; sie ändern sie nie.",
+    "loadError": "Die Pläne konnten nicht geladen werden.",
+    "retry": "Erneut versuchen",
+    "empty": "Noch keine Pläne.",
+    "unlimited": "Unbegrenzt",
+    "saveSuccess": "Plan gespeichert.",
+    "saveError": "Der Plan konnte nicht gespeichert werden.",
+    "stopSuccess": "Der Plan wird nicht mehr angeboten.",
+    "stopError": "Das Angebot des Plans konnte nicht beendet werden.",
+    "table": {
+      "plan": "Plan",
+      "perMonth": "Pro Monat",
+      "secondRole": "Zweite Rolle",
+      "clients": "Klienten",
+      "features": "Funktionen",
+      "coaches": "Trainer",
+      "status": "Status",
+      "actions": "Aktionen",
+      "code": "Code: {{code}}",
+      "included": "Inklusive"
+    },
+    "status": {
+      "active": "Aktiv",
+      "stopped": "Nicht angeboten"
+    },
+    "rowMenu": {
+      "open": "Menü für Plan {{name}} öffnen",
+      "edit": "Bearbeiten",
+      "stopOffering": "Nicht mehr anbieten"
+    },
+    "features": {
+      "plans": "Trainings- und Ernährungspläne",
+      "chat": "Chat, Fortschrittsfotos, Messungen",
+      "forms": "Formulare",
+      "formsHint": "Fragebögen und Onboarding-Formulare",
+      "checkIns": "Wöchentliche Check-ins",
+      "perClientCheckIns": "Check-in-Einstellungen pro Klient",
+      "perClientCheckInsHint": "Erfordert wöchentliche Check-ins",
+      "chip": {
+        "plans": "Pläne",
+        "chat": "Chat",
+        "forms": "Formulare",
+        "checkIns": "Check-ins",
+        "perClientCheckIns": "Individuelle Check-ins",
+        "everything": "Alles"
+      }
+    },
+    "drawer": {
+      "titleNew": "Neuer Plan",
+      "titleEdit": "Plan bearbeiten · {{name}}",
+      "descriptionNew": "Was Trainer künftig kaufen können.",
+      "coaches_one": "{{count}} Trainer in diesem Plan",
+      "coaches_other": "{{count}} Trainer in diesem Plan",
+      "sectionPlan": "Plan",
+      "nameCs": "Name · Tschechisch",
+      "nameEn": "Name · Englisch",
+      "nameDe": "Name · Deutsch",
+      "code": "Code",
+      "codeHint": "Wird von der App und von Stripe verwendet. Nach dem Anlegen des Plans nicht mehr änderbar.",
+      "sectionPrice": "Preis",
+      "perMonth": "Pro Monat",
+      "freePriceHint": "Free kostet immer 0.",
+      "billing": "Abrechnung",
+      "billingMonthly": "Monatlich",
+      "billingAnnualLater": "Jährliche Abrechnung folgt später.",
+      "secondRole": "Zweite Rolle",
+      "secondRoleAddOn": "Kostenpflichtiges Zusatzangebot",
+      "secondRoleIncluded": "Im Preis inklusive",
+      "addOnPrice": "Zweite Rolle pro Monat",
+      "sectionClients": "Klienten",
+      "activeClients": "Aktive Klienten",
+      "activeClientsHint": "Ein Klient in beiden Rollen zählt einmal.",
+      "sectionFeatures": "Funktionen",
+      "sectionPreview": "So sehen es Trainer",
+      "offer": "Trainern anbieten",
+      "offerHint": "Aus blendet den Plan in der Planauswahl aus. Trainer, die ihn schon haben, behalten ihn.",
+      "offerFreeHint": "Der Plan Free wird immer angeboten.",
+      "stopOffering": "Nicht mehr anbieten",
+      "saving": "Wird gespeichert…",
+      "save": "Plan speichern"
+    },
+    "preview": {
+      "price": "{{price}} / Monat",
+      "secondRole": "zweite Rolle +{{price}}",
+      "secondRoleIncluded": "zweite Rolle inklusive",
+      "clients_one": "bis zu {{count}} Klient",
+      "clients_other": "bis zu {{count}} Klienten",
+      "unlimitedClients": "unbegrenzt Klienten",
+      "offered": "Angeboten",
+      "notOffered": "Nicht angeboten"
+    },
+    "priceChange": {
+      "title": "Der Preis ändert sich von {{from}} auf {{to}}",
+      "body_one": "Beim Speichern entsteht in Stripe ein neuer Preis. Neue Trainer zahlen {{to}}. Der {{count}} Trainer, der bereits im Plan {{name}} ist, behält {{from}}.",
+      "body_other": "Beim Speichern entsteht in Stripe ein neuer Preis. Neue Trainer zahlen {{to}}. Die {{count}} Trainer, die bereits im Plan {{name}} sind, behalten {{from}}.",
+      "move": "Bei der nächsten Verlängerung auf {{price}} umstellen",
+      "moveHint": "Wir informieren jeden Trainer vor der Änderung per E-Mail."
+    },
+    "validation": {
+      "nameRequired": "Geben Sie einen Namen ein.",
+      "nameTooLong": "Der Name darf höchstens 200 Zeichen lang sein.",
+      "codeInvalid": "Der Code darf nur Kleinbuchstaben, Ziffern und Bindestriche enthalten (höchstens 50 Zeichen).",
+      "codeTaken": "Ein Plan mit diesem Code existiert bereits.",
+      "priceInvalid": "Geben Sie einen Preis von 0 bis 1.000.000 ein.",
+      "addOnInvalid": "Geben Sie einen Preis für die zweite Rolle über 0 ein oder wählen Sie „Im Preis inklusive“.",
+      "clientsInvalid": "Geben Sie eine Klientenzahl ab 1 ein oder wählen Sie Unbegrenzt."
     }
   }
 }
