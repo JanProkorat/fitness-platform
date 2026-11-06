@@ -67,13 +67,25 @@ interface Props {
   plans: ClientPlanItem[] | undefined;
   /** The open request, null when none, undefined while the lookup is loading. */
   openRequest: PhotoDiaryRequestSummary | null | undefined;
+  /** The lookup failed and nothing is cached: show an error with retry instead of the form. */
+  lookupFailed?: boolean;
+  onRetryLookup?: () => void;
 }
 
 /**
  * Side drawer of the Photos tab: the request form, or, while a request is open,
  * its status with a Cancel request action.
  */
-export default function RequestPhotosDrawer({ open, onOpenChange, clientId, name, plans, openRequest }: Props) {
+export default function RequestPhotosDrawer({
+  open,
+  onOpenChange,
+  clientId,
+  name,
+  plans,
+  openRequest,
+  lookupFailed = false,
+  onRetryLookup,
+}: Props) {
   const { t, i18n } = useTranslation();
   const user = useAuthStore((state) => state.user);
   const queryClient = useQueryClient();
@@ -130,7 +142,18 @@ export default function RequestPhotosDrawer({ open, onOpenChange, clientId, name
           </SheetDescription>
         </SheetHeader>
 
-        {openRequest === undefined ? (
+        {lookupFailed ? (
+          <div
+            role="alert"
+            data-testid="photo-request-lookup-error"
+            className="flex flex-1 flex-col items-center justify-center gap-3 px-6 py-5 text-center"
+          >
+            <p className="text-body text-muted-foreground">{t('clientDetail.photos.loadError')}</p>
+            <Button type="button" variant="outline" onClick={onRetryLookup}>
+              {t('clients.retry')}
+            </Button>
+          </div>
+        ) : openRequest === undefined ? (
           <div className="flex flex-1 flex-col gap-4 px-6 py-5">
             <Skeleton className="h-6 w-1/3" />
             <Skeleton className="h-24 w-full" />
