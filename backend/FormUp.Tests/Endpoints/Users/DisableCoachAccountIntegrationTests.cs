@@ -31,7 +31,8 @@ public class DisableCoachAccountIntegrationTests(FitnessApiFactory factory)
         long profileId,
         SubscriptionStatus status,
         DateTimeOffset? periodEndsAt,
-        DateTimeOffset? trialEndsAt = null)
+        DateTimeOffset? trialEndsAt = null,
+        bool paysSecondRoleAddOn = false)
     {
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -55,6 +56,7 @@ public class DisableCoachAccountIntegrationTests(FitnessApiFactory factory)
             Status = status,
             CurrentPeriodEndsAt = periodEndsAt,
             TrialEndsAt = trialEndsAt,
+            PaysSecondRoleAddOn = paysSecondRoleAddOn,
         });
         await db.SaveChangesAsync(Ct);
     }
