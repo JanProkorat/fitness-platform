@@ -201,21 +201,20 @@ function InviteForm({ onClose }: { onClose: () => void }) {
               aria-invalid={!!errors.email}
               {...register('email')}
             />
-            {errors.email ? (
-              <p className="text-meta text-destructive">{errors.email.message}</p>
-            ) : (
-              <div aria-live="polite" className="flex flex-col gap-1">
-                {slotLabels.length > 0 ? (
-                  slotLabels.map((label) => (
-                    <p key={label} data-testid="invite-slot-taken" className="text-meta text-destructive">
-                      {label}
-                    </p>
-                  ))
-                ) : (
-                  <p className="text-meta text-muted-foreground">{t('clients.addClientDrawer.emailHelper')}</p>
-                )}
-              </div>
-            )}
+            {/* Always mounted so a screen reader announces content swaps (error, slot label, helper). */}
+            <div aria-live="polite" className="flex flex-col gap-1">
+              {errors.email ? (
+                <p className="text-meta text-destructive">{errors.email.message}</p>
+              ) : slotLabels.length > 0 ? (
+                slotLabels.map((label) => (
+                  <p key={label} data-testid="invite-slot-taken" className="text-meta text-destructive">
+                    {label}
+                  </p>
+                ))
+              ) : (
+                <p className="text-meta text-muted-foreground">{t('clients.addClientDrawer.emailHelper')}</p>
+              )}
+            </div>
           </div>
         </section>
 
