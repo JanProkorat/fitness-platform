@@ -513,10 +513,42 @@ test.describe('plan editor Day view: locked meals', () => {
 
     await expect(page.locator('[data-slot="toast-title"]')).toContainText('A meal was eaten or locked while you were editing');
     await expect(card).toHaveAttribute('data-lock-rejected', 'true');
+    await expect(card.getByTestId('meal-lock-conflict')).toBeVisible();
     // The edit is still there: no reload, nothing reverted.
     await expect(note).toHaveValue('Eat slowly');
 
     await note.fill('Eat slowly, please');
+    await expect(card).not.toHaveAttribute('data-lock-rejected', 'true');
+    await expect(card.getByTestId('meal-lock-conflict')).toHaveCount(0);
+  });
+
+  // The live path (the client eats the meal, SignalR refetches the plan, no save) has no trigger the harness can pull
+  // without a real client session, so the refetch here comes from the refused save; the flag itself is derived from the
+  // refetched locks and the stored copy, not from the 409.
+  test('a locked meal with an unsaved edit shows the "!" badge; Restore in its popover puts back what is stored', async ({
+    page,
+  }) => {
+    const stub = newStub({ startDate: futureStart(), rejectSaveOnce: true });
+    await installStub(page, stub, fixture);
+    await openDayView(page, fixture, 'Mon');
+
+    const card = page.getByTestId('meal-block');
+    const note = card.getByRole('textbox', { name: 'Note for Breakfast' });
+    await note.fill('Eat slowly');
+    stub.locks = [mealLock(fixture, stub, {})];
+    await page.getByRole('button', { name: 'Save', exact: true }).click();
+
+    const badge = card.getByTestId('meal-lock-conflict');
+    await expect(badge).toBeVisible();
+    await badge.click();
+    const popover = page.getByTestId('meal-detail');
+    await expect(popover.getByTestId('meal-lock-conflict-notice')).toHaveText(
+      'The client ate this meal before you saved your changes.',
+    );
+
+    await popover.getByTestId('meal-restore').click();
+    await expect(page.getByTestId('meal-detail')).toHaveCount(0);
+    await expect(badge).toHaveCount(0);
     await expect(card).not.toHaveAttribute('data-lock-rejected', 'true');
   });
 });

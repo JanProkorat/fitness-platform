@@ -174,11 +174,56 @@ export function findStoredMeal(stored: EditorDocument, mealId: string): StoredMe
   return undefined;
 }
 
-/** Puts the rejected meal back as the server stores it; null when there is nothing to restore or the data is not fresh. */
-export const RestoreRejectedContext = createContext<(() => void) | null>(null);
+/** Puts one flagged meal back as the server stores it; null when the server's copy is not fresh (a refetch is under way). */
+export const RestoreRejectedContext = createContext<((mealId: string) => void) | null>(null);
 
-export function useRestoreRejected(): (() => void) | null {
+export function useRestoreRejected(): ((mealId: string) => void) | null {
   return useContext(RestoreRejectedContext);
+}
+
+/** Why a meal can no longer be saved: the client ate it, or it sits on a day that is over. */
+export type LockConflictKind = 'eaten' | 'pastDay';
+
+/** The meals whose unsaved draft clashes with a lock, by meal id. */
+export const LockConflictsContext = createContext<ReadonlyMap<string, LockConflictKind>>(new Map());
+
+export function useLockConflicts(): ReadonlyMap<string, LockConflictKind> {
+  return useContext(LockConflictsContext);
+}
+
+/**
+ * Finds the draft meals that cannot be saved: locked per the live `locks` while the draft differs from the server's
+ * stored copy, or added to a past day. "Differs" is the editor's own dirty test (JSON of the meal) plus its place.
+ */
+export function findLockConflicts(
+  doc: EditorDocument,
+  stored: EditorDocument | null,
+  locks: PlanMealLocks | null,
+): Map<string, LockConflictKind> {
+  const found = new Map<string, LockConflictKind>();
+  if (!stored || !locks) {
+    return found;
+  }
+  for (const week of doc.weeks) {
+    for (const day of week.days) {
+      for (const meal of day.meals) {
+        const view = mealLockView(locks, meal.mealId, week.weekNumber, day.dayOfWeek);
+        if (!view.locked) {
+          continue;
+        }
+        const counterpart = findStoredMeal(stored, meal.mealId);
+        const changed =
+          !counterpart ||
+          counterpart.weekNumber !== week.weekNumber ||
+          counterpart.dayOfWeek !== day.dayOfWeek ||
+          JSON.stringify(counterpart.meal) !== JSON.stringify(meal);
+        if (changed) {
+          found.set(meal.mealId, counterpart && view.info?.locked ? 'eaten' : 'pastDay');
+        }
+      }
+    }
+  }
+  return found;
 }
 
 export const LockRejectionContext = createContext<LockRejection | null>(null);
