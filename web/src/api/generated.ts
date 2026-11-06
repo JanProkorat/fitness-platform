@@ -1201,6 +1201,66 @@ export class ApiClient {
     }
 
     /**
+     * Get my coach subscription
+     * @return The caller's subscription block
+     */
+    getMySubscriptionEndpoint(signal?: AbortSignal): Promise<GetMySubscriptionResponse> {
+        let url_ = this.baseUrl + "/users/me/subscription";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetMySubscriptionEndpoint(_response);
+        });
+    }
+
+    protected processGetMySubscriptionEndpoint(response: AxiosResponse): Promise<GetMySubscriptionResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<GetMySubscriptionResponse>(result200);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<GetMySubscriptionResponse>(null as any);
+    }
+
+    /**
      * List my coach roles
      * @return Active coach roles with counts
      */
@@ -1322,7 +1382,7 @@ export class ApiClient {
 
         } else if (status === 403) {
             const _responseText = response.data;
-            return throwException("Forbidden", status, _responseText, _headers);
+            return throwException("The subscription does not cover a second professional role (SUBSCRIPTION_REQUIRED)", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -2236,7 +2296,7 @@ export class ApiClient {
 
         } else if (status === 403) {
             const _responseText = response.data;
-            return throwException("Forbidden", status, _responseText, _headers);
+            return throwException("The subscription does not include plans (SUBSCRIPTION_REQUIRED)", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -2441,7 +2501,7 @@ export class ApiClient {
 
         } else if (status === 403) {
             const _responseText = response.data;
-            return throwException("Forbidden", status, _responseText, _headers);
+            return throwException("The subscription does not include plans (SUBSCRIPTION_REQUIRED), or a removed coach role", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -2779,7 +2839,7 @@ export class ApiClient {
 
         } else if (status === 403) {
             const _responseText = response.data;
-            return throwException("Forbidden", status, _responseText, _headers);
+            return throwException("The subscription does not include plans (SUBSCRIPTION_REQUIRED)", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -3001,7 +3061,7 @@ export class ApiClient {
 
         } else if (status === 403) {
             const _responseText = response.data;
-            return throwException("Forbidden", status, _responseText, _headers);
+            return throwException("The subscription does not include plans (SUBSCRIPTION_REQUIRED)", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -3698,7 +3758,7 @@ export class ApiClient {
 
         } else if (status === 403) {
             const _responseText = response.data;
-            return throwException("Forbidden", status, _responseText, _headers);
+            return throwException("The subscription does not include questionnaires (SUBSCRIPTION_REQUIRED), or a removed coach role", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -3829,7 +3889,7 @@ export class ApiClient {
 
         } else if (status === 403) {
             const _responseText = response.data;
-            return throwException("The coach role was removed, or the subscription does not include payments (PAYMENTS_NOT_ENTITLED).", status, _responseText, _headers);
+            return throwException("The coach role was removed, the subscription does not include payments (PAYMENTS_NOT_ENTITLED), or the active-client limit is reached (CLIENT_LIMIT_REACHED).", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -4890,7 +4950,7 @@ export class ApiClient {
 
         } else if (status === 403) {
             const _responseText = response.data;
-            return throwException("Forbidden", status, _responseText, _headers);
+            return throwException("The coach role was removed, or the coach is at the active-client limit (CLIENT_LIMIT_REACHED)", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -5311,7 +5371,7 @@ export class ApiClient {
 
         } else if (status === 403) {
             const _responseText = response.data;
-            return throwException("Forbidden", status, _responseText, _headers);
+            return throwException("The subscription does not include questionnaires (SUBSCRIPTION_REQUIRED), or a removed coach role", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -10381,7 +10441,7 @@ export class ApiClient {
 
         } else if (status === 403) {
             const _responseText = response.data;
-            return throwException("Forbidden", status, _responseText, _headers);
+            return throwException("The subscription does not include plans (SUBSCRIPTION_REQUIRED)", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -10590,7 +10650,7 @@ export class ApiClient {
 
         } else if (status === 403) {
             const _responseText = response.data;
-            return throwException("Forbidden", status, _responseText, _headers);
+            return throwException("The subscription does not include plans (SUBSCRIPTION_REQUIRED)", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -10786,7 +10846,7 @@ export class ApiClient {
 
         } else if (status === 403) {
             const _responseText = response.data;
-            return throwException("Forbidden", status, _responseText, _headers);
+            return throwException("The subscription does not include plans (SUBSCRIPTION_REQUIRED)", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -11008,7 +11068,7 @@ export class ApiClient {
 
         } else if (status === 403) {
             const _responseText = response.data;
-            return throwException("The caller\'s Nutritionist coach role was removed", status, _responseText, _headers);
+            return throwException("The caller\'s Nutritionist coach role was removed, or the subscription does not include plans (SUBSCRIPTION_REQUIRED)", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -11083,7 +11143,7 @@ export class ApiClient {
 
         } else if (status === 403) {
             const _responseText = response.data;
-            return throwException("Forbidden", status, _responseText, _headers);
+            return throwException("The subscription does not include plans (SUBSCRIPTION_REQUIRED)", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -14510,6 +14570,81 @@ export class ApiClient {
     }
 
     /**
+     * Assign a coach's subscription
+     * @param coachId Route parameter — the coach's user id; matches {CoachId} in the route exactly.
+     * @return The subscription as it now stands
+     */
+    setCoachSubscriptionEndpoint(coachId: string, setCoachSubscriptionRequest: SetCoachSubscriptionRequest, signal?: AbortSignal): Promise<SetCoachSubscriptionResponse> {
+        let url_ = this.baseUrl + "/admin/coaches/{coachId}/subscription";
+        if (coachId === undefined || coachId === null)
+            throw new globalThis.Error("The parameter 'coachId' must be defined.");
+        url_ = url_.replace("{coachId}", encodeURIComponent("" + coachId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(setCoachSubscriptionRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processSetCoachSubscriptionEndpoint(_response);
+        });
+    }
+
+    protected processSetCoachSubscriptionEndpoint(response: AxiosResponse): Promise<SetCoachSubscriptionResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<SetCoachSubscriptionResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Invalid request body", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or invalid credentials", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Caller is not an Admin", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<SetCoachSubscriptionResponse>(null as any);
+    }
+
+    /**
      * Update a package
      * @param packageId Route parameter — public id of the package.
      * @return Updated package
@@ -16296,7 +16431,7 @@ export class ApiClient {
 
         } else if (status === 403) {
             const _responseText = response.data;
-            return throwException("The coach role was removed (COACH_ROLE_REMOVED)", status, _responseText, _headers);
+            return throwException("The coach role was removed (COACH_ROLE_REMOVED), or the coach is at the active-client limit (CLIENT_LIMIT_REACHED)", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -20650,7 +20785,7 @@ export class ApiClient {
 
         } else if (status === 403) {
             const _responseText = response.data;
-            return throwException("Forbidden", status, _responseText, _headers);
+            return throwException("The coach role was removed, or the coach is at the active-client limit (CLIENT_LIMIT_REACHED)", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -22422,7 +22557,7 @@ export class ApiClient {
 
         } else if (status === 403) {
             const _responseText = response.data;
-            return throwException("Forbidden", status, _responseText, _headers);
+            return throwException("The coach role was removed, or the coach is at the active-client limit (CLIENT_LIMIT_REACHED)", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -22937,6 +23072,84 @@ Empty for non-client users. */
 export interface GetNotificationPreferencesResponse {
     /** One entry per notification event. */
     preferences?: NotificationPreferenceDto[];
+}
+
+/** The caller's coach subscription: plan, standing, client usage, second-role state, monthly price and the feature flags that currently apply. */
+export interface GetMySubscriptionResponse {
+    /** Code of the plan the subscription is on (the Free plan when the coach has no subscription). */
+    planCode?: string;
+    /** Czech plan name. */
+    nameCs?: string;
+    /** English plan name. */
+    nameEn?: string;
+    /** German plan name. */
+    nameDe?: string;
+    /** Subscription status, or null when the coach has no subscription and is on Free by default. */
+    status?: SubscriptionStatus | undefined;
+    /** When the current billing period ends, if known. */
+    currentPeriodEndsAt?: string | undefined;
+    /** True when the subscription will not renew. */
+    cancelAtPeriodEnd?: boolean;
+    /** While now is before this instant the assigned plan's features apply whatever the status is. */
+    freeUntil?: string | undefined;
+    /** Distinct active clients across all the coach's roles. */
+    activeClientCount?: number;
+    /** Active-client limit that applies now; null means unlimited. */
+    clientLimit?: number | undefined;
+    /** Whether a second professional role is included, paid for as an add-on, or not available. */
+    secondRole?: SecondRoleState;
+    /** Monthly price lines: the plan, plus the second-role add-on when it is paid. */
+    priceLines?: SubscriptionPriceLineDto[];
+    /** The feature flags that currently apply. */
+    features?: SubscriptionFeaturesDto;
+}
+
+/** Lifecycle status of a coach's subscription. */
+export enum SubscriptionStatus {
+    Trialing = "Trialing",
+    Active = "Active",
+    PastDue = "PastDue",
+    Canceled = "Canceled",
+    Incomplete = "Incomplete",
+}
+
+/** Whether a coach may hold a second professional role under their current subscription. */
+export enum SecondRoleState {
+    Included = "Included",
+    PaidAddOn = "PaidAddOn",
+    NotAvailable = "NotAvailable",
+}
+
+/** One line of the monthly price. */
+export interface SubscriptionPriceLineDto {
+    /** What the line charges for. */
+    kind?: SubscriptionPriceLineKind;
+    /** Amount in the smallest unit of Currency. */
+    amountMinorUnits?: number;
+    /** ISO 4217 currency code. */
+    currency?: string;
+}
+
+/** What a SubscriptionPriceLineDto charges for. */
+export enum SubscriptionPriceLineKind {
+    Plan = "Plan",
+    SecondRoleAddOn = "SecondRoleAddOn",
+}
+
+/** The resolved feature flags of the coach's subscription. */
+export interface SubscriptionFeaturesDto {
+    /** Creating, editing and publishing plans. */
+    canCreatePlans?: boolean;
+    /** Messaging clients. */
+    canMessage?: boolean;
+    /** Sending questionnaires and forms. */
+    canSendQuestionnaires?: boolean;
+    /** Weekly check-ins. */
+    canUseWeeklyCheckIns?: boolean;
+    /** Per-client check-in configuration. */
+    canUsePerClientCheckInConfig?: boolean;
+    /** The payments feature. */
+    canUsePayments?: boolean;
 }
 
 /** The caller's active coach roles with client counts. */
@@ -28675,6 +28888,32 @@ export interface CreateCoachDiscountRequest {
 
 /** Request for archiving a coach discount. */
 export interface ArchiveCoachDiscountRequest {
+}
+
+/** The coach's subscription as it now stands. */
+export interface SetCoachSubscriptionResponse {
+    /** The coach's user id. */
+    coachId?: string;
+    /** Code of the assigned plan. */
+    planCode?: string;
+    /** Status now set. */
+    status?: SubscriptionStatus;
+    /** The free-features deadline, or null. */
+    freeUntil?: string | undefined;
+    /** True when the coach pays for the second-role add-on. */
+    paysSecondRoleAddOn?: boolean;
+}
+
+/** Request for assigning a coach's subscription. */
+export interface SetCoachSubscriptionRequest {
+    /** Code of the plan to assign. An inactive plan may be assigned. */
+    planCode: string;
+    /** Status to set. */
+    status?: SubscriptionStatus;
+    /** While now is before this instant the assigned plan's features apply whatever the status is. */
+    freeUntil?: string | undefined;
+    /** True when the coach pays for the second-role add-on. */
+    paysSecondRoleAddOn?: boolean;
 }
 
 /** A coach package as shown to its owner — reused by the list, get, create and update actions. */
