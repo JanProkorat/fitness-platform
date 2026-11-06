@@ -23,8 +23,8 @@ internal sealed class RemovePushTokenAnonymousEndpoint(IApplicationDbContext db)
             s.Summary = "Remove push token";
             s.Description = "Anonymous on purpose: logout runs after the access token may have expired, and the token value identifies the device install. Deletes every row holding the token, for any account. Always 204 with no body, whether or not the token existed.";
             s.Responses[StatusCodes.Status204NoContent] = "Token removed or not present";
-            s.Responses[StatusCodes.Status400BadRequest] = "Token is empty, too long or not an Expo push token";
-            s.Responses[StatusCodes.Status429TooManyRequests] = "Rate limit exceeded";
+            s.Response<ProblemDetails>(StatusCodes.Status400BadRequest, "Token is empty, too long or not an Expo push token");
+            s.Response(StatusCodes.Status429TooManyRequests, "Rate limit exceeded");
         });
     }
 
