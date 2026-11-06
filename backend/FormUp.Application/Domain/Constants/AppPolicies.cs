@@ -32,6 +32,14 @@ public static class AppPolicies
     public const string PendingInviteRateLimit = "pending-invite";
 
     /// <summary>
+    /// Rate limiting policy for the live profession-slot check in the invite drawer.
+    /// Partitioned per authenticated professional, in its own budget so typing in the drawer
+    /// never consumes the create-invite budget. 60 requests per 15 minutes per professional —
+    /// enough for debounced typing, tight enough to stop enumerating which addresses have a coach.
+    /// </summary>
+    public const string PendingInviteSlotCheckRateLimit = "pending-invite-slot-check";
+
+    /// <summary>
     /// Rate limiting policy for the anonymous notification email links (turn off, turn on, one-click).
     /// 60 requests per 15 minutes per IP — mail providers send RFC 8058 one-click posts from shared
     /// IP ranges, so the login budget would reject real requests. The token's HMAC is the real protection.
