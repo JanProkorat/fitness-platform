@@ -31,9 +31,9 @@ public class CheckPendingInviteSlotEndpoint(
             s.Summary = "Check whether an invitee's profession slot is taken";
             s.Description = "For the caller's active professions, reports whether another professional already occupies the invitee's slot. Unknown emails, free slots, invitees without a client profile and coach accounts all answer false.";
             s.Response<CheckPendingInviteSlotResponse>(StatusCodes.Status200OK, "Per-profession slot occupancy");
-            s.Responses[StatusCodes.Status400BadRequest] = "Missing, malformed or too long email";
+            s.Response<ProblemDetails>(StatusCodes.Status400BadRequest, "Missing, malformed or too long email");
             s.Responses[StatusCodes.Status401Unauthorized] = "Missing or unreadable caller claim";
-            s.Responses[StatusCodes.Status429TooManyRequests] = "Too many slot checks";
+            s.Response(StatusCodes.Status429TooManyRequests, "Too many slot checks");
         });
     }
 
