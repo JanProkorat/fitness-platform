@@ -67,6 +67,11 @@ public class CoachSubscription : TimestampableEntity
     public DateTimeOffset? TrialEndsAt { get; set; }
 
     /// <summary>
+    /// While the clock is before this instant, the assigned plan's features apply whatever the status is.
+    /// </summary>
+    public DateTimeOffset? FreeUntil { get; set; }
+
+    /// <summary>
     /// When the current billing period ends.
     /// </summary>
     public DateTimeOffset? CurrentPeriodEndsAt { get; set; }

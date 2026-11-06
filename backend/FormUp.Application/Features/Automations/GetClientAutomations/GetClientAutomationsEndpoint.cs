@@ -19,11 +19,13 @@ namespace FormUp.Application.Features.Automations.GetClientAutomations;
 /// <param name="db">Application database context.</param>
 /// <param name="mongo">MongoDB context, read for plan-event send dates.</param>
 /// <param name="linkAuthorizationService">Resolves link capabilities.</param>
+/// <param name="entitlementService">Resolves the coach's subscription entitlements.</param>
 /// <param name="timeProvider">Clock.</param>
 public class GetClientAutomationsEndpoint(
     IApplicationDbContext db,
     IMongoContext mongo,
     IClientLinkAuthorizationService linkAuthorizationService,
+    EntitlementService entitlementService,
     TimeProvider timeProvider)
     : Endpoint<GetClientAutomationsRequest, GetClientAutomationsResponse>
 {
@@ -103,7 +105,7 @@ public class GetClientAutomationsEndpoint(
 
         // A coach without per-client check-in configuration runs a check-in rule on the coach-wide
         // schedule, so the client's override and pause are not shown either.
-        var entitlements = await new EntitlementService(db).GetEntitlementsAsync(context.Profile.Id, ct);
+        var entitlements = await entitlementService.GetEntitlementsAsync(context.Profile.Id, ct);
 
         foreach (var rule in rules)
         {

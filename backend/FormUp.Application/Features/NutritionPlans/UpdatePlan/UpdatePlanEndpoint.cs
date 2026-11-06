@@ -55,6 +55,7 @@ public class UpdatePlanEndpoint(
                             "meals are kept as stored instead and the rest of the payload is applied.";
             s.Responses[StatusCodes.Status200OK] = "Updated plan";
             s.Responses[StatusCodes.Status401Unauthorized] = "Missing or unreadable caller claim";
+            s.Responses[StatusCodes.Status403Forbidden] = "The subscription does not include plans (SUBSCRIPTION_REQUIRED)";
             s.Responses[StatusCodes.Status404NotFound] = "Plan not found, or not editable by the caller";
             s.Responses[StatusCodes.Status409Conflict] =
                 "PLAN_VERSION_CONFLICT, MEAL_LOCKED or PAST_DAY_LOCKED. Lock responses (MEAL_LOCKED, " +
@@ -144,13 +145,16 @@ public class UpdatePlanEndpoint(
         var capabilities = await linkAuthorizationService.GetCapabilitiesByClientUserIdAsync(
             nutritionistId, plan.ClientId, ct);
 
-        if (capabilities is { CanViewNutritionPlans: true })
+        if (capabilities is not { CanViewNutritionPlans: true })
         {
-            return true;
+            await Send.NotFoundAsync(ct);
+            return false;
         }
 
-        await Send.NotFoundAsync(ct);
-        return false;
+        // The subscription gate comes after the lookup, so a missing or foreign plan still answers 404.
+        return !await this.RespondIfFeatureNotEntitledAsync(
+            db, nutritionistId, entitlements => entitlements.CanCreatePlans,
+            "The current subscription does not include editing plans.", ct);
     }
 
     private async Task<bool> RefuseExtensionAsync(CancellationToken ct)

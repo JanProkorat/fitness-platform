@@ -154,6 +154,7 @@ public static class ApplicationDbContextSeed
             CanSendQuestionnaires = questionnairesAndCheckIns,
             CanUseWeeklyCheckIns = questionnairesAndCheckIns,
             CanUsePerClientCheckInConfig = perClientCheckInConfig,
+            CanUsePayments = true,
             MaxActiveClients = maxActiveClients,
             PriceMinorUnits = price,
             SecondRoleAddOnPriceMinorUnits = addOnPrice,

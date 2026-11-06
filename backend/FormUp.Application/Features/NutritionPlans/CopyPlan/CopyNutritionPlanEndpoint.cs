@@ -46,6 +46,7 @@ public class CopyNutritionPlanEndpoint(
             s.Responses[StatusCodes.Status201Created] = "The new Draft plan";
             s.Responses[StatusCodes.Status400BadRequest] = "Invalid request";
             s.Responses[StatusCodes.Status401Unauthorized] = "Missing or unreadable caller claim";
+            s.Responses[StatusCodes.Status403Forbidden] = "The subscription does not include plans (SUBSCRIPTION_REQUIRED)";
             s.Responses[StatusCodes.Status404NotFound] = "Source plan or target client not found, or not accessible to the caller";
             s.Responses[StatusCodes.Status409Conflict] = "The start date window overlaps another plan of the target client (PLAN_OVERLAP)";
         });
@@ -78,6 +79,14 @@ public class CopyNutritionPlanEndpoint(
         if (capabilities is not { CanViewNutritionPlans: true })
         {
             await Send.NotFoundAsync(ct);
+            return;
+        }
+
+        // After the source and target lookups, so a missing or foreign plan or client still answers 404.
+        if (await this.RespondIfFeatureNotEntitledAsync(
+                db, nutritionistId, entitlements => entitlements.CanCreatePlans,
+                "The current subscription does not include creating plans.", ct))
+        {
             return;
         }
 

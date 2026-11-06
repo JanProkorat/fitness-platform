@@ -15,11 +15,13 @@ namespace FormUp.Application.Infrastructure.Services;
 /// <param name="db">Application database context.</param>
 /// <param name="notifications">Creates the in-app and push notification.</param>
 /// <param name="notifier">Pushes the live missed-week event to the coach.</param>
+/// <param name="entitlementService">Resolves the coach's subscription entitlements.</param>
 /// <param name="logger">Logger.</param>
 public sealed class AutomationCheckInSweeper(
     IApplicationDbContext db,
     INotificationService notifications,
     IRealtimeNotifier notifier,
+    EntitlementService entitlementService,
     ILogger<AutomationCheckInSweeper> logger)
 {
     /// <summary>
@@ -69,7 +71,7 @@ public sealed class AutomationCheckInSweeper(
         }
 
         // A coach who lost the check-in feature sends no more reminders or missed-week notices.
-        var entitlements = await new EntitlementService(db).GetEntitlementsAsync(rule.OwnerProfessionalProfileId, ct);
+        var entitlements = await entitlementService.GetEntitlementsAsync(rule.OwnerProfessionalProfileId, ct);
 
         if (!entitlements.CanUseWeeklyCheckIns)
         {

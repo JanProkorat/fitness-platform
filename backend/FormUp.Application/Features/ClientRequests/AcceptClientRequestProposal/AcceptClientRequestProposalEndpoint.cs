@@ -40,7 +40,7 @@ public class AcceptClientRequestProposalEndpoint(
             s.Responses[StatusCodes.Status204NoContent] = "Proposal accepted";
             s.Responses[StatusCodes.Status400BadRequest] =
                 "The client already has an active professional in this profession (PROFESSION_ALREADY_OCCUPIED)";
-            s.Responses[StatusCodes.Status403Forbidden] = "The coach role was removed (COACH_ROLE_REMOVED)";
+            s.Responses[StatusCodes.Status403Forbidden] = "The coach role was removed (COACH_ROLE_REMOVED), or the coach is at the active-client limit (CLIENT_LIMIT_REACHED)";
             s.Responses[StatusCodes.Status404NotFound] = "The request is unknown or not the caller's (CLIENT_REQUEST_NOT_FOUND)";
             s.Responses[StatusCodes.Status409Conflict] = "The request has no open proposal (CLIENT_REQUEST_INVALID_STATE)";
         });
@@ -93,6 +93,11 @@ public class AcceptClientRequestProposalEndpoint(
         if (currentStatus != ClientRequestStatus.PackageProposed)
         {
             await SendInvalidStateAsync(ct);
+            return;
+        }
+
+        if (await this.RespondIfClientLimitReachedAsync(db, professional.Id, clientRequest.ClientProfileId, ct))
+        {
             return;
         }
 

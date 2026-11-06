@@ -44,6 +44,7 @@ public class PublishTrainingWeekEndpoint(
             s.Summary = "Publish a week of a training plan";
             s.Description = "Sets the week's status to Published. Archives other Active training plans for the same client whose date window overlaps this plan's. " +
                             "Clears any stale Editing lock docs for the week's sessions.";
+            s.Responses[StatusCodes.Status403Forbidden] = "The subscription does not include plans (SUBSCRIPTION_REQUIRED)";
         });
     }
 
@@ -74,13 +75,16 @@ public class PublishTrainingWeekEndpoint(
             var capabilities = await linkAuthorizationService.GetCapabilitiesByClientUserIdAsync(
                 trainerId, plan.ClientId, authorizeCt);
 
-            if (capabilities is { CanViewTrainingPlans: true })
+            if (capabilities is not { CanViewTrainingPlans: true })
             {
-                return true;
+                await Send.NotFoundAsync(authorizeCt);
+                return false;
             }
 
-            await Send.NotFoundAsync(authorizeCt);
-            return false;
+            // The subscription gate comes after the lookup, so a missing or foreign plan still answers 404.
+            return !await this.RespondIfFeatureNotEntitledAsync(
+                db, trainerId, entitlements => entitlements.CanCreatePlans,
+                "The current subscription does not include publishing plans.", authorizeCt);
         }
 
         Task<bool> Validate(TrainingPlan plan, CancellationToken validateCt)

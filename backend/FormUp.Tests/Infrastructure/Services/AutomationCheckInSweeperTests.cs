@@ -28,6 +28,7 @@ public class AutomationCheckInSweeperTests(FitnessApiFactory factory)
     private async Task<Fixture> ArrangeAsync(Action<AutomationRule>? configure = null)
     {
         var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        await CoachSubscriptionBuilder.SubscribeToPlanAsync(factory, coach, "studio");
         var client = await TestActors.Client(factory).CreateAsync(Ct);
         var linkId = await TestActors.Link(factory, coach, client).CreateAsync(Ct);
         var form = await AutomationTestData.InsertQuestionnaireAsync(factory, coach, QuestionnaireType.CheckIn);

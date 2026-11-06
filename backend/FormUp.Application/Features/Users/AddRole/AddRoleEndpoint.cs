@@ -38,6 +38,8 @@ public class AddRoleEndpoint(
         {
             s.Summary = "Add a professional role";
             s.Description = "Allows a Trainer to also become a Nutritionist, or vice versa. Returns fresh tokens with updated roles.";
+            s.Responses[StatusCodes.Status403Forbidden] =
+                "The subscription does not cover a second professional role (SUBSCRIPTION_REQUIRED)";
         });
     }
 
@@ -80,9 +82,24 @@ public class AddRoleEndpoint(
                 return;
             }
 
+            // Restoring a role is a second role only while the other coach role is still active; restoring the
+            // only role after a full removal or disable is not.
+            var otherRoleActive = CoachRoleStatus.ActiveRoles(currentRoles, existingProfile)
+                .Any(role => role != req.Role);
+
+            if (otherRoleActive && await this.RespondIfSecondRoleNotAvailableAsync(db, userId, ct))
+            {
+                return;
+            }
         }
         else
         {
+            // Every caller already holds one professional role, so a new one is the second role.
+            if (await this.RespondIfSecondRoleNotAvailableAsync(db, userId, ct))
+            {
+                return;
+            }
+
             await userManager.AddToRoleAsync(user, req.Role);
         }
 

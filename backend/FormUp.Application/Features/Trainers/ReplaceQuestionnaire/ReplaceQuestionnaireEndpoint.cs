@@ -33,6 +33,8 @@ public class ReplaceQuestionnaireEndpoint(
         {
             s.Summary = "Replace a pending questionnaire";
             s.Description = "Cancels the current pending questionnaire and assigns a new one.";
+            s.Responses[StatusCodes.Status403Forbidden] =
+                "The subscription does not include questionnaires (SUBSCRIPTION_REQUIRED), or a removed coach role";
         });
     }
 
@@ -49,6 +51,13 @@ public class ReplaceQuestionnaireEndpoint(
         if (professionalProfile is null)
         {
             await Send.NotFoundAsync(ct);
+            return;
+        }
+
+        if (await this.RespondIfFeatureNotEntitledAsync(
+                db, professionalProfile.Id, entitlements => entitlements.CanSendQuestionnaires,
+                "The current subscription does not include sending questionnaires.", ct))
+        {
             return;
         }
 

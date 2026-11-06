@@ -1098,11 +1098,15 @@ public static class CoachSubscriptionBuilder
     /// <param name="coach">The coach to subscribe.</param>
     /// <param name="planCode">Code of the plan to subscribe to.</param>
     /// <param name="status">The subscription status.</param>
+    /// <param name="freeUntil">While now is before this instant the plan's features apply whatever the status is.</param>
+    /// <param name="paysSecondRoleAddOn">True when the coach pays for the second-role add-on.</param>
     public static async Task SubscribeToPlanAsync(
         FitnessApiFactory factory,
         Actor coach,
         string planCode,
-        SubscriptionStatus status = SubscriptionStatus.Active)
+        SubscriptionStatus status = SubscriptionStatus.Active,
+        DateTimeOffset? freeUntil = null,
+        bool paysSecondRoleAddOn = false)
     {
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -1111,12 +1115,15 @@ public static class CoachSubscriptionBuilder
             .Where(p => p.SubscriptionPlan.Code == planCode && p.ValidTo == null)
             .SingleAsync(TestContext.Current.CancellationToken);
 
+        await ReplaceSubscriptionAsync(db, coach);
         db.CoachSubscriptions.Add(new CoachSubscription
         {
             ProfessionalProfileId = coach.ProfileId,
             SubscriptionPlanId = price.SubscriptionPlanId,
             SubscriptionPlanPriceId = price.Id,
             Status = status,
+            FreeUntil = freeUntil,
+            PaysSecondRoleAddOn = paysSecondRoleAddOn,
         });
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
@@ -1129,12 +1136,14 @@ public static class CoachSubscriptionBuilder
     /// <param name="canUseWeeklyCheckIns">The plan's weekly check-in flag.</param>
     /// <param name="canUsePerClientCheckInConfig">The plan's per-client check-in configuration flag.</param>
     /// <param name="status">The subscription status.</param>
+    /// <param name="maxActiveClients">The plan's active-client limit; null means unlimited.</param>
     public static async Task SubscribeAsync(
         FitnessApiFactory factory,
         Actor coach,
         bool canUseWeeklyCheckIns,
         bool canUsePerClientCheckInConfig,
-        SubscriptionStatus status = SubscriptionStatus.Active)
+        SubscriptionStatus status = SubscriptionStatus.Active,
+        int? maxActiveClients = null)
     {
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -1148,6 +1157,7 @@ public static class CoachSubscriptionBuilder
             BothRolesIncluded = true,
             CanUseWeeklyCheckIns = canUseWeeklyCheckIns,
             CanUsePerClientCheckInConfig = canUsePerClientCheckInConfig,
+            MaxActiveClients = maxActiveClients,
             PriceMinorUnits = 99900,
             Currency = "CZK",
             BillingInterval = BillingInterval.Monthly,
@@ -1157,6 +1167,7 @@ public static class CoachSubscriptionBuilder
         db.SubscriptionPlans.Add(plan);
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);
 
+        await ReplaceSubscriptionAsync(db, coach);
         db.CoachSubscriptions.Add(new CoachSubscription
         {
             ProfessionalProfileId = coach.ProfileId,
@@ -1166,4 +1177,64 @@ public static class CoachSubscriptionBuilder
         });
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
+
+    /// <summary>
+    /// Moves the coach to a fresh active plan whose payments feature is off. A canceled subscription would not do
+    /// for that: it falls back to the Free plan, which includes payments.
+    /// </summary>
+    /// <param name="factory">The test host.</param>
+    /// <param name="coach">The coach to move.</param>
+    public static async Task MoveToPlanWithoutPaymentsAsync(FitnessApiFactory factory, Actor coach)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        var plan = new SubscriptionPlan
+        {
+            Code = $"no-payments-{Guid.NewGuid():N}",
+            NameCs = "Plán",
+            NameEn = "Plan",
+            NameDe = "Plan",
+            BothRolesIncluded = true,
+            CanUsePayments = false,
+            PriceMinorUnits = 99900,
+            Currency = "CZK",
+            BillingInterval = BillingInterval.Monthly,
+            IsActive = true,
+        };
+        var price = SubscriptionPlanPriceBuilder.OpenPriceFor(plan);
+        db.SubscriptionPlans.Add(plan);
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        await ReplaceSubscriptionAsync(db, coach);
+        db.CoachSubscriptions.Add(new CoachSubscription
+        {
+            ProfessionalProfileId = coach.ProfileId,
+            SubscriptionPlanId = plan.Id,
+            SubscriptionPlanPriceId = price.Id,
+            Status = SubscriptionStatus.Active,
+        });
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+    }
+
+    /// <summary>
+    /// A coach has at most one subscription row, so subscribing again replaces the earlier one.
+    /// </summary>
+    private static Task<int> ReplaceSubscriptionAsync(ApplicationDbContext db, Actor coach) =>
+        db.CoachSubscriptions
+            .Where(cs => cs.ProfessionalProfileId == coach.ProfileId)
+            .ExecuteDeleteAsync(TestContext.Current.CancellationToken);
+}
+
+/// <summary>
+/// Builds the <see cref="FormUp.Application.Domain.Services.EntitlementService"/> a unit test passes to an endpoint.
+/// </summary>
+public static class EntitlementServiceBuilder
+{
+    /// <summary>
+    /// A service over <paramref name="db"/> with the system clock and a null logger.
+    /// </summary>
+    /// <param name="db">The database context the service reads.</param>
+    public static FormUp.Application.Domain.Services.EntitlementService For(IApplicationDbContext db) =>
+        new(db, TimeProvider.System, Microsoft.Extensions.Logging.Abstractions.NullLogger<FormUp.Application.Domain.Services.EntitlementService>.Instance);
 }

@@ -41,6 +41,7 @@ public class CreateTrainingPlanEndpoint(
         {
             s.Summary = "Create a training plan";
             s.Description = "Creates a new training plan in Draft status for a client.";
+            s.Responses[StatusCodes.Status403Forbidden] = "The subscription does not include plans (SUBSCRIPTION_REQUIRED)";
         });
     }
 
@@ -65,6 +66,13 @@ public class CreateTrainingPlanEndpoint(
         if (capabilities is not { CanViewTrainingPlans: true })
         {
             await Send.NotFoundAsync(ct);
+            return;
+        }
+
+        if (await this.RespondIfFeatureNotEntitledAsync(
+                db, trainerId, entitlements => entitlements.CanCreatePlans,
+                "The current subscription does not include creating plans.", ct))
+        {
             return;
         }
 

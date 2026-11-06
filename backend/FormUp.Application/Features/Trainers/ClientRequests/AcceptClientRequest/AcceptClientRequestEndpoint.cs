@@ -37,6 +37,8 @@ public class AcceptClientRequestEndpoint(
             s.Summary = "Accept a client request";
             s.Description = "Accepts a pending client request, creates a client-professional link, and optionally assigns a questionnaire. " +
                 "When the request carries a package, its terms (with the optional discount) are applied; an unusable package or discount means accepting without terms.";
+            s.Responses[StatusCodes.Status403Forbidden] =
+                "The coach role was removed, or the coach is at the active-client limit (CLIENT_LIMIT_REACHED)";
         });
     }
 
@@ -162,6 +164,12 @@ public class AcceptClientRequestEndpoint(
         // commit are unrelated writes and must stay outside it.
         await using var transaction = await db.BeginTransactionAsync(ct);
         await db.LockClientProfileAsync(clientRequest.ClientProfileId, ct);
+
+        if (await this.RespondIfClientLimitReachedAsync(
+                db, professionalProfile.Id, clientRequest.ClientProfileId, ct))
+        {
+            return;
+        }
 
         // A client may hold at most one active coach per profession (#980). This
         // covers BOTH the reactivate branch and the insert branch below — a

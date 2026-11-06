@@ -51,6 +51,7 @@ public class UpdateTrainingPlanEndpoint(
             s.Description = "Replaces the plan's name, description, and all weeks/sessions/exercises/sets. " +
                             "Per-week publish status is preserved. Uses optimistic concurrency via version field. " +
                             "Published sessions with content changes require an active Editing lock.";
+            s.Responses[StatusCodes.Status403Forbidden] = "The subscription does not include plans (SUBSCRIPTION_REQUIRED), or a removed coach role";
         });
     }
 
@@ -458,13 +459,16 @@ public class UpdateTrainingPlanEndpoint(
         var capabilities = await linkAuthorizationService.GetCapabilitiesByClientUserIdAsync(
             trainerId, plan.ClientId, ct);
 
-        if (capabilities is { CanViewTrainingPlans: true })
+        if (capabilities is not { CanViewTrainingPlans: true })
         {
-            return true;
+            await Send.NotFoundAsync(ct);
+            return false;
         }
 
-        await Send.NotFoundAsync(ct);
-        return false;
+        // The subscription gate comes after the lookup, so a missing or foreign plan still answers 404.
+        return !await this.RespondIfFeatureNotEntitledAsync(
+            db, trainerId, entitlements => entitlements.CanCreatePlans,
+            "The current subscription does not include editing plans.", ct);
     }
 
     /// <summary>

@@ -34,6 +34,8 @@ public class AcceptClientInviteEndpoint(
         {
             s.Summary = "Accept a pending invite";
             s.Description = "Accepts a pending invitation from a professional, creating a client-professional link.";
+            s.Responses[StatusCodes.Status403Forbidden] =
+                "The coach role was removed, or the coach is at the active-client limit (CLIENT_LIMIT_REACHED)";
         });
     }
 
@@ -101,6 +103,11 @@ public class AcceptClientInviteEndpoint(
         // The lock is taken AFTER the find-or-create save above, or the row would not exist yet.
         await using var transaction = await db.BeginTransactionAsync(ct);
         await db.LockClientProfileAsync(clientProfile.Id, ct);
+
+        if (await this.RespondIfClientLimitReachedAsync(db, invite.ProfessionalProfileId, clientProfile.Id, ct))
+        {
+            return;
+        }
 
         // Create the link, or switch an ended one back on (a re-invited former client).
         var activation = await ClientLinkActivator.ActivateAsync(

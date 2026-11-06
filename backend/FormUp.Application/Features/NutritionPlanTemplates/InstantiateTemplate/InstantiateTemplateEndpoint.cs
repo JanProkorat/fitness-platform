@@ -44,6 +44,7 @@ public class InstantiateTemplateEndpoint(
         {
             s.Summary = "Instantiate a nutrition plan template";
             s.Description = "Creates a new Draft client plan from a template, every week Draft.";
+            s.Responses[StatusCodes.Status403Forbidden] = "The subscription does not include plans (SUBSCRIPTION_REQUIRED)";
         });
     }
 
@@ -81,6 +82,14 @@ public class InstantiateTemplateEndpoint(
             // confirm the client exists to an unlinked coach. Matches the TrainingPlanTemplates
             // sibling (#939).
             await this.SendLibraryNotFoundAsync(NutritionPlanTemplateLibrary.Denial, ct);
+            return;
+        }
+
+        // After the template and client-link checks, so a missing template or unlinked client still answers 404.
+        if (await this.RespondIfFeatureNotEntitledAsync(
+                db, nutritionistId, entitlements => entitlements.CanCreatePlans,
+                "The current subscription does not include creating plans.", ct))
+        {
             return;
         }
 

@@ -53,6 +53,7 @@ public class InstantiateTrainingPlanTemplateEndpoint(
         {
             s.Summary = "Instantiate a training plan template";
             s.Description = "Creates a new Draft client plan from a template, every week Draft.";
+            s.Responses[StatusCodes.Status403Forbidden] = "The subscription does not include plans (SUBSCRIPTION_REQUIRED)";
         });
     }
 
@@ -89,6 +90,14 @@ public class InstantiateTrainingPlanTemplateEndpoint(
             // 404 via the shared library helper, never a bare 404 and never 403 — a 403 would
             // confirm the client exists to an unlinked coach. See this type's remarks.
             await this.SendLibraryNotFoundAsync(TrainingPlanTemplateLibrary.Denial, ct);
+            return;
+        }
+
+        // After the template and client-link checks, so a missing template or unlinked client still answers 404.
+        if (await this.RespondIfFeatureNotEntitledAsync(
+                db, trainerId, entitlements => entitlements.CanCreatePlans,
+                "The current subscription does not include creating plans.", ct))
+        {
             return;
         }
 

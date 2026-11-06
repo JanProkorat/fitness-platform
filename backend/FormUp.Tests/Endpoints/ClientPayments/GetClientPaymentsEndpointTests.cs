@@ -126,13 +126,7 @@ public class GetClientPaymentsEndpointTests(FitnessApiFactory factory)
         var rows = await StartMonthlyAsync(world);
         await PostActionAsync(world, rows[0].PaymentId, "request", new { SendEmail = true });
 
-        using (var scope = factory.Services.CreateScope())
-        {
-            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-            await db.CoachSubscriptions
-                .Where(s => s.ProfessionalProfileId == world.Coach.ProfileId)
-                .ExecuteUpdateAsync(s => s.SetProperty(x => x.Status, SubscriptionStatus.Canceled), TestContext.Current.CancellationToken);
-        }
+        await CoachSubscriptionBuilder.MoveToPlanWithoutPaymentsAsync(factory, world.Coach);
 
         (await GetOwnAsync(world.Client)).Coaches.Single().Requested.Should().ContainSingle();
         (await world.Coach.Http.GetAsync($"{world.Route}/payments", TestContext.Current.CancellationToken))
