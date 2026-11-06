@@ -908,6 +908,34 @@
       "notionPageId": null
     },
     {
+      "id": "web.admin.plans",
+      "app": "web",
+      "area": "Admin",
+      "title": "Plans",
+      "route": "/admin/plans",
+      "roles": ["Admin"],
+      "files": [
+        "web/src/pages/AdminPlansPage.tsx",
+        "web/src/components/admin-plans/*",
+        "web/src/components/package-catalog/catalogParts.tsx",
+        "web/src/components/package-catalog/packageFormParts.tsx",
+        "web/src/components/automations/automationFormParts.tsx",
+        "web/src/api/admin-subscription-plans.ts",
+        "web/src/lib/money.ts"
+      ],
+      "endpoints": [
+        "GET /admin/subscription-plans",
+        "POST /admin/subscription-plans",
+        "PUT /admin/subscription-plans/{code}",
+        "DELETE /admin/subscription-plans/{code}"
+      ],
+      "board": "PageAdminPlans",
+      "shots": [
+        { "name": "default" }
+      ],
+      "notionPageId": null
+    },
+    {
       "id": "web.forms.builder",
       "app": "web",
       "area": "Forms",
