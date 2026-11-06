@@ -101,8 +101,9 @@ In order:
    for a typed success, `s.Response<ProblemDetails>(400, ...)` for a 400
    with a body. `s.Responses[code] = "..."` only adds a description to a
    code that is already declared; on its own the code never reaches Swagger
-   or the generated clients (#1225). Declaring any `s.Response` drops the
-   default success code, so declare the success code too.
+   or the generated clients (#1225). Declaring a success code with
+   `s.Response` replaces the default one, so declare the code the handler
+   actually sends.
    `Architecture/StatusCodeContractTests` pins the exact set per operation.
 
 Not used anywhere in this backend (0 occurrences each): `Group<T>()`,
