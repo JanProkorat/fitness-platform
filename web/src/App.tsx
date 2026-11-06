@@ -1,5 +1,11 @@
 import { useEffect } from 'react';
-import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import {
+  Route,
+  RouterProvider,
+  createBrowserRouter,
+  createRoutesFromElements,
+  useRouteError,
+} from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from '@/lib/queryClient';
 import { Toaster } from '@/components/ui/toast';
@@ -32,6 +38,86 @@ import ClientPlanEditorPage from '@/pages/ClientPlanEditorPage';
 import ProfilePage from '@/pages/ProfilePage';
 import SettingsPage from '@/pages/SettingsPage';
 import NotFoundPage from '@/pages/NotFoundPage';
+import { ErrorFallback } from '@/ErrorBoundary';
+
+/** Route render errors that escape AppShell's RouteErrorBoundary land here, same fallback as the app root. */
+function RootErrorElement() {
+  const error = useRouteError();
+  return <ErrorFallback error={error instanceof Error ? error : null} />;
+}
+
+/*
+ * A data router (not <BrowserRouter>) so screens can veto navigation with
+ * useBlocker. Created once at module scope: building it inside App's render
+ * would reset history state on every re-render.
+ */
+const router = createBrowserRouter(
+  createRoutesFromElements(
+    <Route errorElement={<RootErrorElement />}>
+      {/*
+       * Public routes — MUST stay outside ProtectedRoute. ProtectedRoute
+       * redirects an unauthenticated visitor to "/login", an unconfirmed
+       * user to "/verify-email", and a client-only user to "/download-app";
+       * mounting any of these inside ProtectedRoute re-enters the same
+       * guard and infinite-loops instead of rendering.
+       *
+       * EntryPage is a pathless layout route: it renders the landing page
+       * once plus one sign-in dialog, which is open on every child route
+       * except "/" and renders whichever form route is active (via
+       * useOutlet(), see that component). Do NOT collapse these into a
+       * single `path="/:authMode?"` route — an optional param segment
+       * swallows every unmatched path ahead of the catch-all NotFound
+       * route.
+       */}
+      <Route element={<EntryPage />}>
+        <Route path="/" element={null} />
+        <Route path="/login" element={<LoginForm />} />
+        <Route path="/forgot-password" element={<ForgotPasswordForm />} />
+        <Route path="/auth/reset-password" element={<ResetPasswordForm />} />
+      </Route>
+      <Route path="/register" element={<RegisterPage />} />
+      <Route path="/verify-email" element={<VerifyEmailPage />} />
+      <Route path="/invite/accept" element={<InviteAcceptPage />} />
+      <Route path="/bank-account/undo" element={<BankAccountUndoPage />} />
+      <Route path="/email-off" element={<EmailTurnOffPage />} />
+      <Route path="/download-app" element={<DownloadAppPage />} />
+
+      <Route element={<ProtectedRoute />}>
+        <Route element={<AppShell />}>
+          <Route path="/clients" element={<ClientsPage />} />
+          <Route path="/clients/:clientId" element={<ClientDetailPage />}>
+            <Route path="nutrition" element={null} />
+            <Route path="photos" element={null} />
+            <Route path="payment" element={null} />
+            <Route path="automations" element={null} />
+            <Route path="forms" element={null} />
+          </Route>
+          <Route path="/inbox" element={<InboxPage />} />
+          <Route path="/forms" element={<FormsPage />} />
+          <Route path="/automations" element={<AutomationsPage />} />
+          <Route path="/packages" element={<PackagesPage />} />
+          <Route element={<RoleGuard allowedRoles={['Nutritionist']} />}>
+            <Route path="/ingredients" element={<IngredientsPage />} />
+            <Route path="/recipes" element={<RecipesPage />} />
+            <Route path="/plan-templates" element={<PlanTemplatesPage />} />
+          </Route>
+          <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/settings" element={<SettingsPage />} />
+        </Route>
+        {/* Full-bleed workspace: icon-rail sidebar, no main padding (PageTemplateEditor). */}
+        <Route element={<AppShell variant="editor" />}>
+          <Route path="/forms/:id" element={<FormBuilderPage />} />
+          <Route element={<RoleGuard allowedRoles={['Nutritionist']} />}>
+            <Route path="/plan-templates/:templateId" element={<PlanTemplateEditorPage />} />
+            <Route path="/clients/:clientId/nutrition/plans/:planId" element={<ClientPlanEditorPage />} />
+          </Route>
+        </Route>
+      </Route>
+
+      <Route path="*" element={<NotFoundPage />} />
+    </Route>,
+  ),
+);
 
 export default function App() {
   const restoreSession = useAuthStore((s) => s.restoreSession);
@@ -47,71 +133,7 @@ export default function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <Routes>
-          {/*
-           * Public routes — MUST stay outside ProtectedRoute. ProtectedRoute
-           * redirects an unauthenticated visitor to "/login", an unconfirmed
-           * user to "/verify-email", and a client-only user to "/download-app";
-           * mounting any of these inside ProtectedRoute re-enters the same
-           * guard and infinite-loops instead of rendering.
-           *
-           * EntryPage is a pathless layout route: it renders the landing page
-           * once plus one sign-in dialog, which is open on every child route
-           * except "/" and renders whichever form route is active (via
-           * useOutlet(), see that component). Do NOT collapse these into a
-           * single `path="/:authMode?"` route — an optional param segment
-           * swallows every unmatched path ahead of the catch-all NotFound
-           * route.
-           */}
-          <Route element={<EntryPage />}>
-            <Route path="/" element={null} />
-            <Route path="/login" element={<LoginForm />} />
-            <Route path="/forgot-password" element={<ForgotPasswordForm />} />
-            <Route path="/auth/reset-password" element={<ResetPasswordForm />} />
-          </Route>
-          <Route path="/register" element={<RegisterPage />} />
-          <Route path="/verify-email" element={<VerifyEmailPage />} />
-          <Route path="/invite/accept" element={<InviteAcceptPage />} />
-          <Route path="/bank-account/undo" element={<BankAccountUndoPage />} />
-          <Route path="/email-off" element={<EmailTurnOffPage />} />
-          <Route path="/download-app" element={<DownloadAppPage />} />
-
-          <Route element={<ProtectedRoute />}>
-            <Route element={<AppShell />}>
-              <Route path="/clients" element={<ClientsPage />} />
-              <Route path="/clients/:clientId" element={<ClientDetailPage />}>
-                <Route path="nutrition" element={null} />
-                <Route path="photos" element={null} />
-                <Route path="payment" element={null} />
-                <Route path="automations" element={null} />
-                <Route path="forms" element={null} />
-              </Route>
-              <Route path="/inbox" element={<InboxPage />} />
-              <Route path="/forms" element={<FormsPage />} />
-              <Route path="/automations" element={<AutomationsPage />} />
-              <Route path="/packages" element={<PackagesPage />} />
-              <Route element={<RoleGuard allowedRoles={['Nutritionist']} />}>
-                <Route path="/ingredients" element={<IngredientsPage />} />
-                <Route path="/recipes" element={<RecipesPage />} />
-                <Route path="/plan-templates" element={<PlanTemplatesPage />} />
-              </Route>
-              <Route path="/profile" element={<ProfilePage />} />
-              <Route path="/settings" element={<SettingsPage />} />
-            </Route>
-            {/* Full-bleed workspace: icon-rail sidebar, no main padding (PageTemplateEditor). */}
-            <Route element={<AppShell variant="editor" />}>
-              <Route path="/forms/:id" element={<FormBuilderPage />} />
-              <Route element={<RoleGuard allowedRoles={['Nutritionist']} />}>
-                <Route path="/plan-templates/:templateId" element={<PlanTemplateEditorPage />} />
-                <Route path="/clients/:clientId/nutrition/plans/:planId" element={<ClientPlanEditorPage />} />
-              </Route>
-            </Route>
-          </Route>
-
-          <Route path="*" element={<NotFoundPage />} />
-        </Routes>
-      </BrowserRouter>
+      <RouterProvider router={router} />
       <Toaster />
     </QueryClientProvider>
   );

@@ -13,12 +13,10 @@ interface State {
 /**
  * Route-scoped error boundary (#634).
  *
- * The portal uses a component router (`<BrowserRouter>` + `<Routes>`), which
- * has no `errorElement` support (that's a `createBrowserRouter` data-router
- * feature only) — so instead of route-level `errorElement`s, `AppShell`
- * wraps the routed `<Outlet />` in this boundary. A throw inside a lazy
- * route pane is contained here instead of unmounting the whole app shell
- * (sidebar/top nav stay mounted and usable).
+ * Route-level `errorElement`s (see App.tsx) catch anything that escapes, but
+ * `AppShell` wraps the routed `<Outlet />` in this boundary so a throw inside
+ * a lazy route pane is contained here instead of unmounting the whole app
+ * shell (sidebar/top nav stay mounted and usable).
  *
  * `AppShell` mounts this keyed on the current pathname so navigating away
  * from a broken pane remounts a fresh, non-errored instance rather than
