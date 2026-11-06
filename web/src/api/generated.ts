@@ -3899,6 +3899,82 @@ export class ApiClient {
     }
 
     /**
+     * Check whether an invitee's profession slot is taken
+     * @param email Query parameter — the invitee's email address.
+     * @return Per-profession slot occupancy
+     */
+    checkPendingInviteSlotEndpoint(email: string, signal?: AbortSignal): Promise<CheckPendingInviteSlotResponse> {
+        let url_ = this.baseUrl + "/trainer/pending-invites/slot-check?";
+        if (email === undefined || email === null)
+            throw new globalThis.Error("The parameter 'email' must be defined and cannot be null.");
+        else
+            url_ += "email=" + encodeURIComponent("" + email) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processCheckPendingInviteSlotEndpoint(_response);
+        });
+    }
+
+    protected processCheckPendingInviteSlotEndpoint(response: AxiosResponse): Promise<CheckPendingInviteSlotResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<CheckPendingInviteSlotResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Missing, malformed or too long email", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status === 429) {
+            const _responseText = response.data;
+            return throwException("Too many slot checks", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<CheckPendingInviteSlotResponse>(null as any);
+    }
+
+    /**
      * List client plans
      * @param clientId The client's PublicId (Guid), as it appears in the route segment.
      * @return Success
@@ -22519,27 +22595,20 @@ export interface CreateWorkoutTemplateSetRequest {
     restSeconds?: number | undefined;
 }
 
-/** RFC7807 compatible problem details/ error response class. this can be used by configuring startup like so: app.UseFastEndpoints(c => c.Errors.UseProblemDetails()) */
 export interface ProblemDetails {
     type?: string;
     title?: string;
     status?: number;
     instance?: string;
     traceId?: string;
-    /** the details of the error */
     detail?: string | undefined;
     errors?: ProblemDetails_Error[];
 }
 
-/** the error details object */
 export interface ProblemDetails_Error {
-    /** the name of the error or property of the dto that caused the error */
     name?: string;
-    /** the reason for the error */
     reason?: string;
-    /** the code of the error */
     code?: string | undefined;
-    /** the severity of the error */
     severity?: string | undefined;
 }
 
@@ -23993,6 +24062,18 @@ export enum LinkCapabilityScope {
     Both = "Both",
     NutritionOnly = "NutritionOnly",
     TrainingOnly = "TrainingOnly",
+}
+
+/** Which of the caller's professions already have another professional on the invitee. */
+export interface CheckPendingInviteSlotResponse {
+    /** True when the caller holds the Nutritionist role and another professional occupies the invitee's nutrition slot. */
+    nutritionTaken?: boolean;
+    /** True when the caller holds the Trainer role and another professional occupies the invitee's training slot. */
+    trainingTaken?: boolean;
+}
+
+/** Query for the live profession-slot check of an invitee email. */
+export interface CheckPendingInviteSlotRequest {
 }
 
 /** Combined list of a client's nutrition and training plans returned by GET /trainer/clients/{clientId}/plans. */

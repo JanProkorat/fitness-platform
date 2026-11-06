@@ -187,6 +187,20 @@ builder.Services.AddRateLimiter(options =>
                     QueueLimit = 0
                 }));
 
+    // Live slot check in the invite drawer: same per-professional partition as the create budget,
+    // but a separate bucket so typing never eats the create budget.
+    options.AddPolicy(AppPolicies.PendingInviteSlotCheckRateLimit, context =>
+        rateLimitingDisabled
+            ? RateLimitPartition.GetNoLimiter("disabled")
+            : RateLimitPartition.GetFixedWindowLimiter(
+                partitionKey: context.User.FindFirst(AppClaims.UserId)?.Value ?? GetPartitionKey(context),
+                factory: _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = 60,
+                    Window = TimeSpan.FromMinutes(15),
+                    QueueLimit = 0
+                }));
+
     // Anonymous notification email links: see AppPolicies.EmailLinkRateLimit for why this is not the auth budget.
     options.AddPolicy(AppPolicies.EmailLinkRateLimit, context =>
         rateLimitingDisabled
