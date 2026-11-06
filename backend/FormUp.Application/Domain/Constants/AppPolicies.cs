@@ -39,6 +39,13 @@ public static class AppPolicies
     public const string EmailLinkRateLimit = "email-link";
 
     /// <summary>
+    /// Rate limiting policy for the anonymous push token removal (sent on logout, often after the session expired).
+    /// 60 requests per 15 minutes per IP — mobile carriers share IPs (CGNAT), and a rejected removal leaves
+    /// pushes flowing to a signed-out device, so the login budget would be too tight.
+    /// </summary>
+    public const string PushTokenRemoveRateLimit = "push-token-remove";
+
+    /// <summary>
     /// CORS policy for the web application.
     /// </summary>
     public const string AllowWebApp = nameof(AllowWebApp);
