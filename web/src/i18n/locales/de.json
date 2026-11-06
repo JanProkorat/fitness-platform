@@ -248,11 +248,99 @@
     "nutritionist": "Ernährungsberater",
     "client": "Klient"
   },
+  "subscription": {
+    "seePlans": "Tarife ansehen",
+    "clientsOfLimit": "{{count}} von {{limit}} Klienten",
+    "status": {
+      "Trialing": "Testphase",
+      "Active": "Aktiv",
+      "PastDue": "Zahlung fehlgeschlagen",
+      "Canceled": "Gekündigt",
+      "Incomplete": "Unvollständig"
+    },
+    "paywall": {
+      "notOnPlan": "Nicht in Ihrem Tarif {{plan}}",
+      "forms": {
+        "title": "Formulare gehören zu einem höheren Tarif",
+        "body": "Stellen Sie Ihren Klienten die richtigen Fragen, bevor Sie den Plan erstellen, und erfahren Sie von ihrer Woche, bevor sie beginnt.",
+        "benefit1": "Fragebögen und Einführungsformulare senden",
+        "benefit2": "Wöchentliche Check-ins, mit den Antworten in der Karte jedes Klienten"
+      },
+      "checkIns": {
+        "title": "Wöchentliche Check-ins gehören zu einem höheren Tarif",
+        "body": "Erfahren Sie, wie die Woche jedes Klienten lief, bevor die nächste beginnt.",
+        "benefit1": "Ein wöchentlicher Check-in nach Ihrem Zeitplan",
+        "benefit2": "Antworten in der Karte jedes Klienten"
+      }
+    },
+    "clientLimit": {
+      "title": "Ihr Tarif ist voll",
+      "description": "Ihr Tarif {{plan}} umfasst {{limit}} aktive Klienten.",
+      "descriptionUnknown": "In Ihrem Tarif {{plan}} ist kein Platz mehr für einen weiteren Klienten.",
+      "hintAccept": "Die Anfrage von {{name}} bleibt in Ihrem Posteingang. Sie können auch die Zusammenarbeit mit einem Klienten beenden, um einen Platz frei zu machen.",
+      "hintInvite": "Sie können auch die Zusammenarbeit mit einem Klienten beenden, um einen Platz frei zu machen.",
+      "notNow": "Jetzt nicht"
+    },
+    "checkIns": {
+      "locked": "Formulare für den wöchentlichen Check-in gehören zu einem höheren Tarif.",
+      "overrideLocked": "Diesen Check-in für einen einzelnen Klienten anzupassen, gehört zu einem höheren Tarif."
+    },
+    "sidebar": {
+      "plan": "Tarif {{plan}}",
+      "usage": "{{used}} von {{limit}} Klienten",
+      "unlimited": "Klienten: {{count}} · ohne Limit",
+      "aria": "Tarif {{plan}}, {{detail}}. Tarif und Abrechnung öffnen"
+    },
+    "plan": {
+      "title": "Tarif und Abrechnung",
+      "description": "Was Sie Form Up zahlen. Ihre Klienten zahlen nie für die App.",
+      "loadError": "Ihr Tarif konnte nicht geladen werden. Bitte laden Sie die Seite neu.",
+      "renews": "Monatlich · Verlängerung am {{date}}",
+      "ends": "Endet am {{date}}",
+      "freeUntil": "Inklusive bis {{date}}",
+      "changePlan": "Tarif ändern",
+      "manageBilling": "Abrechnung verwalten",
+      "bill": {
+        "title": "Ihre monatliche Rechnung",
+        "free": "Keine monatliche Gebühr.",
+        "plan": "Tarif {{plan}}",
+        "secondRole": "Zweite Rolle",
+        "total": "Gesamt",
+        "perMonth": "{{amount}} / Monat",
+        "secondRoleUnavailable": "Eine zweite Berufsrolle ist in diesem Tarif nicht enthalten."
+      },
+      "clients": {
+        "title": "Klienten",
+        "ofLimit": "von {{limit}} aktiven Klienten",
+        "unlimited": "aktive Klienten · ohne Limit",
+        "countsOnce": "Ein Klient, den Sie in beiden Rollen betreuen, zählt einmal."
+      },
+      "features": {
+        "plans": "Trainings- und Ernährungspläne",
+        "messaging": "Chat, Fortschrittsfotos, Messwerte",
+        "forms": "Formulare",
+        "checkIns": "Wöchentliche Check-ins",
+        "perClientCheckIns": "Check-in-Einstellungen pro Klient",
+        "payments": "Zahlungen"
+      },
+      "code": {
+        "label": "Haben Sie einen Code?",
+        "placeholder": "Code eingeben",
+        "hint": "Immer nur ein Angebot. Ein Code ersetzt beim Einlösen das aktuelle Angebot.",
+        "apply": "Einlösen"
+      },
+      "card": {
+        "title": "Karte, Rechnungen und Kündigung",
+        "description": "Verfügbar, sobald die Tarifauswahl öffnet."
+      }
+    }
+  },
   "accountMenu": {
     "trigger": "Kontomenü",
     "title": "Konto",
     "profile": "Ihr Profil",
     "settings": "Einstellungen",
+    "planBilling": "Tarif und Abrechnung",
     "language": "Sprache",
     "theme": "Design",
     "languages": {
@@ -3231,8 +3319,8 @@
     "CHECK_IN_RULE_EXISTS": "Sie haben bereits eine aktive Regel für den wöchentlichen Check-in. Schalten Sie sie zuerst aus oder bearbeiten Sie diese.",
     "AUTOMATION_CHECK_IN_INVALID": "Ein wöchentlicher Check-in braucht einen Wochentag, eine Uhrzeit, ein Antwortfenster und ein wöchentliches Intervall.",
     "AUTOMATION_CHECK_IN_FIELDS_NOT_ALLOWED": "Wochentag, Antwortfenster und Erinnerung gehören nur zu Regeln für den wöchentlichen Check-in.",
-    "CHECK_INS_NOT_ENTITLED": "Wöchentliche Check-ins sind in Ihrem Tarif nicht enthalten.",
-    "PER_CLIENT_CHECK_IN_CONFIG_NOT_ENTITLED": "Den wöchentlichen Check-in für einen einzelnen Klienten anzupassen, ist in Ihrem Tarif nicht enthalten.",
+    "SUBSCRIPTION_REQUIRED": "Das ist in Ihrem Tarif nicht enthalten.",
+    "CLIENT_LIMIT_REACHED": "Ihr Tarif ist voll. Es ist kein Platz für einen weiteren Klienten.",
     "CHECK_IN_ANSWER_WINDOW_CLOSED": "Die Zeit zum Beantworten dieses Check-ins ist abgelaufen.",
     "INVALID_CREDENTIALS": "Ungültige E-Mail oder Passwort.",
     "ACCOUNT_DEACTIVATED": "Ihr Konto wurde deaktiviert.",

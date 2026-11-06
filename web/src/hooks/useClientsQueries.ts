@@ -27,7 +27,9 @@ import {
 } from '@/api/client-requests';
 import { paymentDiscountsKey, paymentPackagesKey } from '@/hooks/useClientPaymentQueries';
 import { invitePaymentFailure, offerPaymentFailure } from '@/components/client-detail/payment/paymentErrors';
+import { subscriptionKeys } from '@/api/subscription';
 import { showApiError, showError, showSuccess } from '@/lib/api-errors';
+import { isClientLimitReached } from '@/lib/subscriptionErrors';
 import type { ClientListFilters, ClientListTab } from '@/hooks/useClientListParams';
 
 /**
@@ -277,9 +279,15 @@ export function useCreatePendingInvite() {
     mutationFn: (request: CreatePendingInviteRequest) => createPendingInvite(request),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['clients'] });
+      queryClient.invalidateQueries({ queryKey: subscriptionKeys.mine });
       showSuccess('clients.addClient.success');
     },
     onError: (error) => {
+      if (isClientLimitReached(error)) {
+        // The drawer opens the "Your plan is full" dialog; the cached usage was stale, so refetch it.
+        queryClient.invalidateQueries({ queryKey: subscriptionKeys.mine });
+        return;
+      }
       const failure = invitePaymentFailure(error);
       if (failure) {
         // The picked package or discount is stale (or payments were lost): refetch so the drawer shows the real lists.
@@ -347,6 +355,11 @@ export interface AcceptClientRequestVariables {
 function handleOfferError(queryClient: ReturnType<typeof useQueryClient>, error: unknown, fallbackKey: string) {
   queryClient.invalidateQueries({ queryKey: ['clients'] });
   invalidateInbox(queryClient);
+  if (isClientLimitReached(error)) {
+    // The review drawer opens the "Your plan is full" dialog; the cached usage was stale, so refetch it.
+    queryClient.invalidateQueries({ queryKey: subscriptionKeys.mine });
+    return;
+  }
   const failure = offerPaymentFailure(error);
   if (failure) {
     if (failure.refetch === 'packages' || failure.refetch === 'both') {
@@ -374,6 +387,7 @@ export function useAcceptClientRequest() {
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['clients'] });
+      queryClient.invalidateQueries({ queryKey: subscriptionKeys.mine });
       invalidateInbox(queryClient);
     },
     onError: (error) => handleOfferError(queryClient, error, 'clients.pending.acceptError'),
