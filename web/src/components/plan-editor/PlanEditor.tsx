@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useUnsavedChangesBlocker } from '@/hooks/useUnsavedChangesBlocker';
 import { useTranslation } from 'react-i18next';
 import { AutoScroller, Feedback, KeyboardSensor, PointerSensor } from '@dnd-kit/dom';
 import { move } from '@dnd-kit/helpers';
@@ -194,6 +195,8 @@ export interface PlanEditorHostContext {
   flush: () => Promise<boolean>;
   /** A save or the primary action is running. */
   busy: boolean;
+  /** Runs a navigation without the unsaved-changes prompt, for flows that delete or have saved the plan. */
+  leaveWithoutPrompt: (navigate: () => void) => void;
 }
 
 interface Props {
@@ -521,7 +524,7 @@ export default function PlanEditor({
   const [libraryOpen, setLibraryOpen] = useState(true);
   const [sideTab, setSideTab] = useState<EditorSideTab>('library');
   const [pendingRemoval, setPendingRemoval] = useState<(PendingRowRemoval & { rowIndex: number }) | null>(null);
-  const [leaveOpen, setLeaveOpen] = useState(false);
+  const { blocker: leaveBlocker, leaveWithoutPrompt } = useUnsavedChangesBlocker(dirty);
   const [pendingDrop, setPendingDrop] = useState<PendingDrop | null>(null);
   const [pendingLabel, setPendingLabel] = useState<LabelMove | null>(null);
   const addToast = useToastStore((state) => state.addToast);
@@ -1514,11 +1517,8 @@ export default function PlanEditor({
     }
   }
 
+  // A dirty editor is intercepted by the navigation blocker, which opens the leave dialog.
   function leave() {
-    if (dirty) {
-      setLeaveOpen(true);
-      return;
-    }
     breadcrumb.onNavigate();
   }
 
@@ -1526,7 +1526,7 @@ export default function PlanEditor({
     return null;
   }
 
-  const hostContext: PlanEditorHostContext = { flush, busy: actionBusy || saveState.status === 'saving' || removingWeek };
+  const hostContext: PlanEditorHostContext = { flush, busy: actionBusy || saveState.status === 'saving' || removingWeek, leaveWithoutPrompt };
   const allKindsPresent = CHRONOLOGICAL_KINDS.every((kind) => activeDay?.meals.some((meal) => meal.kind === kind));
   const pendingSource = pendingDrop ? findMeal(pendingDrop.source.dayOfWeek, pendingDrop.source.mealId) : undefined;
   const pendingTarget = pendingDrop
@@ -2000,17 +2000,32 @@ export default function PlanEditor({
         },
       })}
 
-      <Dialog open={leaveOpen} onOpenChange={setLeaveOpen}>
+      <Dialog
+        open={leaveBlocker.state === 'blocked'}
+        onOpenChange={(open) => {
+          if (!open && leaveBlocker.state === 'blocked') {
+            leaveBlocker.reset();
+          }
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{t('planEditor.leave.title')}</DialogTitle>
             <DialogDescription>{t('planEditor.leave.body')}</DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setLeaveOpen(false)}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => leaveBlocker.state === 'blocked' && leaveBlocker.reset()}
+            >
               {t('planEditor.leave.stay')}
             </Button>
-            <Button type="button" variant="destructive" onClick={breadcrumb.onNavigate}>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={() => leaveBlocker.state === 'blocked' && leaveBlocker.proceed()}
+            >
               {t('planEditor.leave.discard')}
             </Button>
           </DialogFooter>

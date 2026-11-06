@@ -90,6 +90,8 @@ export default function ClientPhotosTab({ clientId, dashboard, plans }: Props) {
   }
 
   const openRequest = openRequestQuery.data ?? null;
+  // A failed lookup with nothing cached must not look like "no open request" (the drawer would offer the create form).
+  const requestLookupFailed = openRequestQuery.isError && openRequestQuery.data === undefined;
 
   const requestButton = (
     <Button type="button" size="lg" onClick={() => setRequestOpen(true)}>
@@ -190,7 +192,9 @@ export default function ClientPhotosTab({ clientId, dashboard, plans }: Props) {
         clientId={clientId}
         name={name}
         plans={plans}
-        openRequest={openRequestQuery.isPending ? undefined : openRequest}
+        openRequest={openRequestQuery.isPending || requestLookupFailed ? undefined : openRequest}
+        lookupFailed={requestLookupFailed}
+        onRetryLookup={() => void openRequestQuery.refetch()}
       />
 
       {overlay?.kind === 'viewer' && (

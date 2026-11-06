@@ -443,6 +443,28 @@ test.describe('client plan editor', () => {
     }
   });
 
+  test('deleting a plan with unsaved edits goes back to Nutrition without the leave prompt', async ({ page, baseURL }) => {
+    const origin = baseURL ?? 'http://localhost:5173';
+    const { planId, name } = await createPlan(origin, 'Delete', futureMonday());
+    try {
+      await page.goto(editorUrl(planId));
+      await expectEditorLoaded(page, name);
+
+      await page.locator('[data-testid="meal-cell"][data-day="1"][data-row="0"]').click();
+      await page.getByTestId('meal-detail').getByTestId('meal-item').getByLabel(/^Amount of /).fill(String(EDITED_GRAMS));
+      await expect(page.getByTestId('save-status')).toHaveText('Unsaved changes');
+
+      await page.getByTestId('plan-actions-trigger').click();
+      await page.getByRole('menuitem', { name: 'Delete plan' }).click();
+      await page.getByTestId('delete-plan-dialog').getByRole('button', { name: 'Delete plan' }).click();
+
+      await expect(page).toHaveURL(new RegExp(`/clients/${CLIENT_PROFILE_ID}/nutrition$`));
+      await expect(page.getByRole('dialog', { name: 'Leave without saving?' })).toHaveCount(0);
+    } finally {
+      await archivePlan(origin, planId);
+    }
+  });
+
   test.describe('library Templates tab', () => {
     const templateBase = { weekCount: 4, usedBy: 0, visibility: 'Private', isOwnedByCurrentUser: true, version: 1, dateCreated: '2026-01-01T00:00:00Z' };
     const stubTemplates = [

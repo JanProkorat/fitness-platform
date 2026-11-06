@@ -347,6 +347,9 @@ public static class ErrorCodes
     /// <summary>The coach already has an open photo diary request for this client.</summary>
     public const string PhotoDiaryRequestAlreadyOpen = "PHOTO_DIARY_REQUEST_ALREADY_OPEN";
 
+    /// <summary>The photo diary request's window has ended, so no more photos can be added to it.</summary>
+    public const string PhotoDiaryRequestExpired = "PHOTO_DIARY_REQUEST_EXPIRED";
+
     // ── Workout Templates ────────────────────────────────────────────
     /// <summary>Workout template not found, or not owned by the calling trainer (indistinguishable from missing).</summary>
     public const string WorkoutTemplateNotFound = "WORKOUT_TEMPLATE_NOT_FOUND";
