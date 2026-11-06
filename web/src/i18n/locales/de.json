@@ -856,6 +856,10 @@
       },
       "emailLabel": "E-Mail",
       "emailHelper": "Schon bei Form Up? Die Einladung erscheint auch in seinen Nachrichten.",
+      "slotTaken": {
+        "training": "Der Nutzer mit der E-Mail {{email}} hat bereits einen Trainer.",
+        "nutrition": "Der Nutzer mit der E-Mail {{email}} hat bereits einen Ernährungsberater."
+      },
       "scope": {
         "training": "Training",
         "nutrition": "Ernährung",

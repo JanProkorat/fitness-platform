@@ -12,7 +12,7 @@
  */
 import { request as apiRequest } from '@playwright/test';
 import type { Page, Route } from '@playwright/test';
-import { trainerTest as test, expect } from '../fixtures/auth';
+import { trainerTest as test, coachTest, expect } from '../fixtures/auth';
 
 const STUB_PACKAGE_ID = 'bbbbbbbb-0000-0000-0000-000000001907';
 const STUB_FORM_ID = 'bbbbbbbb-0000-0000-0000-000000001930';
@@ -231,6 +231,75 @@ test.describe('clients list page', () => {
 
     await expect(page.getByText('Invitation sent.', { exact: true })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Invite client', exact: true })).not.toBeVisible();
+  });
+
+  test.describe('live slot check in the invite drawer (#1148)', () => {
+    const SLOT_CHECK = (url: URL) => url.pathname === '/trainer/pending-invites/slot-check';
+    const TAKEN_EMAIL = 'taken.client@formup.test';
+
+    async function openDrawerAndType(page: Page, email: string): Promise<void> {
+      await page.getByRole('button', { name: 'Invite client', exact: true }).click();
+      await expect(page.getByRole('heading', { name: 'Invite client', exact: true })).toBeVisible();
+      await page.getByRole('textbox', { name: 'Email', exact: true }).fill(email);
+    }
+
+    test('a taken training slot shows the label with the typed email in place of the helper', async ({ page }) => {
+      await page.route(SLOT_CHECK, (route) =>
+        route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ nutritionTaken: false, trainingTaken: true }),
+        }),
+      );
+      await openDrawerAndType(page, TAKEN_EMAIL);
+
+      await expect(page.getByText(`User with email ${TAKEN_EMAIL} already has a coach for training.`)).toBeVisible();
+      await expect(page.getByText('Already on Form Up?')).toHaveCount(0);
+    });
+
+    test('free slots keep the helper line and show no label', async ({ page }) => {
+      const checked = page.waitForRequest((request) => SLOT_CHECK(new URL(request.url())));
+      await page.route(SLOT_CHECK, (route) =>
+        route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ nutritionTaken: false, trainingTaken: false }),
+        }),
+      );
+      await openDrawerAndType(page, TAKEN_EMAIL);
+      await checked;
+
+      await expect(page.getByText('Already on Form Up?')).toBeVisible();
+      await expect(page.getByTestId('invite-slot-taken')).toHaveCount(0);
+    });
+
+    test('an invalid email sends no slot check', async ({ page }) => {
+      let calls = 0;
+      await page.route(SLOT_CHECK, (route) => {
+        calls += 1;
+        return route.fulfill({ status: 200, contentType: 'application/json', body: '{}' });
+      });
+      await openDrawerAndType(page, 'not-an-email');
+      await page.getByRole('textbox', { name: 'Email', exact: true }).press('Tab');
+
+      await expect(page.getByTestId('invite-slot-taken')).toHaveCount(0);
+      // The debounce is 400 ms; the poll window below outlasts it, so a premature request would be counted.
+      await expect.poll(async () => calls, { timeout: 1500, intervals: [1500] }).toBe(0);
+    });
+
+    test('a rate-limited check shows no label and keeps Send enabled', async ({ page }) => {
+      const checked = page.waitForResponse((response) => SLOT_CHECK(new URL(response.url())));
+      await page.route(SLOT_CHECK, (route) =>
+        route.fulfill({ status: 429, contentType: 'application/problem+json', body: '{}' }),
+      );
+      await openDrawerAndType(page, TAKEN_EMAIL);
+      await page.getByRole('textbox', { name: 'Email', exact: true }).press('Tab');
+      await checked;
+
+      await expect(page.getByTestId('invite-slot-taken')).toHaveCount(0);
+      await expect(page.getByText('Already on Form Up?')).toBeVisible();
+      await expect(page.getByRole('button', { name: 'Send invitation' })).toBeEnabled();
+    });
   });
 
   /**
@@ -714,4 +783,40 @@ test.describe('clients selection bar at narrow viewports (#1085)', () => {
       }
     });
   }
+});
+
+// A coach holding both roles picks the invite scope, and the slot-check label follows it (#1148).
+coachTest.describe('invite drawer slot check for a both-roles coach (#1148)', () => {
+  coachTest('the label lists only the professions inside the selected scope', async ({ page }) => {
+    const email = 'taken.both@formup.test';
+    await page.route(
+      (url) => url.pathname === '/trainer/pending-invites/slot-check',
+      (route) =>
+        route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ nutritionTaken: true, trainingTaken: true }),
+        }),
+    );
+    await page.goto('/clients');
+    await page.getByRole('button', { name: 'Invite client', exact: true }).click();
+    await expect(page.getByRole('heading', { name: 'Invite client', exact: true })).toBeVisible();
+    await page.getByRole('textbox', { name: 'Email', exact: true }).fill(email);
+
+    const training = page.getByText(`User with email ${email} already has a coach for training.`);
+    const nutrition = page.getByText(`User with email ${email} already has a coach for nutrition.`);
+
+    // Default scope is Both.
+    await expect(training).toBeVisible();
+    await expect(nutrition).toBeVisible();
+
+    const scopeGroup = page.getByRole('group', { name: "What you'll coach" });
+    await scopeGroup.getByRole('button', { name: 'Training', exact: true }).click();
+    await expect(training).toBeVisible();
+    await expect(nutrition).toHaveCount(0);
+
+    await scopeGroup.getByRole('button', { name: 'Nutrition', exact: true }).click();
+    await expect(nutrition).toBeVisible();
+    await expect(training).toHaveCount(0);
+  });
 });
