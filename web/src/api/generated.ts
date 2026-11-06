@@ -3362,7 +3362,7 @@ export class ApiClient {
     /**
      * Update client data
      * @param clientId Client profile public ID (route parameter).
-     * @return Success
+     * @return Client data updated
      */
     updateClientDataEndpoint(clientId: string, updateClientDataRequest: UpdateClientDataRequest, signal?: AbortSignal): Promise<UpdateClientDataResponse> {
         let url_ = this.baseUrl + "/trainer/clients/{clientId}";
@@ -3421,11 +3421,11 @@ export class ApiClient {
 
         } else if (status === 401) {
             const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
 
         } else if (status === 403) {
             const _responseText = response.data;
-            return throwException("Forbidden", status, _responseText, _headers);
+            return throwException("Request carries nutrition targets but the link has no nutrition capability", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -10451,7 +10451,7 @@ export class ApiClient {
     /**
      * Full-state update of a nutrition plan
      * @param planId The plan's public identifier (route parameter).
-     * @return Success
+     * @return Updated plan
      */
     updatePlanEndpoint(planId: string, updatePlanRequest: UpdatePlanRequest, signal?: AbortSignal): Promise<GetPlanResponse> {
         let url_ = this.baseUrl + "/nutrition/plans/{planId}";
@@ -10510,7 +10510,7 @@ export class ApiClient {
 
         } else if (status === 401) {
             const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
 
         } else if (status === 403) {
             const _responseText = response.data;
@@ -14772,7 +14772,7 @@ export class ApiClient {
      * Save photos / note for a training session diary entry
      * @param sessionId The unique identifier of the training session whose photos/note are being saved.
     Sourced from the route segment {SessionId}.
-     * @return No Content
+     * @return Photos saved
      */
     saveSessionPhotosEndpoint(sessionId: string, saveSessionPhotosRequest: SaveSessionPhotosRequest, signal?: AbortSignal): Promise<void> {
         let url_ = this.baseUrl + "/client/training/log/sessions/{sessionId}/photos";
@@ -14823,7 +14823,7 @@ export class ApiClient {
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("Bad Request", status, _responseText, _headers, result400);
+            return throwException("Invalid request, or a photo URL is not a blob URL from this session\'s upload folder (INVALID_BLOB_URL)", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
@@ -17751,7 +17751,7 @@ export class ApiClient {
     /**
      * Log a meal as eaten
      * @param mealId The unique identifier of the meal to log as eaten.
-     * @return Meal logged; syncConflict flags a collision with a plan change, and mealLogged is false when the meal left the plan
+     * @return Meal logged; syncConflict flags a collision with a plan change; a meal that left the plan is still logged from the items the client saw, and mealLogged is false only when it left the plan and the request carried no seen items
      */
     logMealEatenEndpoint(mealId: string, logMealEatenRequest: LogMealEatenRequest, signal?: AbortSignal): Promise<LogMealEatenResponse> {
         let url_ = this.baseUrl + "/client/nutrition/log/meals/{mealId}/eaten";
@@ -18047,7 +18047,7 @@ export class ApiClient {
 
     /**
      * Save plan-level day photos / note for today
-     * @return No Content
+     * @return Photos saved
      */
     saveDayPhotosEndpoint(saveDayPhotosRequest: SaveDayPhotosRequest, signal?: AbortSignal): Promise<void> {
         let url_ = this.baseUrl + "/client/nutrition/log/day/photos";
@@ -18095,7 +18095,7 @@ export class ApiClient {
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("Bad Request", status, _responseText, _headers, result400);
+            return throwException("Invalid request, or a photo URL is not a blob URL from this plan\'s upload folder (INVALID_BLOB_URL)", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
@@ -21661,7 +21661,7 @@ export class ApiClient {
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("idToken or nonce is missing or empty", status, _responseText, _headers, result400);
+            return throwException("idToken or nonce is missing or empty, Roles is invalid (Admin, unknown, or Client combined with a coach role), a coach sends healthDataConsent, or a new Client account lacks healthDataConsent=true. The nonce is already consumed by the time the consent check runs, so the client must request a new nonce to retry", status, _responseText, _headers, result400);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -21724,7 +21724,7 @@ export class ApiClient {
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("identityToken or nonce is missing or empty", status, _responseText, _headers, result400);
+            return throwException("identityToken or nonce is missing or empty, Roles is invalid (Admin, unknown, or Client combined with a coach role), a coach sends healthDataConsent, or a new Client account lacks healthDataConsent=true. The nonce is already consumed by the time the consent check runs, so the client must request a new nonce to retry", status, _responseText, _headers, result400);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -24607,7 +24607,7 @@ export interface OfflineSyncConflictDto {
     mealId?: string;
     /** Meal kind at sync time. */
     mealKind?: MealKind;
-    /** False when the meal had left the plan, so no meal log was written. */
+    /** False when the meal had left the plan and the client sent no seen items, so no meal log was written. */
     mealLogged?: boolean;
     /** When the client performed the action offline (UTC). */
     occurredAt?: string;
@@ -24644,6 +24644,8 @@ export enum MealKind {
 
 /** One meal item as the client saw it. */
 export interface SeenMealItemDto {
+    /** Plan item id of the item; matches the item tags on the plan's meal lock. */
+    itemId?: string;
     /** Whether the item was a food or a recipe. */
     kind?: SeenMealItemKind;
     /** Public id of the food or recipe. */
@@ -24654,6 +24656,14 @@ export interface SeenMealItemDto {
     amount?: number;
     /** Energy the client showed, in kcal. */
     kcal?: number;
+    /** Protein the client showed, in grams. */
+    protein?: number;
+    /** Carbohydrates the client showed, in grams. */
+    carbs?: number;
+    /** Fat the client showed, in grams. */
+    fat?: number;
+    /** Fibre the client showed, in grams. */
+    fibre?: number;
 }
 
 /** What a seen meal item referred to. */
@@ -26750,10 +26760,10 @@ export interface NutritionPlanTemplateDetailDto {
     weeks?: TemplateWeek[];
     /** Number of weeks, server-computed from Weeks. */
     weekCount?: number;
-    /** Most common meal count over the template's non-empty days (days with at least one meal,
-across all weeks); ties resolve to the smaller count. Null when no day has a meal. */
+    /** Most common meal count (empty rows included) over days with at least one food or recipe;
+ties go to the smaller count. Null when no day has a food or recipe. */
     mealsPerDay?: number | undefined;
-    /** Average kcal per non-empty day, in whole kcal. Null when no day has a meal. */
+    /** Average kcal per day with at least one food or recipe, rounded to whole kcal. Null when no such day. */
     avgKcalPerDay?: number | undefined;
     /** Who can read this entry besides its owner. */
     visibility?: LibraryVisibility;
@@ -27007,10 +27017,10 @@ export interface NutritionPlanTemplateSummaryDto {
     dietaryStyle?: DietaryStyle | undefined;
     /** Number of weeks, server-computed from the template's week tree. */
     weekCount?: number;
-    /** Most common meal count over the template's non-empty days (days with at least one meal,
-across all weeks); ties resolve to the smaller count. Null when no day has a meal. */
+    /** Most common meal count (empty rows included) over days with at least one food or recipe;
+ties go to the smaller count. Null when no day has a food or recipe. */
     mealsPerDay?: number | undefined;
-    /** Average kcal per non-empty day, in whole kcal. Null when no day has a meal. */
+    /** Average kcal per day with at least one food or recipe, rounded to whole kcal. Null when no such day. */
     avgKcalPerDay?: number | undefined;
     /** Number of the caller's own Active plans instantiated from this template; other
 nutritionists' usage is never counted. */
@@ -27138,6 +27148,11 @@ are absent (equivalent to not-touched / no badge).
 Populated by the endpoint after loading the plan. Ownership is guaranteed by the
 plan ownership gate above the MealLog query — filtering by PlanId is safe. */
     mealLogs?: MealEatenStatusDto[];
+    /** The client's local calendar date today, the cut-off after which a day is locked.
+Populated by the get endpoint only. */
+    clientToday?: string;
+    /** One lock verdict per stored meal. Populated by the get endpoint only. */
+    mealLocks?: MealLockDto[];
     /** Supplement recommendations attached to this plan. */
     supplements?: SupplementDto[];
 }
@@ -27180,6 +27195,97 @@ export enum MealEatenState {
     Eaten = "Eaten",
 }
 
+/** Whether the coach may edit one stored plan meal, and why not. */
+export interface MealLockDto {
+    /** The MealId this verdict belongs to. */
+    mealId?: string;
+    /** Week the meal sits in. */
+    weekNumber?: number;
+    /** Day of the week the meal sits in (1 = Monday). */
+    dayOfWeek?: number;
+    /** Calendar date of the slot; null when the plan has no start date. */
+    date?: string | undefined;
+    /** Whether the meal may not be changed, moved or deleted. */
+    isLocked?: boolean;
+    /** Why the meal is locked, or Open. */
+    lockState?: MealLockState;
+    /** Ids of the meal's items the client ate. */
+    eatenItemIds?: string[];
+    /** Items as they stood when first eaten. Set only for a locked meal that has a snapshot. */
+    eatenSnapshot?: EatenMealItem[] | undefined;
+    /** True for a meal the client ate that the coach has since removed from the plan. It is not in
+Weeks; it is placed by WeekNumber, DayOfWeek and MealKind. */
+    isRemovedFromPlan?: boolean;
+    /** Kind of the meal; for a removed meal, the kind stored when it was logged. */
+    mealKind?: MealKind;
+    /** The offline-sync conflict behind this meal; null when it was not eaten offline against a changed plan. */
+    conflict?: MealLockConflictDto | undefined;
+}
+
+/** Why a plan meal can or cannot be edited by the coach. */
+export enum MealLockState {
+    Open = "Open",
+    Eaten = "Eaten",
+    PartlyEaten = "PartlyEaten",
+    Missed = "Missed",
+}
+
+/** One food or recipe of a meal as it stood when the client first ate from it, kept on a MealLog. Nutrients are the item's total contribution (amount already applied). */
+export interface EatenMealItem {
+    /** Plan item id (MealFood.ItemId / MealRecipe.ItemId). */
+    itemId?: string;
+    /** Whether the item is a food or a recipe. */
+    kind?: SeenMealItemKind;
+    /** Id of the food or recipe the item referred to. */
+    refId?: string;
+    /** Display name. */
+    name?: string;
+    /** Grams for a food, servings for a recipe. */
+    amount?: number;
+    /** Energy in kcal. */
+    kcal?: number;
+    /** Protein in grams. */
+    protein?: number;
+    /** Carbohydrates in grams. */
+    carbs?: number;
+    /** Fat in grams. */
+    fat?: number;
+    /** Dietary fibre in grams. */
+    fibre?: number;
+}
+
+/** The offline-sync conflict behind a locked meal: the client ate one version of the meal while the coach's plan moved on to another. */
+export interface MealLockConflictDto {
+    /** Public id of the conflict; the id the review endpoints take. */
+    conflictId?: string;
+    /** Why the client's action collided with the plan. */
+    kind?: OfflineSyncConflictKind;
+    /** The plan version the client ate (the one it saw offline). */
+    basedOnPlanVersion?: number;
+    /** The coach's current plan version. */
+    currentPlanVersion?: number;
+    /** Whether a coach has marked the conflict reviewed. */
+    reviewed?: boolean;
+    /** Per-item differences between the eaten snapshot and the coach's meal, computed on the server.
+Empty when the client sent no seen items. */
+    itemTags?: MealItemConflictTagDto[];
+}
+
+/** One item whose eaten version differs from the coach's current meal. */
+export interface MealItemConflictTagDto {
+    /** The plan item id the tag belongs to. */
+    itemId?: string;
+    /** How the item differs: changed, added by the coach, or removed by the coach. */
+    tag?: MealItemConflictTag;
+}
+
+/** How one meal item differs between what the client ate and the coach's current meal. */
+export enum MealItemConflictTag {
+    Changed = "Changed",
+    Added = "Added",
+    Removed = "Removed",
+}
+
 /** A supplement entry in a nutrition plan response DTO. */
 export interface SupplementDto {
     /** Stable public identifier for the supplement. */
@@ -27214,6 +27320,10 @@ When set, read sites prefer this value over the client's onboarding baseline. */
     /** Optional target body weight in kilograms for this plan period.
 Must be greater than zero when provided. */
     targetWeightKg?: number | undefined;
+    /** When true, locked meals (eaten, partly eaten, or on a day before the client's today) and every
+past day's meals are kept as stored, incoming meals on past days are dropped, and the rest of the
+payload is applied without a lock conflict. Used when a template is applied in the browser. */
+    preserveLockedMeals?: boolean;
 }
 
 /** Represents a single week submitted in a full-state plan update. */
@@ -29982,7 +30092,8 @@ at most 5 minutes ahead and 7 days back. */
 export interface LogMealEatenResponse {
     /** Human-readable confirmation. */
     message?: string;
-    /** False only when the meal is no longer in the plan, so no meal log was written. */
+    /** False only when the meal is no longer in the plan and the request carried no seen items,
+so no meal log was written. */
     mealLogged?: boolean;
     /** True when the action collided with a plan change the coach made. */
     syncConflict?: boolean;
@@ -30011,6 +30122,8 @@ at most 5 minutes ahead and 7 days back. */
 
 /** One meal item as the client saw it when it queued the request. */
 export interface SeenMealItemRequest {
+    /** Plan item id of the item. */
+    itemId?: string;
     /** Whether the item is a food or a recipe. */
     kind?: SeenMealItemKind;
     /** Public id of the food or recipe. */
@@ -30021,6 +30134,14 @@ export interface SeenMealItemRequest {
     amount?: number;
     /** Energy shown to the client, in kcal. */
     kcal?: number;
+    /** Protein shown to the client, in grams. */
+    protein?: number;
+    /** Carbohydrates shown to the client, in grams. */
+    carbs?: number;
+    /** Fat shown to the client, in grams. */
+    fat?: number;
+    /** Fibre shown to the client, in grams. */
+    fibre?: number;
 }
 
 /** Response model for the client's active nutrition plan for the current week. */
@@ -31505,6 +31626,12 @@ export interface GoogleSocialLoginRequest {
 The client must pass the same raw value that was embedded in the Google sign-in flow
 (Google embeds the raw nonce directly in the id_token's nonce field — no hashing). */
     nonce: string;
+    /** Roles requested for a brand-new account: Trainer, Nutritionist or Client (never combined with a coach role).
+Empty or absent means Client. Ignored when the Google identity is already linked to an account. */
+    roles?: string[];
+    /** Art. 9 health-data consent. Must be true when a new Client account is created and
+must be absent for a coach sign-up. Ignored when the Google identity is already linked. */
+    healthDataConsent?: boolean | undefined;
 }
 
 /** Response returned on a successful Apple Sign-In. Identical shape to Google Social Login response. */
@@ -31539,6 +31666,12 @@ Apple does not re-send this on subsequent authentications. */
 The client must pass the same raw value that was embedded in the Apple sign-in flow
 (Apple hashes it before embedding: SHA-256(nonce) appears in the id_token's nonce claim). */
     nonce: string;
+    /** Roles requested for a brand-new account: Trainer, Nutritionist or Client (never combined with a coach role).
+Empty or absent means Client. Ignored when the Apple identity is already linked to an account. */
+    roles?: string[];
+    /** Art. 9 health-data consent. Must be true when a new Client account is created and
+must be absent for a coach sign-up. Ignored when the Apple identity is already linked. */
+    healthDataConsent?: boolean | undefined;
 }
 
 /** Request model for completing a password reset using a token. */

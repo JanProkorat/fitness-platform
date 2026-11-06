@@ -40,6 +40,9 @@ public class UpdatePlanRemovedMealRecordIntegrationTests(FitnessApiFactory facto
         return today.AddDays(-(((int)today.DayOfWeek + 6) % 7));
     }
 
+    // The meals sit on today's slot: a meal on an earlier day is locked and cannot be removed.
+    private static int TodayDayOfWeek() => ((int)DateTime.UtcNow.DayOfWeek + 6) % 7 + 1;
+
     private async Task<(Actor Coach, Actor Client, Guid PlanId, Guid KeptMealId, Guid RemovedMealId)> SeedAsync()
     {
         var coach = await TestActors.Nutritionist(factory).CreateAsync(Ct);
@@ -71,7 +74,7 @@ public class UpdatePlanRemovedMealRecordIntegrationTests(FitnessApiFactory facto
                     [
                         new PlanDay
                         {
-                            DayOfWeek = 1,
+                            DayOfWeek = TodayDayOfWeek(),
                             Meals =
                             [
                                 new PlanMeal { MealId = keptMealId, Kind = MealKind.Breakfast, Order = 1, Foods = [_food] },
@@ -104,7 +107,7 @@ public class UpdatePlanRemovedMealRecordIntegrationTests(FitnessApiFactory facto
             Name = "Removal plan",
             Version = version,
             StartDate = ThisMonday(),
-            Weeks = new[] { new { WeekNumber = 1, Days = new[] { new { DayOfWeek = 1, Meals = meals } } } },
+            Weeks = new[] { new { WeekNumber = 1, Days = new[] { new { DayOfWeek = TodayDayOfWeek(), Meals = meals } } } },
         }, Ct);
 
     private static Task<HttpResponseMessage> LogAsync(Actor client, Guid mealId, int? basedOnPlanVersion) =>

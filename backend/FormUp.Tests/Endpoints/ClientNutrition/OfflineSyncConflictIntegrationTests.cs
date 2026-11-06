@@ -76,8 +76,16 @@ public class OfflineSyncConflictIntegrationTests(FitnessApiFactory factory)
 
     private static List<SeenMealItemRequest> SeenItems() =>
     [
-        new() { Kind = SeenMealItemKind.Food, RefId = Guid.NewGuid(), Name = "Rice", Amount = 150m, Kcal = 195m },
-        new() { Kind = SeenMealItemKind.Recipe, RefId = Guid.NewGuid(), Name = "Chili", Amount = 1m, Kcal = 420m },
+        new()
+        {
+            ItemId = Guid.NewGuid(), Kind = SeenMealItemKind.Food, RefId = Guid.NewGuid(), Name = "Rice", Amount = 150m,
+            Kcal = 195m, Protein = 4m, Carbs = 42m, Fat = 0.5m, Fibre = 1m,
+        },
+        new()
+        {
+            ItemId = Guid.NewGuid(), Kind = SeenMealItemKind.Recipe, RefId = Guid.NewGuid(), Name = "Chili", Amount = 1m,
+            Kcal = 420m, Protein = 30m, Carbs = 40m, Fat = 12m, Fibre = 9m,
+        },
     ];
 
     private static async Task<LogMealEatenResponse> ReadAsync(HttpResponseMessage response) =>
@@ -314,6 +322,30 @@ public class OfflineSyncConflictIntegrationTests(FitnessApiFactory factory)
         replay.MealLogged.Should().BeFalse();
         replay.SyncConflictKind.Should().Be(OfflineSyncConflictKind.MealRemoved);
         (await LoadConflictsAsync(client.UserId)).Should().ContainSingle();
+    }
+
+    [Fact]
+    public async Task Log_RemovedMealWithSeenItems_WritesTheMealLogAndReplayDoesNotWriteASecond()
+    {
+        var (client, coach) = await SeedLinkedPairAsync();
+        var removedMeal = NewMeal();
+        var oldPlan = await InsertPlanAsync(client, removedMeal, coach.UserId, status: NutritionPlanStatus.Archived, startedDaysAgo: 40);
+        await InsertPlanAsync(client, NewMeal(), coach.UserId, version: 4);
+        var requestId = Guid.NewGuid();
+        var seen = SeenItems();
+
+        var first = await ReadAsync(await LogAsync(client, removedMeal.MealId, 1, requestId, seen));
+        var replay = await ReadAsync(await LogAsync(client, removedMeal.MealId, 1, requestId, seen));
+
+        first.MealLogged.Should().BeTrue();
+        first.SyncConflictKind.Should().Be(OfflineSyncConflictKind.MealRemoved);
+        replay.Should().BeEquivalentTo(first);
+        var log = (await LoadMealLogsAsync(client.UserId)).Should().ContainSingle().Subject;
+        log.PlanId.Should().Be(oldPlan.ExternalId);
+        log.MealKind.Should().Be(MealKind.Lunch);
+        log.EatenSnapshot!.Select(item => item.ItemId).Should().BeEquivalentTo(seen.Select(item => item.ItemId));
+        var conflict = (await LoadConflictsAsync(client.UserId)).Should().ContainSingle().Subject;
+        conflict.MealLogged.Should().BeTrue();
     }
 
     // ── Notification ────────────────────────────────────────────────────

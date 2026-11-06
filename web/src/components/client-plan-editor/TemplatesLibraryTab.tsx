@@ -39,6 +39,8 @@ interface Props {
   /** From the client dashboard; undefined until the client has onboarding answers. */
   onboarding?: OnboardingDataDto;
   clientFirstName: string;
+  /** Called once a template has been put into the document, so the host can mark the next save. */
+  onTemplateApplied?: () => void;
 }
 
 interface PendingApply {
@@ -182,7 +184,13 @@ function TemplateCard({ item, best, hasGoalCriterion, busy, disabled, language, 
 }
 
 /** The client plan editor's "Templates" library tab: templates matched to the client, each with Use. */
-export default function TemplatesLibraryTab({ context, weekStatus, onboarding, clientFirstName }: Props) {
+export default function TemplatesLibraryTab({
+  context,
+  weekStatus,
+  onboarding,
+  clientFirstName,
+  onTemplateApplied,
+}: Props) {
   const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
   const [pending, setPending] = useState<PendingApply | null>(null);
@@ -229,6 +237,7 @@ export default function TemplatesLibraryTab({ context, weekStatus, onboarding, c
     const published = publishedWeekNumbers(current, status);
     // One edit, computed from the document at that moment, so a single Undo takes it all back.
     current.onEdit((doc) => applyTemplate(doc, weeks, published, keepLength));
+    onTemplateApplied?.();
     setPending(null);
   }
 

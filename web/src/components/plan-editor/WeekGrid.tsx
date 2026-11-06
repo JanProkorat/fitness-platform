@@ -1,12 +1,26 @@
 import { useCallback, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useDraggable, useDroppable } from '@dnd-kit/react';
-import { Plus, StickyNote, X } from 'lucide-react';
-import type { MealKind } from '@/api/generated';
+import { CircleAlert, Lock, Plus, StickyNote, X } from 'lucide-react';
+import { MealLockState, type MealKind } from '@/api/generated';
 import { cn } from '@/lib/utils';
 import DayTargetPopover from '@/components/plan-editor/DayTargetPopover';
 import MacroDots from '@/components/plan-editor/MacroDots';
 import MealTileFace from '@/components/plan-editor/MealTileFace';
+import {
+  eatenSnapshotKcal,
+  isPastDay,
+  isToday,
+  lockedTileSurfaceClass,
+  mealLockView,
+  removedGhosts,
+  type RemovedGhost,
+  isRejectedTile,
+  useLockRejection,
+  useLockConflicts,
+  useMealLocks,
+  type MealLockView,
+} from '@/components/plan-editor/meal-locks';
 import MealRowInsertLine from '@/components/plan-editor/MealRowInsertLine';
 import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Textarea } from '@/components/ui/textarea';
@@ -76,6 +90,10 @@ interface CellProps {
   drag: GridDragView | null;
   /** The unreviewed offline-sync conflict on this cell's meal: the tile is outlined and badged. */
   conflict?: PlacedConflict;
+  /** The lock verdict of this cell's meal; absent for plans that are not judged (templates). */
+  lock?: MealLockView;
+  /** The cell's day is already over: nothing can land here. */
+  pastDay?: boolean;
   /** True while this cell's meal detail is open. */
   detailOpen: boolean;
   detail: ReactNode;
@@ -98,6 +116,8 @@ function MealCell({
   readOnly,
   drag,
   conflict,
+  lock,
+  pastDay = false,
   detailOpen,
   detail,
   onSelect,
@@ -107,14 +127,20 @@ function MealCell({
 }: CellProps) {
   const { t } = useTranslation();
   const boundary = usePopoverBoundary();
+  const locked = lock?.locked ?? false;
+  const lockConflicts = useLockConflicts();
+  const flagged = meal ? lockConflicts.has(meal.mealId) : false;
+  const serverRejected = isRejectedTile(useLockRejection(), meal?.mealId, weekIndex + 1, dayOfWeek);
+  const rejected = flagged || serverRejected;
   const { ref: dropRef, isDropTarget } = useDroppable({
     id: `cell:${weekIndex}:${dayOfWeek}:${rowIndex}`,
     data: { weekIndex, dayOfWeek, rowIndex },
     // Meal tiles and labels are dropped by position (see the editor), so no cell takes a drop while they are dragged.
-    disabled: readOnly || drag !== null,
+    // A locked meal and a past day take nothing at all.
+    disabled: readOnly || drag !== null || locked || pastDay,
   });
   const itemCount = meal ? mealItemCount(meal) : 0;
-  const draggable = !readOnly && itemCount > 0;
+  const draggable = !readOnly && itemCount > 0 && !locked;
   const { ref: dragRef, isDragging } = useDraggable({
     id: `cell-meal:${weekIndex}:${dayOfWeek}:${rowIndex}`,
     data: { type: CELL_MEAL_DRAG, weekIndex, dayOfWeek, rowIndex, mealId: meal?.mealId },
@@ -163,6 +189,9 @@ function MealCell({
           data-drop-target={dropMode}
           data-band={band}
           data-conflict={conflict ? conflict.id : undefined}
+          data-lock={locked && lock ? lock.state : undefined}
+          data-past={pastDay ? 'true' : undefined}
+          data-lock-rejected={rejected ? 'true' : undefined}
           aria-pressed={selected}
           aria-expanded={meal && itemCount > 0 ? detailOpen : undefined}
           aria-label={t('planEditor.cell.label', { day: t(`planEditor.days.${dayOfWeek}`), row: rowIndex + 1 })}
@@ -188,11 +217,13 @@ function MealCell({
           }}
           className={cn(
             'flex min-h-0 min-w-0 flex-col items-stretch justify-between gap-1 rounded-xl border p-3 text-left outline-none transition-[color,background-color,border-color,box-shadow,transform] duration-150 focus-visible:ring-3 focus-visible:ring-ring/50',
-            tileSurfaceClass(shownCount > 0),
+            locked && lock && itemCount > 0 ? lockedTileSurfaceClass(lock.state) : tileSurfaceClass(shownCount > 0),
             conflict && 'relative border-solid border-caution-ink',
             draggable &&
               'cursor-grab hover:-translate-y-px hover:shadow-raised-hover active:cursor-grabbing motion-reduce:hover:translate-y-0',
             selected && 'border-solid border-ink ring-2 ring-ink',
+            // The tile the server refused to save: a ring, so nothing shifts.
+            rejected && 'relative border-solid border-error ring-2 ring-error',
             // While the contents slide, this slot shows another meal's, so only a source that stays put is dimmed.
             isDragging && cellDrag?.mode !== 'move' && 'opacity-50',
             band === 'source' && !labelMoving && 'opacity-50',
@@ -202,8 +233,55 @@ function MealCell({
             isDropTarget && !isDragging && 'border-dashed border-nutrition bg-nutrition-soft shadow-none ring-0',
           )}
         >
-          <MealTileFace meal={display} rowLabelKey={rowLabelKey} flipKey={gridFaceKey(dayOfWeek, rowIndex)} />
+          <MealTileFace
+            meal={display}
+            rowLabelKey={rowLabelKey}
+            flipKey={gridFaceKey(dayOfWeek, rowIndex)}
+            lock={
+              locked && lock
+                ? {
+                    state: lock.state,
+                    eaten: Math.min(lock.info?.eatenItemIds.length ?? 0, itemCount),
+                    total: itemCount,
+                    // What was eaten, from the snapshot like the popover; a missed or snapshot-less meal shows its own total.
+                    kcal:
+                      lock.info &&
+                      lock.info.snapshot.length > 0 &&
+                      (lock.state === MealLockState.Eaten || lock.state === MealLockState.PartlyEaten)
+                        ? eatenSnapshotKcal(lock.info)
+                        : undefined,
+                  }
+                : undefined
+            }
+            pastEmpty={pastDay && shownCount === 0}
+            conflictFlag={flagged}
+          />
           {conflict && <ConflictBadge className="absolute top-2 right-2 size-5" />}
+          {flagged && (
+            // A span with role=button, not a nested <button> (invalid inside the tile's button). A click bubbles to the
+            // tile, which opens the popover; the key press does the same on its behalf.
+            <span
+              role="button"
+              tabIndex={0}
+              data-testid="meal-lock-conflict"
+              aria-label={t('planEditor.locks.conflictBadge')}
+              title={t('planEditor.locks.conflictBadge')}
+              onPointerDown={(event) => event.stopPropagation()}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  onSelect();
+                }
+              }}
+              className={cn(
+                'absolute top-1.5 flex size-5 cursor-pointer items-center justify-center rounded-full bg-error text-card outline-none focus-visible:ring-3 focus-visible:ring-ring/50',
+                conflict ? 'right-8' : 'right-1.5',
+              )}
+            >
+              <CircleAlert className="size-3.5" aria-hidden="true" />
+            </span>
+          )}
         </button>
       </PopoverAnchor>
       {detailOpen && (
@@ -240,10 +318,12 @@ interface DayHeaderProps {
   labelDrag?: { weekIndex: number; onKeyMove: (direction: -1 | 1) => void; over?: boolean };
   /** Unreviewed offline-sync conflicts on this day; a badge marks the header when above zero. */
   conflictCount?: number;
+  /** A past day carries a lock; today carries a pill. Only client plans are judged. */
+  lockMark?: 'past' | 'today';
 }
 
 /** A weekday's name with its note button; the note opens in a small popover. */
-export function DayHeader({ day, note: noteEditing, labelDrag, conflictCount = 0 }: DayHeaderProps) {
+export function DayHeader({ day, note: noteEditing, labelDrag, conflictCount = 0, lockMark }: DayHeaderProps) {
   const { t } = useTranslation();
   const boundary = usePopoverBoundary();
   const [open, setOpen] = useState(false);
@@ -284,6 +364,19 @@ export function DayHeader({ day, note: noteEditing, labelDrag, conflictCount = 0
         </LabelHandle>
       ) : (
         shortName
+      )}
+      {lockMark === 'past' && (
+        <Lock
+          data-testid="day-lock"
+          className="size-3.5 text-muted-foreground"
+          role="img"
+          aria-label={t('planEditor.locks.dayLocked', { day: dayName })}
+        />
+      )}
+      {lockMark === 'today' && (
+        <span data-testid="day-today" className="rounded-full bg-ink px-2 py-0.5 text-meta font-semibold text-card">
+          {t('planEditor.locks.today')}
+        </span>
       )}
       {conflictCount > 0 && <ConflictBadge />}
       <Popover open={open} onOpenChange={setOpen} modal={false}>
@@ -409,6 +502,11 @@ interface Props {
   onLabelKeyMove?: (axis: LabelAxis, index: number, direction: -1 | 1) => void;
   /** What is being dragged over the grid: a meal tile (with the contents already slid into place) or a label. */
   drag?: GridDragView | null;
+  /** The removed-but-eaten tile whose popover is open. */
+  openGhostId?: string | null;
+  onOpenGhost?: (id: string | null) => void;
+  /** Leaves the week view for a weekday ("Open <day>" in a removed meal's popover). */
+  onOpenDay?: (dayOfWeek: number) => void;
 }
 
 /** The week as a grid: one column per weekday, a day-total row, then one row per meal. */
@@ -430,12 +528,30 @@ export default function WeekGrid({
   onMoveMealAlong,
   onLabelKeyMove,
   drag = null,
+  openGhostId = null,
+  onOpenGhost,
+  onOpenDay,
 }: Props) {
   const { t } = useTranslation();
   const labelsDraggable = !readOnly && onLabelKeyMove !== undefined;
   const rows = weekRows(week);
   const conflicts = useSyncConflicts();
-  const ghostPlacement = conflicts ? placeGhosts(week, conflicts.ghosts(weekIndex)) : null;
+  const locks = useMealLocks();
+  // Meals the client ate that the coach removed: read-only tiles in the cell they sat in, never part of the plan.
+  const ghostPlacement = locks ? placeGhosts(week, removedGhosts(locks, weekIndex)) : null;
+  const renderGhost = (ghost: RemovedGhost, key: number) =>
+    locks ? (
+      <SyncConflictGhostTile
+        key={key}
+        ghost={ghost}
+        placed={conflicts?.byConflictId(ghost.id)}
+        model={conflicts}
+        clientName={locks.clientName}
+        open={openGhostId === ghost.id}
+        onOpenChange={(next) => onOpenGhost?.(next ? ghost.id : null)}
+        onOpenDay={(day) => onOpenDay?.(day)}
+      />
+    ) : null;
   const extraRows = ghostPlacement?.extraRows ?? [];
   const dayByNumber = new Map(week.days.map((day) => [day.dayOfWeek, day]));
   // The slots stay the real week's; only what they show comes from the preview while a move is hovered.
@@ -478,6 +594,13 @@ export default function WeekGrid({
             day={dayByNumber.get(dayOfWeek) ?? { dayOfWeek, meals: [] }}
             note={{ weekIndex, readOnly, onEdit }}
             conflictCount={conflicts?.countOnDay(weekIndex, dayOfWeek) ?? 0}
+            lockMark={
+              locks && isPastDay(locks, week.weekNumber, dayOfWeek)
+                ? 'past'
+                : locks && isToday(locks, week.weekNumber, dayOfWeek)
+                  ? 'today'
+                  : undefined
+            }
             labelDrag={
               labelsDraggable
                 ? {
@@ -563,8 +686,8 @@ export default function WeekGrid({
             const detailOpen = detailCell?.dayOfWeek === dayOfWeek && detailCell.rowIndex === row.index;
             const cellMeal = rowMeal(dayByNumber.get(dayOfWeek), row);
             const ghost = cellMeal ? undefined : ghostPlacement?.inRow.get(`${dayOfWeek}:${row.index}`);
-            if (ghost && conflicts) {
-              return <SyncConflictGhostTile key={dayOfWeek} placed={ghost} model={conflicts} />;
+            if (ghost) {
+              return renderGhost(ghost, dayOfWeek);
             }
             return (
               <MealCell
@@ -579,6 +702,8 @@ export default function WeekGrid({
                 readOnly={readOnly}
                 drag={drag}
                 conflict={cellMeal ? conflicts?.forMeal(weekIndex, cellMeal.mealId) : undefined}
+                lock={cellMeal && locks ? mealLockView(locks, cellMeal.mealId, week.weekNumber, dayOfWeek) : undefined}
+                pastDay={locks ? isPastDay(locks, week.weekNumber, dayOfWeek) : false}
                 detailOpen={detailOpen}
                 detail={detailOpen ? renderDetail({ dayOfWeek, rowIndex: row.index }) : null}
                 onSelect={() => onSelect({ dayOfWeek, rowIndex: row.index })}
@@ -598,7 +723,7 @@ export default function WeekGrid({
         );
       })}
 
-      {conflicts &&
+      {locks &&
         extraRows.map((extra, extraIndex) => (
           <div key={`ghost-row-${extraIndex}`} data-testid="sync-conflict-ghost-row" className={cn(GRID_CLASS, 'items-stretch')}>
             <span className={cn(STICKY_LABEL_CLASS, 'self-center text-body font-semibold text-balance text-muted-foreground')}>
@@ -607,7 +732,7 @@ export default function WeekGrid({
             {DAY_ORDER.map((dayOfWeek) => {
               const ghost = extra.byDay.get(dayOfWeek);
               return ghost ? (
-                <SyncConflictGhostTile key={dayOfWeek} placed={ghost} model={conflicts} />
+                renderGhost(ghost, dayOfWeek)
               ) : (
                 <span key={dayOfWeek} aria-hidden="true" />
               );

@@ -44,12 +44,14 @@ public static class EndpointErrorExtensions
     /// <param name="errorCode">Machine-readable error code.</param>
     /// <param name="detail">Human-readable explanation.</param>
     /// <param name="ct">Cancellation token.</param>
+    /// <param name="extensions">Optional extra top-level members, written next to <c>errorCode</c>.</param>
     public static async Task SendProblemAsync(
         this IEndpoint endpoint,
         int statusCode,
         string errorCode,
         string detail,
-        CancellationToken ct = default)
+        CancellationToken ct = default,
+        IReadOnlyDictionary<string, object?>? extensions = null)
     {
         var problem = new Microsoft.AspNetCore.Mvc.ProblemDetails
         {
@@ -59,6 +61,14 @@ public static class EndpointErrorExtensions
             Instance = endpoint.HttpContext.Request.Path,
             Extensions = { ["errorCode"] = errorCode }
         };
+
+        if (extensions is not null)
+        {
+            foreach (var (key, value) in extensions)
+            {
+                problem.Extensions[key] = value;
+            }
+        }
 
         endpoint.HttpContext.Response.StatusCode = statusCode;
         endpoint.HttpContext.Response.ContentType = "application/problem+json";

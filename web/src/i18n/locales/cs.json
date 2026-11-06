@@ -1905,15 +1905,18 @@
       "badge": "Konflikt offline synchronizace",
       "close": "Zavřít",
       "markReviewed": "Označit jako zkontrolované",
-      "openDay": "Otevřít {{day}}",
-      "total": "Celkem {{kcal}} kcal",
-      "saw": "{{name}} viděl(a)",
-      "planNow": "Plán nyní",
+      "openDay": "Otevřít: {{day}}",
+      "saw": "{{name}} snědl(a)",
+      "planNow": "Vaše změna",
+      "notApplied": "neuplatněno",
+      "ate": "Snězeno {{kcal}} kcal",
+      "wouldBe": "Bylo by {{kcal}} kcal",
+      "notInPlan": "Není ve vašem plánu",
       "version": "v{{version}}",
       "chip": {
         "removed": "Odebráno",
         "added": "Přidáno",
-        "amount": "Množství"
+        "changed": "Změněno"
       },
       "amount": {
         "grams": "{{amount}} g",
@@ -1926,18 +1929,23 @@
           "removed": "{{meal}} odebráno, snězeno offline"
         },
         "intro": {
-          "changed": "{{client}} to označil(a) jako snězené {{date}} v {{time}}. Toto jídlo jste změnili po poslední synchronizaci v klientské aplikaci.",
-          "removed": "Toto jídlo jste odebrali, ale {{client}} ho snědl(a) offline {{date}} v {{time}}. V jídelním deníku není."
-        }
+          "changed": "{{client}} to snědl(a) {{date}} v {{time}}, dříve než se k aplikaci klienta dostala vaše změna. Jídelní deník si ponechává, co bylo snězeno.",
+          "removed": "Toto jídlo jste odebrali, ale {{client}} ho snědl(a) offline {{date}} v {{time}}. V jídelním deníku zůstává a tady se zobrazuje jako snězené."
+        },
+        "lockedNote": "Toto jídlo je zamčené. Označení jako zkontrolované jen skryje toto upozornění."
       },
       "day": {
-        "lead": "{{client}} toto označil(a) jako snězené offline {{date}} v {{time}}.",
-        "versions": "{{client}} viděl(a) verzi {{based}}; od té doby jste uložili verzi {{current}}."
+        "lead": "Toto jídlo jste změnili poté, co ho {{client}} snědl(a) offline.",
+        "body": "Vaše změna se neuplatnila — jídlo ukazuje, co {{client}} snědl(a).",
+        "totals": "Celkem ve vašem plánu {{plan}} kcal · {{client}} snědl(a) {{eaten}} kcal"
       },
       "ghost": {
-        "badge": "Odebráno · snězeno offline",
-        "body": "Toto jídlo ({{meal}}) jste odebrali, ale {{client}} ho snědl(a) offline {{date}} v {{time}}. V jídelním deníku není.",
-        "aria": "{{meal}} odebráno, snězeno offline"
+        "badge": "Odebráno z plánu",
+        "badgeShort": "Odebráno",
+        "lead": "Toto jídlo ({{meal}}) jste odebrali, ale {{client}} ho snědl(a) offline.",
+        "body": "Snězeno {{date}} v {{time}}. Jídlo zůstává v jídelním deníku; označení jako zkontrolované jen skryje toto upozornění.",
+        "aria": "{{meal}} odebráno z plánu, snězeno",
+        "noItems": "U tohoto jídla se nezaznamenaly žádné položky."
       },
       "strip": {
         "lead_one": "{{client}} snědl(a) offline {{count}} jídlo podle starší verze tohoto plánu.",
@@ -1950,7 +1958,12 @@
         "markAll": "Označit vše jako zkontrolované"
       },
       "reviewError": "Konflikt se nepodařilo označit jako zkontrolovaný. Zkuste to prosím znovu.",
-      "reviewAllError": "Konflikty se nepodařilo označit jako zkontrolované. Zkuste to prosím znovu."
+      "reviewAllError": "Konflikty se nepodařilo označit jako zkontrolované. Zkuste to prosím znovu.",
+      "removedMeal": {
+        "title": "{{meal}} odebráno z vašeho plánu",
+        "intro": "{{client}} to snědl(a), než jste jídlo odebrali. V jídelním deníku zůstává.",
+        "locked": "Toto jídlo je zamčené a nelze ho měnit."
+      }
     },
     "nameLabel": "Název plánu",
     "undo": "Zpět",
@@ -2335,6 +2348,61 @@
     "conflict": {
       "message": "Šablona se od otevření změnila jinde. Vaše úpravy tu zůstaly a nic se nepřepsalo. Načtením nejnovější verze své úpravy zahodíte.",
       "reload": "Načíst nejnovější"
+    },
+    "locks": {
+      "nothingPlanned": "Nic nenaplánováno",
+      "pastBanner": {
+        "lead": "{{date}}: tento den je v minulosti, jídla jsou jen ke čtení.",
+        "body": "Jídla se zamknou, jakmile je {{client}} označí jako snězená nebo jakmile den uplyne. Vidíte, co {{client}} skutečně snědl(a)."
+      },
+      "addMealPast": "Do uplynulého dne nelze přidávat jídla.",
+      "dayEaten": "Snězeno {{kcal}} kcal",
+      "planChangedLater": "Plán se později změnil",
+      "eatenAtOffline": "Snězeno v {{time}} · offline",
+      "notMarkedEaten": "Neoznačeno jako snězené",
+      "today": "Dnes",
+      "dayLocked": "{{day}}: den už proběhl a je uzamčen",
+      "close": "Zavřít",
+      "rowLocked": "V tomto řádku jsou snězená jídla nebo jídla z minulosti, proto ho nelze odebrat.",
+      "mealLockedError": "Jídlo bylo mezitím snězeno nebo uzamčeno, proto se plán neuložil. Vaše úpravy zůstaly.",
+      "pastDayLockedError": "Mezitím uplynul den a nelze do něj přidávat jídla. Plán se neuložil. Vaše úpravy zůstaly.",
+      "restore": "Obnovit, co klient snědl",
+      "fixOutlined": "Opravte označené jídlo a uložte znovu.",
+      "fixRemoved": "Obnovte odebrané jídlo a uložte znovu.",
+      "conflictBadge": "Toto jídlo už nelze uložit. Otevřete ho pro podrobnosti.",
+      "conflictEaten": "Klient toto jídlo snědl dřív, než jste uložili změny.",
+      "conflictPast": "Tento den už proběhl, změny v něm nelze uložit.",
+      "legend": {
+        "label": "Barvy jídel",
+        "eaten": "Snězeno",
+        "partlyEaten": "Částečně snězeno",
+        "missed": "Vynecháno",
+        "locked": "Uzamčeno"
+      },
+      "state": {
+        "eaten": "Snězeno",
+        "missed": "Vynecháno",
+        "partly": "{{eaten}} z {{total}} snězeno",
+        "partlyShort": "{{eaten}}/{{total}} snězeno"
+      },
+      "reason": {
+        "past": "Uzamčeno · tento den už proběhl",
+        "eaten": "Uzamčeno · klient z něj už jedl"
+      },
+      "kcalOf": "{{eaten}} z {{planned}} kcal",
+      "percent": "{{percent}} %",
+      "eatenAt": "Snězeno v {{time}}",
+      "eatenMacros": "Snězeno",
+      "item": {
+        "eaten": "Snězeno",
+        "notEaten": "Nesnězeno",
+        "recipe": "Recept · {{amount}}×",
+        "food": "Surovina · {{amount}} g"
+      },
+      "yourNote": "Vaše poznámka",
+      "snapshotNote": "Uloženo tak, jak to klient zaznamenal. Pozdější úpravy plánu to nemění.",
+      "lockedNote": "Toto jídlo je uzamčeno a nelze ho měnit.",
+      "openDay": "Otevřít: {{day}}"
     },
     "leave": {
       "title": "Odejít bez uložení?",

@@ -1857,14 +1857,17 @@
       "close": "Close",
       "markReviewed": "Mark reviewed",
       "openDay": "Open {{day}}",
-      "total": "Total {{kcal}} kcal",
-      "saw": "{{name}} saw",
-      "planNow": "Plan now",
+      "saw": "{{name}} ate",
+      "planNow": "Your change",
+      "notApplied": "not applied",
+      "ate": "Eaten {{kcal}} kcal",
+      "wouldBe": "Would be {{kcal}} kcal",
+      "notInPlan": "Not in your plan",
       "version": "v{{version}}",
       "chip": {
         "removed": "Removed",
         "added": "Added",
-        "amount": "Amount"
+        "changed": "Changed"
       },
       "amount": {
         "grams": "{{amount}} g",
@@ -1877,18 +1880,23 @@
           "removed": "{{meal}} removed, eaten offline"
         },
         "intro": {
-          "changed": "{{client}} marked it eaten {{date}} at {{time}}. You changed this meal after {{client}}'s last sync.",
-          "removed": "You removed this meal, but {{client}} ate it offline on {{date}} at {{time}}. It is not in {{client}}'s meal log."
-        }
+          "changed": "{{client}} ate it on {{date}} at {{time}}, before your change reached {{client}}. The meal log keeps what was eaten.",
+          "removed": "You removed this meal, but {{client}} ate it offline on {{date}} at {{time}}. It stays in the meal log and shows here as eaten."
+        },
+        "lockedNote": "This meal is locked. Mark reviewed only clears this notice."
       },
       "day": {
-        "lead": "{{client}} marked this eaten offline on {{date}} at {{time}}.",
-        "versions": "{{client}} saw version {{based}}; you saved version {{current}} since."
+        "lead": "You changed this meal after {{client}} ate it offline.",
+        "body": "Your change wasn't applied — the meal shows what {{client}} ate.",
+        "totals": "Total in your plan {{plan}} kcal · {{client}} ate {{eaten}} kcal"
       },
       "ghost": {
-        "badge": "Removed · eaten offline",
-        "body": "You removed this {{meal}}, but {{client}} ate it offline on {{date}} at {{time}}. It is not in {{client}}'s meal log.",
-        "aria": "{{meal}} removed, eaten offline"
+        "badge": "Removed from plan",
+        "badgeShort": "Removed",
+        "lead": "You removed this meal ({{meal}}), but {{client}} ate it offline.",
+        "body": "Eaten on {{date}} at {{time}}. It stays in the meal log; Mark reviewed only clears this notice.",
+        "aria": "{{meal}} removed from the plan, eaten",
+        "noItems": "No items were recorded for this meal."
       },
       "strip": {
         "lead_one": "{{client}} ate {{count}} meal offline on an older version of this plan.",
@@ -1899,7 +1907,12 @@
         "markAll": "Mark all reviewed"
       },
       "reviewError": "Couldn't mark the conflict as reviewed. Please try again.",
-      "reviewAllError": "Couldn't mark the conflicts as reviewed. Please try again."
+      "reviewAllError": "Couldn't mark the conflicts as reviewed. Please try again.",
+      "removedMeal": {
+        "title": "{{meal}} removed from your plan",
+        "intro": "{{client}} ate it before you removed it. It stays in the meal log.",
+        "locked": "This meal is locked and can't be changed."
+      }
     },
     "nameLabel": "Plan name",
     "undo": "Undo",
@@ -2261,6 +2274,61 @@
     "conflict": {
       "message": "This template was changed somewhere else since you opened it. Your edits are kept here and nothing was overwritten. Reload to get the latest version (this discards your edits).",
       "reload": "Reload latest"
+    },
+    "locks": {
+      "nothingPlanned": "Nothing planned",
+      "pastBanner": {
+        "lead": "{{date}} is in the past, so its meals are read-only.",
+        "body": "Meals lock once {{client}} marks them eaten or their day has passed. You see what {{client}} actually ate."
+      },
+      "addMealPast": "Meals can't be added to a day that has passed.",
+      "dayEaten": "Eaten {{kcal}} kcal",
+      "planChangedLater": "Plan changed later",
+      "eatenAtOffline": "Eaten {{time}} · offline",
+      "notMarkedEaten": "Not marked eaten",
+      "today": "Today",
+      "dayLocked": "{{day}} is in the past and locked",
+      "close": "Close",
+      "rowLocked": "This row has meals that are eaten or in the past, so it can't be removed.",
+      "mealLockedError": "A meal was eaten or locked while you were editing, so the plan wasn't saved. Your edits are still here.",
+      "pastDayLockedError": "A day passed while you were editing and meals can't be added to it. The plan wasn't saved. Your edits are still here.",
+      "restore": "Restore what the client ate",
+      "fixOutlined": "Fix the outlined meal and save again.",
+      "fixRemoved": "Restore the removed meal and save again.",
+      "conflictBadge": "This meal can no longer be saved. Open it for details.",
+      "conflictEaten": "The client ate this meal before you saved your changes.",
+      "conflictPast": "This day is over, so changes to it can't be saved.",
+      "legend": {
+        "label": "Meal colours",
+        "eaten": "Eaten",
+        "partlyEaten": "Partly eaten",
+        "missed": "Missed",
+        "locked": "Locked"
+      },
+      "state": {
+        "eaten": "Eaten",
+        "missed": "Missed",
+        "partly": "{{eaten}} of {{total}} eaten",
+        "partlyShort": "{{eaten}}/{{total}} eaten"
+      },
+      "reason": {
+        "past": "Locked · this day is in the past",
+        "eaten": "Locked · the client has eaten from it"
+      },
+      "kcalOf": "{{eaten}} of {{planned}} kcal",
+      "percent": "{{percent}} %",
+      "eatenAt": "Eaten {{time}}",
+      "eatenMacros": "Eaten",
+      "item": {
+        "eaten": "Eaten",
+        "notEaten": "Not eaten",
+        "recipe": "Recipe · {{amount}}×",
+        "food": "Ingredient · {{amount}} g"
+      },
+      "yourNote": "Your note",
+      "snapshotNote": "Saved as {{name}} ate it. Later plan changes don't change it.",
+      "lockedNote": "This meal is locked and can't be changed.",
+      "openDay": "Open {{day}}"
     },
     "leave": {
       "title": "Leave without saving?",

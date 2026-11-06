@@ -79,6 +79,88 @@ public class MealEatenStatusDto
 }
 
 /// <summary>
+/// One item whose eaten version differs from the coach's current meal.
+/// </summary>
+public class MealItemConflictTagDto
+{
+    /// <summary>The plan item id the tag belongs to.</summary>
+    public Guid ItemId { get; set; }
+
+    /// <summary>How the item differs: changed, added by the coach, or removed by the coach.</summary>
+    public MealItemConflictTag Tag { get; set; }
+}
+
+/// <summary>
+/// The offline-sync conflict behind a locked meal: the client ate one version of the meal while the
+/// coach's plan moved on to another.
+/// </summary>
+public class MealLockConflictDto
+{
+    /// <summary>Public id of the conflict; the id the review endpoints take.</summary>
+    public Guid ConflictId { get; set; }
+
+    /// <summary>Why the client's action collided with the plan.</summary>
+    public OfflineSyncConflictKind Kind { get; set; }
+
+    /// <summary>The plan version the client ate (the one it saw offline).</summary>
+    public int BasedOnPlanVersion { get; set; }
+
+    /// <summary>The coach's current plan version.</summary>
+    public int CurrentPlanVersion { get; set; }
+
+    /// <summary>Whether a coach has marked the conflict reviewed.</summary>
+    public bool Reviewed { get; set; }
+
+    /// <summary>
+    /// Per-item differences between the eaten snapshot and the coach's meal, computed on the server.
+    /// Empty when the client sent no seen items.
+    /// </summary>
+    public List<MealItemConflictTagDto> ItemTags { get; set; } = [];
+}
+
+/// <summary>
+/// Whether the coach may edit one stored plan meal, and why not.
+/// </summary>
+public class MealLockDto
+{
+    /// <summary>The <see cref="PlanMeal.MealId"/> this verdict belongs to.</summary>
+    public Guid MealId { get; set; }
+
+    /// <summary>Week the meal sits in.</summary>
+    public int WeekNumber { get; set; }
+
+    /// <summary>Day of the week the meal sits in (1 = Monday).</summary>
+    public int DayOfWeek { get; set; }
+
+    /// <summary>Calendar date of the slot; null when the plan has no start date.</summary>
+    public DateOnly? Date { get; set; }
+
+    /// <summary>Whether the meal may not be changed, moved or deleted.</summary>
+    public bool IsLocked { get; set; }
+
+    /// <summary>Why the meal is locked, or Open.</summary>
+    public MealLockState LockState { get; set; }
+
+    /// <summary>Ids of the meal's items the client ate.</summary>
+    public List<Guid> EatenItemIds { get; set; } = [];
+
+    /// <summary>Items as they stood when first eaten. Set only for a locked meal that has a snapshot.</summary>
+    public List<EatenMealItem>? EatenSnapshot { get; set; }
+
+    /// <summary>
+    /// True for a meal the client ate that the coach has since removed from the plan. It is not in
+    /// <c>Weeks</c>; it is placed by <see cref="WeekNumber"/>, <see cref="DayOfWeek"/> and <see cref="MealKind"/>.
+    /// </summary>
+    public bool IsRemovedFromPlan { get; set; }
+
+    /// <summary>Kind of the meal; for a removed meal, the kind stored when it was logged.</summary>
+    public MealKind MealKind { get; set; }
+
+    /// <summary>The offline-sync conflict behind this meal; null when it was not eaten offline against a changed plan.</summary>
+    public MealLockConflictDto? Conflict { get; set; }
+}
+
+/// <summary>
 /// Detailed nutrition plan response including all weeks, days, meals, and foods.
 /// </summary>
 public class GetPlanResponse
@@ -165,6 +247,17 @@ public class GetPlanResponse
     /// plan ownership gate above the MealLog query — filtering by PlanId is safe.
     /// </summary>
     public List<MealEatenStatusDto> MealLogs { get; set; } = [];
+
+    /// <summary>
+    /// The client's local calendar date today, the cut-off after which a day is locked.
+    /// Populated by the get endpoint only.
+    /// </summary>
+    public DateOnly ClientToday { get; set; }
+
+    /// <summary>
+    /// One lock verdict per stored meal. Populated by the get endpoint only.
+    /// </summary>
+    public List<MealLockDto> MealLocks { get; set; } = [];
 
     /// <summary>
     /// Supplement recommendations attached to this plan.

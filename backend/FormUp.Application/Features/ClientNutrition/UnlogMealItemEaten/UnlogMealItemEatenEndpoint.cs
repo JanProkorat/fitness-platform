@@ -85,13 +85,16 @@ internal sealed class UnlogMealItemEatenEndpoint(
             return;
         }
 
-        if (!MealItemEatenState.ItemIds(meal).Contains(req.ItemId))
+        var row = await FindRowAsync(clientId, plan.ExternalId, req.MealId, todayLocalUtc, windowStartUtc, windowEndUtc, ct);
+
+        // A row with a snapshot is judged against the items it was eaten from, not the live meal.
+        var items = row is null ? MealItemEatenState.ItemIds(meal) : MealItemEatenState.ItemIds(row, meal);
+
+        if (!items.Contains(req.ItemId))
         {
             await this.SendProblemAsync(404, ErrorCodes.MealItemNotFound, "The item is not part of this meal.", ct);
             return;
         }
-
-        var row = await FindRowAsync(clientId, plan.ExternalId, req.MealId, todayLocalUtc, windowStartUtc, windowEndUtc, ct);
 
         if (!alreadyApplied)
         {
@@ -110,7 +113,7 @@ internal sealed class UnlogMealItemEatenEndpoint(
         {
             MealId = req.MealId,
             ItemId = req.ItemId,
-            EatenState = MealItemEatenState.StateOf(meal, currentIds, row?.EatenAt is not null),
+            EatenState = MealItemEatenState.StateOf(items, currentIds, row?.EatenAt is not null),
             EatenItemIds = currentIds.ToList(),
             EatenAt = null,
         }, ct);
@@ -182,13 +185,19 @@ internal sealed class UnlogMealItemEatenEndpoint(
             return null;
         }
 
-        await mongo.MealLogs.UpdateOneAsync(
-            Builders<MealLog>.Filter.Eq(l => l.Id, row.Id),
-            Builders<MealLog>.Update
-                .Set(l => l.EatenItemIds, eatenIds.ToList())
-                .Unset(l => l.EatenAt)
-                .Set(l => l.LogDate, todayLocalUtc),
-            cancellationToken: ct);
+        var update = Builders<MealLog>.Update
+            .Set(l => l.EatenItemIds, eatenIds.ToList())
+            .Unset(l => l.EatenAt)
+            .Set(l => l.LogDate, todayLocalUtc);
+
+        // Nothing eaten any more: drop the snapshot, which unlocks the meal for the coach.
+        if (eatenIds.Count == 0)
+        {
+            update = update.Unset(l => l.EatenSnapshot);
+            row.EatenSnapshot = null;
+        }
+
+        await mongo.MealLogs.UpdateOneAsync(Builders<MealLog>.Filter.Eq(l => l.Id, row.Id), update, cancellationToken: ct);
 
         row.EatenItemIds = eatenIds.ToList();
         row.EatenAt = null;

@@ -1,3 +1,4 @@
+using FormUp.Application.Domain.Enums;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 
@@ -64,6 +65,15 @@ public class MealLog
     public List<Guid> EatenItemIds { get; set; } = [];
 
     /// <summary>
+    /// The meal's items as they stood when the row first got an eaten item. When set, the row's item
+    /// set, eaten state and eaten totals come from here instead of the live plan meal. Null on rows
+    /// written before snapshots existed and on photo-only rows; cleared when nothing is eaten any more.
+    /// </summary>
+    [BsonElement("eatenSnapshot")]
+    [BsonIgnoreIfNull]
+    public List<EatenMealItem>? EatenSnapshot { get; set; }
+
+    /// <summary>
     /// Snapshot of foods actually consumed (may differ from plan).
     /// </summary>
     [BsonElement("foodsEaten")]
@@ -84,6 +94,15 @@ public class MealLog
     [BsonElement("note")]
     [BsonIgnoreIfNull]
     public string? Note { get; set; }
+
+    /// <summary>
+    /// Kind of the meal when the row was written. Lets a meal the coach has since removed from the plan
+    /// still be placed. Null on rows written before this field existed.
+    /// </summary>
+    [BsonElement("mealKind")]
+    [BsonRepresentation(BsonType.String)]
+    [BsonIgnoreIfNull]
+    public MealKind? MealKind { get; set; }
 
     /// <summary>
     /// The <c>NutritionPlan.Version</c> the client saw when it logged this meal offline.

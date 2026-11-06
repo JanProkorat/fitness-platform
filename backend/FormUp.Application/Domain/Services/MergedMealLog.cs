@@ -15,6 +15,7 @@ namespace FormUp.Application.Domain.Services;
 /// <param name="Share">Eaten share in [0, 1].</param>
 /// <param name="EatenAt">Earliest eaten time among the rows, set only when the state is Eaten.</param>
 /// <param name="Rows">The merged rows.</param>
+/// <param name="SnapshotTotals">Totals of the eaten items of the rows' snapshot; null when no row has one.</param>
 public sealed record MergedMealLog(
     Guid PlanId,
     DateTime DayUtc,
@@ -24,4 +25,5 @@ public sealed record MergedMealLog(
     MealEatenState State,
     decimal Share,
     DateTime? EatenAt,
-    IReadOnlyList<MealLog> Rows);
+    IReadOnlyList<MealLog> Rows,
+    NutrientTotals? SnapshotTotals = null);

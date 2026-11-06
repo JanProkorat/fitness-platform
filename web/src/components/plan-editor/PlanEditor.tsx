@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AutoScroller, Feedback, KeyboardSensor, PointerSensor } from '@dnd-kit/dom';
 import { move } from '@dnd-kit/helpers';
@@ -24,7 +24,27 @@ import DayNavigator from '@/components/plan-editor/DayNavigator';
 import DayView from '@/components/plan-editor/DayView';
 import GridDragOverlay from '@/components/plan-editor/GridDragOverlay';
 import LibraryPanel from '@/components/plan-editor/LibraryPanel';
+import LockedMealPopover from '@/components/plan-editor/LockedMealPopover';
 import MealDetail from '@/components/plan-editor/MealDetail';
+import MealLockLegend from '@/components/plan-editor/MealLockLegend';
+import {
+  dayEatenKcal,
+  dayHasLock,
+  isPastDay,
+  findLockConflicts,
+  findStoredMeal,
+  keepLocked,
+  LockConflictsContext,
+  LockRejectionContext,
+  RestoreRejectedContext,
+  mealLockView,
+  MealLocksContext,
+  rejectionFingerprint,
+  sameFingerprint,
+  slotDate,
+  type LockRejection,
+  type PlanMealLocks,
+} from '@/components/plan-editor/meal-locks';
 import MealPicker from '@/components/plan-editor/MealPicker';
 import NutritionView, { NutritionLegend } from '@/components/plan-editor/NutritionView';
 import { PopoverBoundaryContext } from '@/components/plan-editor/PopoverBoundary';
@@ -103,8 +123,10 @@ import {
   moveMealContents,
   nextSnackKind,
   removeLastWeek,
+  removeMeal,
   removeMealRow,
   reorderMealItems,
+  restoreStoredMeal,
   rowMeal,
   setDayNote,
   weekHasItems,
@@ -207,6 +229,14 @@ interface Props {
   allowWeekRemoval?: boolean;
   /** Unreviewed offline-sync conflicts of this plan; only the client plan editor passes them. */
   syncConflicts?: PlanEditorSyncConflicts;
+  /** The server's lock verdicts of a client plan; only the client plan editor passes them. */
+  mealLocks?: PlanMealLocks | null;
+  /** The tile a refused save named; outlined until the coach changes that meal. Only the client plan editor passes it. */
+  lockRejection?: LockRejection | null;
+  /** Called when the coach changes, moves or deletes the rejected meal. */
+  onClearLockRejection?: () => void;
+  /** The server's current copy of the plan, for restoring the rejected meal; null or absent while it is being refetched. */
+  storedDocument?: EditorDocument | null;
   saveState: PlanEditorSaveState;
   /** Persists the document; resolves with the server's copy, or null when the save failed. */
   onSave: (doc: EditorDocument) => Promise<EditorDocument | null>;
@@ -377,12 +407,108 @@ export default function PlanEditor({
   renderBanner,
   allowWeekRemoval,
   syncConflicts,
+  mealLocks,
+  lockRejection = null,
+  onClearLockRejection,
+  storedDocument = null,
   saveState,
   onSave,
   onReload,
 }: Props) {
   const { t, i18n } = useTranslation();
-  const { doc, dirty, canUndo, canRedo, edit, undo, redo, markSaved } = usePlanEditorState(initial);
+  const { doc, dirty, canUndo, canRedo, edit: rawEdit, undo, redo, markSaved } = usePlanEditorState(initial);
+  const locks = mealLocks ?? null;
+  const locksRef = useRef(locks);
+  useEffect(() => {
+    locksRef.current = locks;
+  });
+  // Every edit passes through here, so a locked meal or a past day never changes in the document, whichever control asked.
+  const edit = useCallback<PlanEditorState['edit']>(
+    (update, coalesceKey) =>
+      rawEdit((current) => {
+        const next = update(current);
+        return locksRef.current ? keepLocked(locksRef.current, next, current) : next;
+      }, coalesceKey),
+    [rawEdit],
+  );
+  // The outline drops the moment an edit (or undo) changes the rejected meal's content or place, with no new save needed.
+  const rejectionBaseline = useRef<{ rejection: LockRejection; fingerprint: readonly unknown[] } | null>(null);
+  useEffect(() => {
+    if (!lockRejection) {
+      rejectionBaseline.current = null;
+      return;
+    }
+    const fingerprint = rejectionFingerprint(doc, lockRejection);
+    const baseline = rejectionBaseline.current;
+    if (baseline?.rejection !== lockRejection) {
+      rejectionBaseline.current = { rejection: lockRejection, fingerprint };
+    } else if (!sameFingerprint(baseline.fingerprint, fingerprint)) {
+      rejectionBaseline.current = null;
+      onClearLockRejection?.();
+    }
+  }, [doc, lockRejection, onClearLockRejection]);
+  // Restore: one undoable edit that puts the server's copy of the rejected meal back. `keepLocked` lets this one meal
+  // through (the refetch has marked it locked), and only for this edit.
+  const storedRejected = useMemo(
+    () => (storedDocument && lockRejection?.mealId ? findStoredMeal(storedDocument, lockRejection.mealId) : undefined),
+    [storedDocument, lockRejection],
+  );
+  // Restores one meal by id: the server's copy goes back in, or a meal the server never had (added to a past day) is
+  // removed. Only the fresh stored copy is used, never the last one kept for the flags.
+  const restoreMeal = useMemo(() => {
+    if (!storedDocument) {
+      return null;
+    }
+    return (mealId: string) => {
+      const stored = findStoredMeal(storedDocument, mealId);
+      rawEdit((current) => {
+        let next = current;
+        if (stored) {
+          next = restoreStoredMeal(current, stored.meal, stored.weekNumber, stored.dayOfWeek);
+        } else {
+          current.weeks.forEach((week, weekIdx) =>
+            week.days.forEach((day) => {
+              if (day.meals.some((meal) => meal.mealId === mealId)) {
+                next = removeMeal(next, weekIdx, day.dayOfWeek, mealId);
+              }
+            }),
+          );
+        }
+        return locksRef.current ? keepLocked(locksRef.current, next, current, mealId) : next;
+      });
+    };
+  }, [storedDocument, rawEdit]);
+  const restoreRejected = useMemo(() => {
+    const mealId = lockRejection?.mealId;
+    if (!storedRejected || !mealId || !restoreMeal) {
+      return null;
+    }
+    if (!doc.weeks.some((candidate) => candidate.weekNumber === storedRejected.weekNumber)) {
+      return null;
+    }
+    return () => restoreMeal(mealId);
+  }, [storedRejected, lockRejection, doc.weeks, restoreMeal]);
+  const rejectedInDocument = lockRejection ? rejectionFingerprint(doc, lockRejection)[0] !== undefined : false;
+  // The last non-null stored copy: while a refetch is in flight `storedDocument` is null, and the flags must not flicker.
+  const [lastStored, setLastStored] = useState(storedDocument);
+  if (storedDocument && storedDocument !== lastStored) {
+    setLastStored(storedDocument);
+  }
+  // Meals whose draft clashes with a lock, found live; the server's refusal flags its meal the same way as a fallback.
+  const lockConflicts = useMemo(() => {
+    const found = findLockConflicts(doc, lastStored, locks);
+    if (lockRejection?.mealId && !found.has(lockRejection.mealId)) {
+      const [placed, weekNumber, day] = rejectionFingerprint(doc, lockRejection);
+      if (placed !== undefined) {
+        const view =
+          locks && typeof weekNumber === 'number' && typeof day === 'number'
+            ? mealLockView(locks, lockRejection.mealId, weekNumber, day)
+            : undefined;
+        found.set(lockRejection.mealId, view && !view.info?.locked ? 'pastDay' : 'eaten');
+      }
+    }
+    return found;
+  }, [doc, lastStored, locks, lockRejection]);
   const targets = doc.targets;
   const dailyKcalTarget = targets.kcal;
   const [weekIndex, setWeekIndex] = useState(0);
@@ -426,13 +552,12 @@ export default function PlanEditor({
   // A selection that no longer points at a row (after a removal or an undo) selects nothing.
   const activeSelected = selected && selected.rowIndex < rows.length ? selected : null;
   const activeDay = week?.days.find((candidate) => candidate.dayOfWeek === dayOfWeek);
+  const activeDayPast = locks && week ? isPastDay(locks, week.weekNumber, dayOfWeek) : false;
   const showPicker = !readOnly && rows.length === 0;
   const conflictsModel = syncConflicts
     ? buildSyncConflictsModel(
         syncConflicts,
-        placeConflicts(syncConflicts.conflicts, doc),
-        openGhostId,
-        setOpenGhostId,
+        placeConflicts(syncConflicts.conflicts, doc, locks),
         openConflictDay,
       )
     : null;
@@ -545,6 +670,14 @@ export default function PlanEditor({
     setOpenGhostId(null);
   }
 
+  /** "Open <day>" in a locked meal's popover: the Day view on that weekday. */
+  function openDay(dayOfWeekValue: number) {
+    navigate({ day: dayOfWeekValue });
+    setRange('day');
+    setView('meals');
+    setDetailCell(null);
+  }
+
   /** "Show" in the strip: the conflict's popover in the Week view (switching week), its panel in the Day view. */
   function showConflict(placed: PlacedConflict) {
     if (placed.weekIndex === null || placed.dayOfWeek === null) {
@@ -631,12 +764,62 @@ export default function PlanEditor({
     return rowMeal(week?.days.find((day) => day.dayOfWeek === dayOfWeekValue), rows[rowIndex]);
   }
 
+  /** True when the slot is on a past day or holds a meal that may not change: nothing can land on it or leave it. */
+  function slotBlocked(cell: CellRef): boolean {
+    if (!locks || !week) {
+      return false;
+    }
+    if (isPastDay(locks, week.weekNumber, cell.dayOfWeek)) {
+      return true;
+    }
+    const meal = mealAt(cell.dayOfWeek, cell.rowIndex);
+    return meal ? mealLockView(locks, meal.mealId, week.weekNumber, cell.dayOfWeek).locked : false;
+  }
+
+  /** True when the weekday is past or holds a meal that may not change. */
+  function dayLocked(dayOfWeekValue: number): boolean {
+    if (!locks || !week) {
+      return false;
+    }
+    const meals = week.days.find((day) => day.dayOfWeek === dayOfWeekValue)?.meals ?? [];
+    return dayHasLock(locks, week.weekNumber, dayOfWeekValue, meals);
+  }
+
+  function weekHasLock(): boolean {
+    return week !== undefined && week.days.some((day) => dayLocked(day.dayOfWeek));
+  }
+
+  /** Sliding a meal along its row shifts every meal between the two days, so none of those slots may be blocked. */
+  function alongRowBlocked(rowIndex: number, fromDay: number, toDay: number): boolean {
+    for (let day = Math.min(fromDay, toDay); day <= Math.max(fromDay, toDay); day += 1) {
+      if (slotBlocked({ dayOfWeek: day, rowIndex })) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /** Whether a tile dragged from `source` may not be dropped on `hit`: a copy only needs the target open, a slide the whole stretch. */
+  function cellDropBlocked(source: CellMealDrag, hit: CellRef, copy: boolean): boolean {
+    if (slotBlocked(hit)) {
+      return true;
+    }
+    if (copy) {
+      return false;
+    }
+    if (hit.dayOfWeek === source.dayOfWeek) {
+      return dayLocked(source.dayOfWeek);
+    }
+    return hit.rowIndex === source.rowIndex && alongRowBlocked(source.rowIndex, source.dayOfWeek, hit.dayOfWeek);
+  }
+
   function selectCell(cell: SelectedCell) {
     setSelected(cell);
     const meal = mealAt(cell.dayOfWeek, cell.rowIndex);
     const reopen = detailCell?.dayOfWeek === cell.dayOfWeek && detailCell.rowIndex === cell.rowIndex;
     const hasConflict = meal ? conflictsModel?.forMeal(currentIndex, meal.mealId) !== undefined : false;
-    setDetailCell(meal && (mealItemCount(meal) > 0 || hasConflict) && !reopen ? cell : null);
+    const flagged = meal ? lockConflicts.has(meal.mealId) : false;
+    setDetailCell(meal && (mealItemCount(meal) > 0 || hasConflict || flagged) && !reopen ? cell : null);
   }
 
   function renderDetail(cell: SelectedCell): ReactNode {
@@ -647,7 +830,39 @@ export default function PlanEditor({
     // A meal with an unreviewed conflict opens the comparison first; "Open <day>" leads on to editing it.
     const conflict = conflictsModel?.forMeal(currentIndex, meal.mealId);
     if (conflict && conflictsModel) {
-      return <SyncConflictPopoverBody placed={conflict} model={conflictsModel} onClose={() => setDetailCell(null)} />;
+      return (
+        <SyncConflictPopoverBody
+          placed={conflict}
+          model={conflictsModel}
+          eaten={locks?.meals.get(meal.mealId)}
+          onClose={() => setDetailCell(null)}
+        />
+      );
+    }
+    const lock = locks ? mealLockView(locks, meal.mealId, week.weekNumber, cell.dayOfWeek) : null;
+    if (locks && lock?.locked) {
+      return (
+        <LockedMealPopover
+          conflict={lockConflicts.get(meal.mealId)}
+          onRestore={
+            restoreMeal
+              ? () => {
+                  restoreMeal(meal.mealId);
+                  setDetailCell(null);
+                }
+              : undefined
+          }
+          meal={meal}
+          lock={lock}
+          clientName={locks.clientName}
+          dayOfWeek={cell.dayOfWeek}
+          date={slotDate(locks.startDate, week.weekNumber, cell.dayOfWeek)}
+          pastDay={isPastDay(locks, week.weekNumber, cell.dayOfWeek)}
+          language={i18n.language}
+          onClose={() => setDetailCell(null)}
+          onOpenDay={() => openDay(cell.dayOfWeek)}
+        />
+      );
     }
     return (
       <MealDetail
@@ -665,7 +880,7 @@ export default function PlanEditor({
 
   /** An empty target takes the copy at once; a filled one asks Replace or Add first. */
   function onCellMealDrop(source: CellMealDrag, target: SelectedCell) {
-    if (readOnly || source.weekIndex !== currentIndex) {
+    if (readOnly || source.weekIndex !== currentIndex || slotBlocked(target)) {
       return;
     }
     const targetMeal = mealAt(target.dayOfWeek, target.rowIndex);
@@ -723,7 +938,7 @@ export default function PlanEditor({
     const day = week?.days.find((candidate) => candidate.dayOfWeek === dayOfWeekValue);
     const slots = daySlots(day);
     const from = slots.findIndex((meal) => meal.mealId === mealId);
-    if (readOnly || !week || from === -1) {
+    if (readOnly || !week || from === -1 || dayLocked(dayOfWeekValue)) {
       return;
     }
     const to = movedSlotIndex(from, gapIndex, slots.length);
@@ -770,7 +985,7 @@ export default function PlanEditor({
       week.days.find((candidate) => candidate.dayOfWeek === source.dayOfWeek),
     ).get(source.mealId);
     const landing = rowIndex === undefined ? undefined : mealAt(toDay, rowIndex);
-    if (rowIndex === undefined || !landing) {
+    if (rowIndex === undefined || !landing || alongRowBlocked(rowIndex, source.dayOfWeek, toDay)) {
       return;
     }
     const placement = rowMovePlacement(week, rowIndex, source.dayOfWeek, toDay);
@@ -844,18 +1059,15 @@ export default function PlanEditor({
       setGridDrag(next);
       return;
     }
-    const next = cellDragView(
-      currentDoc,
-      index,
-      previous.source,
-      hitCellLocked(
-        runtime.cells,
-        { dayOfWeek: previous.source.dayOfWeek, rowIndex: previous.source.rowIndex },
-        x,
-        y,
-      ),
-      runtime.alt,
+    const hit = hitCellLocked(
+      runtime.cells,
+      { dayOfWeek: previous.source.dayOfWeek, rowIndex: previous.source.rowIndex },
+      x,
+      y,
     );
+    // A slot nothing may land on is not a hover at all: no preview, no drop.
+    const hover = hit && !cellDropBlocked(previous.source, hit, runtime.alt) ? hit : null;
+    const next = cellDragView(currentDoc, index, previous.source, hover, runtime.alt);
     if (
       next.mode === previous.mode &&
       next.alt === previous.alt &&
@@ -1013,7 +1225,7 @@ export default function PlanEditor({
    * copy leaves out for the meal cap are named in the announcement, and in a toast when no dialog explained them.
    */
   function runLabelMove(move: LabelMove, mode: LabelOpMode, options: { focus: boolean; viaDialog: boolean }) {
-    if (readOnly || !week) {
+    if (readOnly || !week || weekHasLock()) {
       return;
     }
     const outcome = previewLabelMove(week, move).outcome[mode];
@@ -1052,7 +1264,7 @@ export default function PlanEditor({
    * announces it. `animate` slides the tiles; a drop turns it off, because the hover preview already showed the result.
    */
   function moveLabelContents(move: LabelMove, options: { focus: boolean; animate: boolean }) {
-    if (readOnly || !week || labelMovePlacement(week, move).length === 0) {
+    if (readOnly || !week || weekHasLock() || labelMovePlacement(week, move).length === 0) {
       return;
     }
     setSelected(null);
@@ -1166,6 +1378,9 @@ export default function PlanEditor({
   }
 
   function addToCell(item: LibraryItem, cell: SelectedCell) {
+    if (slotBlocked(cell)) {
+      return;
+    }
     edit((current) => addItemToCell(current, currentIndex, cell.dayOfWeek, cell.rowIndex, item));
   }
 
@@ -1219,6 +1434,10 @@ export default function PlanEditor({
   /** A row with no food goes at once; one with food asks first. */
   function requestRemoveRow(rowIndex: number) {
     if (readOnly || !week) {
+      return;
+    }
+    if (week.days.some((day) => slotBlocked({ dayOfWeek: day.dayOfWeek, rowIndex }) && mealAt(day.dayOfWeek, rowIndex))) {
+      addToast(t('planEditor.locks.rowLocked'), 'error');
       return;
     }
     const days = daysWithFoodInRow(week, rowIndex);
@@ -1363,7 +1582,7 @@ export default function PlanEditor({
       icon: BookOpen,
       content: (
         <LibraryPanel
-          canAdd={activeSelected !== null}
+          canAdd={activeSelected !== null && !slotBlocked(activeSelected)}
           disabled={readOnly}
           onAdd={(item) => activeSelected && addToCell(item, activeSelected)}
           extraTab={
@@ -1385,6 +1604,10 @@ export default function PlanEditor({
 
   return (
     <SyncConflictsContext.Provider value={conflictsModel}>
+    <MealLocksContext.Provider value={locks}>
+    <LockRejectionContext.Provider value={lockRejection}>
+    <LockConflictsContext.Provider value={lockConflicts}>
+    <RestoreRejectedContext.Provider value={restoreMeal}>
     <PopoverBoundaryContext.Provider value={scrollArea}>
     <DragDropProvider
       sensors={DRAG_SENSORS}
@@ -1500,7 +1723,8 @@ export default function PlanEditor({
               />
 
             {(range === 'week' || rows.length === 0) && (
-              <div className="px-6 py-3">
+              <div className="flex items-center gap-4 px-6 py-3">
+                <div className="min-w-0 flex-1">
                 <WeekTabs
                   weekCount={doc.weeks.length}
                   current={currentIndex}
@@ -1521,6 +1745,8 @@ export default function PlanEditor({
                   }}
                   onRemoveLast={allowWeekRemoval ? () => setRemoveWeekNumber(doc.weeks.length) : undefined}
                 />
+                </div>
+                {locks && view === 'meals' && rows.length > 0 && <MealLockLegend />}
               </div>
             )}
 
@@ -1547,9 +1773,19 @@ export default function PlanEditor({
                   kcalTarget={dailyKcalTarget}
                   note={activeDay?.note}
                   readOnly={readOnly}
-                  addMealDisabled={allKindsPresent || (activeDay?.meals.length ?? 0) >= MAX_MEALS_PER_DAY}
+                  eatenKcal={
+                    locks &&
+                    week &&
+                    (activeDayPast ||
+                      (activeDay?.meals ?? []).some((meal) => (locks.meals.get(meal.mealId)?.eatenItemIds.length ?? 0) > 0))
+                      ? dayEatenKcal(locks, week.weekNumber, dayOfWeek, activeDay?.meals ?? [])
+                      : undefined
+                  }
+                  addMealDisabled={activeDayPast || allKindsPresent || (activeDay?.meals.length ?? 0) >= MAX_MEALS_PER_DAY}
                   addMealTitle={
-                    allKindsPresent
+                    activeDayPast
+                      ? t('planEditor.locks.addMealPast')
+                      : allKindsPresent
                       ? t('planEditor.day.allKindsAdded')
                       : (activeDay?.meals.length ?? 0) >= MAX_MEALS_PER_DAY
                         ? t('planEditor.day.limitReached', { max: MAX_MEALS_PER_DAY })
@@ -1585,7 +1821,21 @@ export default function PlanEditor({
               className="flex flex-wrap items-center gap-3 rounded-xl border border-error bg-error-soft px-4 py-3 text-body text-error"
             >
               <AlertTriangle className="size-4 shrink-0" aria-hidden="true" />
-              <span className="min-w-0 flex-1">{saveState.message}</span>
+              <span className="min-w-0 flex-1">
+                {saveState.message}
+                {lockRejection && (rejectedInDocument || restoreRejected) && (
+                  <>
+                    {' '}
+                    {t(rejectedInDocument ? 'planEditor.locks.fixOutlined' : 'planEditor.locks.fixRemoved')}
+                  </>
+                )}
+              </span>
+              {/* A deleted meal has no tile to carry the action, so it sits here. */}
+              {lockRejection && !rejectedInDocument && restoreRejected && (
+                <Button type="button" variant="destructive" size="sm" onClick={restoreRejected}>
+                  {t('planEditor.locks.restore')}
+                </Button>
+              )}
               {saveState.status === 'conflict' && (
                 <Button type="button" variant="destructive" size="sm" onClick={onReload}>
                   {t('planEditor.conflict.reload')}
@@ -1623,13 +1873,16 @@ export default function PlanEditor({
                   detailCell={detailCell}
                   renderDetail={renderDetail}
                   onDetailClose={() => setDetailCell(null)}
+                  openGhostId={openGhostId}
+                  onOpenGhost={setOpenGhostId}
+                  onOpenDay={openDay}
                   onEdit={edit}
                   onRemoveRow={requestRemoveRow}
                   onInsertBetween={insertBetween}
                   onAddMeal={() => openAddMeal('week', null)}
                   onMoveMeal={readOnly ? undefined : moveByKey}
                   onMoveMealAlong={readOnly ? undefined : moveAlongByKey}
-                  onLabelKeyMove={readOnly ? undefined : moveLabelByKey}
+                  onLabelKeyMove={readOnly || weekHasLock() ? undefined : moveLabelByKey}
                   drag={gridDrag}
                 />
               )}
@@ -1765,6 +2018,10 @@ export default function PlanEditor({
       </Dialog>
     </DragDropProvider>
     </PopoverBoundaryContext.Provider>
+    </RestoreRejectedContext.Provider>
+    </LockConflictsContext.Provider>
+    </LockRejectionContext.Provider>
+    </MealLocksContext.Provider>
     </SyncConflictsContext.Provider>
   );
 }

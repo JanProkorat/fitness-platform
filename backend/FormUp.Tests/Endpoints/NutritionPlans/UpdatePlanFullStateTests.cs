@@ -40,7 +40,8 @@ public class UpdatePlanFullStateTests
             new MockDbBuilder().Build(),
             Substitute.For<IRealtimeNotifier>(),
             new PlanConcurrencyGuard(),
-            linkAuthorizationService ?? EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
+            linkAuthorizationService ?? EndpointTestHelpers.CreateGrantingLinkAuthorizationService(),
+            TimeProvider.System);
 
     private static UpdateWeekRequest BuildWeekRequest(int weekNumber, MealFood? food = null)
     {
@@ -389,14 +390,17 @@ public class UpdatePlanFullStateTests
         var macroCalc = Substitute.For<IMacroCalculatorService>();
         var ep = CreateEndpoint(mongo, macroCalc);
 
-        // Act: PUT with the same StartDate, only changing the name.
+        // Act: PUT with the same StartDate, only changing the name. The days stay empty because
+        // adding a meal to a day that has already passed is a lock conflict of its own.
+        var week = BuildWeekRequest(weekNumber: 1);
+        week.Days.ForEach(day => day.Meals = []);
         var req = new UpdatePlanRequest
         {
             PlanId = planId,
             Name = "Renamed In-Progress Plan",
             Version = 1,
             StartDate = pastMonday,
-            Weeks = [BuildWeekRequest(weekNumber: 1)]
+            Weeks = [week]
         };
 
         await ep.HandleAsync(req, TestContext.Current.CancellationToken);

@@ -104,6 +104,7 @@ public class LogMealEatenValidatorTests
 
     private static SeenMealItemRequest ValidItem() => new()
     {
+        ItemId = Guid.NewGuid(),
         Kind = SeenMealItemKind.Food,
         RefId = Guid.NewGuid(),
         Name = "Rice",
@@ -166,6 +167,12 @@ public class LogMealEatenValidatorTests
     [InlineData("hugeAmount")]
     [InlineData("negativeKcal")]
     [InlineData("hugeKcal")]
+    [InlineData("missingItemId")]
+    [InlineData("negativeProtein")]
+    [InlineData("negativeCarbs")]
+    [InlineData("negativeFat")]
+    [InlineData("negativeFibre")]
+    [InlineData("hugeProtein")]
     public void SeenMealItems_InvalidItem_FailsValidation(string defect)
     {
         var item = ValidItem();
@@ -179,6 +186,12 @@ public class LogMealEatenValidatorTests
             case "hugeAmount": item.Amount = 10000.01m; break;
             case "negativeKcal": item.Kcal = -1m; break;
             case "hugeKcal": item.Kcal = 20000.01m; break;
+            case "missingItemId": item.ItemId = Guid.Empty; break;
+            case "negativeProtein": item.Protein = -0.01m; break;
+            case "negativeCarbs": item.Carbs = -0.01m; break;
+            case "negativeFat": item.Fat = -0.01m; break;
+            case "negativeFibre": item.Fibre = -0.01m; break;
+            case "hugeProtein": item.Protein = 5000.01m; break;
         }
 
         var req = ValidRequest();

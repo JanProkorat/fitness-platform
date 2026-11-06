@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSortable } from '@dnd-kit/react/sortable';
-import { Apple, ChefHat, X } from 'lucide-react';
+import { Apple, ChefHat, Check, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverAnchor } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
@@ -89,12 +89,14 @@ interface Props {
   position: { weekIndex: number; dayOfWeek: number; mealId: string };
   /** Library id of the item (recipeId or foodExternalId); when set, a Day view row opens the library info popover. */
   sourceId?: string;
+  /** Set on a locked row: a tick when the client ate the item, an empty ring when not. Absent on editable rows. */
+  eatenMark?: boolean;
   onAmount: (value: number) => void;
   onRemove: () => void;
 }
 
 /** One recipe or ingredient of a meal: name, amount, kcal and a remove button. Draggable within its list. */
-export default function MealItemRow({ entry, readOnly, variant, position, sourceId, onAmount, onRemove }: Props) {
+export default function MealItemRow({ entry, readOnly, variant, position, sourceId, eatenMark, onAmount, onRemove }: Props) {
   const { t, i18n } = useTranslation();
   const [infoOpen, setInfoOpen] = useState(false);
   const infoButtonRef = useRef<HTMLButtonElement>(null);
@@ -163,6 +165,7 @@ export default function MealItemRow({ entry, readOnly, variant, position, source
       ref={draggable ? ref : undefined}
       data-testid="meal-item"
       data-kind={entry.type}
+      data-eaten={eatenMark === undefined ? undefined : String(eatenMark)}
       className={cn(
         'flex items-center gap-3',
         draggable && 'cursor-grab select-none active:cursor-grabbing',
@@ -222,8 +225,23 @@ export default function MealItemRow({ entry, readOnly, variant, position, source
         >
           <X className="size-4" aria-hidden="true" />
         </button>
-      ) : (
+      ) : eatenMark === undefined ? (
         <span className="size-8 shrink-0" aria-hidden="true" />
+      ) : eatenMark ? (
+        <span className="flex size-8 shrink-0 items-center justify-center">
+          <span className="flex size-6 items-center justify-center rounded-full bg-success text-card">
+            <Check className="size-3.5" aria-hidden="true" />
+            <span className="sr-only">{t('planEditor.locks.item.eaten')}</span>
+          </span>
+        </span>
+      ) : (
+        <span className="flex size-8 shrink-0 items-center justify-center">
+          <span
+            role="img"
+            aria-label={t('planEditor.locks.item.notEaten')}
+            className="size-6 rounded-full border-2 border-line"
+          />
+        </span>
       )}
     </li>
   );

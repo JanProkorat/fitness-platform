@@ -27,14 +27,11 @@ export interface SyncConflictsModel {
   onReviewAll: () => Promise<boolean>;
   /** The conflict on a live meal of the week, if one is open for review. */
   forMeal: (weekIndex: number, mealId: string) => PlacedConflict | undefined;
-  /** The ghosts (meals that left the plan) of a week, optionally of one weekday. */
-  ghosts: (weekIndex: number, dayOfWeek?: number) => PlacedConflict[];
+  /** The unreviewed conflict with this id, if it is still open for review. */
+  byConflictId: (conflictId: string) => PlacedConflict | undefined;
   /** How many conflicts show on a week / on a weekday of it. */
   countInWeek: (weekIndex: number) => number;
   countOnDay: (weekIndex: number, dayOfWeek: number) => number;
-  /** The ghost whose popover is open in the week grid. */
-  openGhostId: string | null;
-  onOpenGhost: (conflictId: string | null) => void;
   /** Leaves the week view for the conflict's weekday. */
   onOpenDay: (placed: PlacedConflict) => void;
 }
@@ -50,8 +47,6 @@ export function useSyncConflicts(): SyncConflictsModel | null {
 export function buildSyncConflictsModel(
   props: PlanEditorSyncConflicts,
   placed: readonly PlacedConflict[],
-  openGhostId: string | null,
-  onOpenGhost: (conflictId: string | null) => void,
   onOpenDay: (placed: PlacedConflict) => void,
 ): SyncConflictsModel {
   const located = placed.filter((item) => item.weekIndex !== null);
@@ -65,15 +60,10 @@ export function buildSyncConflictsModel(
     onReviewAll: props.onReviewAll,
     forMeal: (weekIndex, mealId) =>
       located.find((item) => !item.ghost && item.weekIndex === weekIndex && item.meal?.mealId === mealId),
-    ghosts: (weekIndex, dayOfWeek) =>
-      located.filter(
-        (item) => item.ghost && item.weekIndex === weekIndex && (dayOfWeek === undefined || item.dayOfWeek === dayOfWeek),
-      ),
+    byConflictId: (conflictId) => placed.find((item) => item.id === conflictId),
     countInWeek: (weekIndex) => located.filter((item) => item.weekIndex === weekIndex).length,
     countOnDay: (weekIndex, dayOfWeek) =>
       located.filter((item) => item.weekIndex === weekIndex && item.dayOfWeek === dayOfWeek).length,
-    openGhostId,
-    onOpenGhost,
     onOpenDay,
   };
 }

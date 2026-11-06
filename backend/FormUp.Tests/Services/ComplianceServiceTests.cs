@@ -206,6 +206,37 @@ public class ComplianceServiceTests
     }
 
     [Fact]
+    public async Task CalculateAverageMacrosAsync_SnapshotRow_CountsRecipesAndIgnoresFoodsEaten()
+    {
+        var today = DateTime.UtcNow.Date;
+        var foodId = Guid.NewGuid();
+        var recipeId = Guid.NewGuid();
+        var logs = new List<MealLog>
+        {
+            new()
+            {
+                ClientId = _clientId,
+                EatenAt = today.AddHours(12),
+                EatenItemIds = [foodId, recipeId],
+                EatenSnapshot =
+                [
+                    new EatenMealItem { ItemId = foodId, Kcal = 195m, Protein = 4m, Carbs = 42m, Fat = 0.5m, Fibre = 1m },
+                    new EatenMealItem { ItemId = recipeId, Kcal = 400m, Protein = 30m, Carbs = 40m, Fat = 12m, Fibre = 6m },
+                ],
+                FoodsEaten = [PlanTestHelpers.CreateMealFood(foodName: "Stale", amountGrams: 100, kcal: 9999)],
+            },
+        };
+        var sut = new ComplianceService(CreateMongo(mealLogs: logs));
+
+        var result = await sut.CalculateAverageMacrosAsync(
+            _clientId, today, today, TestContext.Current.CancellationToken);
+
+        result.Kcal.Should().Be(595m, "the recipe counts and FoodsEaten is ignored once a snapshot exists");
+        result.Protein.Should().Be(34m);
+        result.Fiber.Should().Be(7m);
+    }
+
+    [Fact]
     public async Task CalculateAverageMacrosAsync_WithLogs_ReturnsAverages()
     {
         // Arrange — 2 logs on the same day with known foods

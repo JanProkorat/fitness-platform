@@ -85,7 +85,10 @@ internal sealed class LogMealItemEatenEndpoint(
             return;
         }
 
-        var items = MealItemEatenState.ItemIds(meal.Meal);
+        var row = await FindRowAsync(clientId, meal.Plan.ExternalId, req.MealId, todayLocalUtc, windowStartUtc, windowEndUtc, ct);
+
+        // A row with a snapshot is judged against the items it was eaten from, not the live meal.
+        var items = row is null ? MealItemEatenState.ItemIds(meal.Meal) : MealItemEatenState.ItemIds(row, meal.Meal);
 
         if (!items.Contains(req.ItemId))
         {
@@ -93,12 +96,13 @@ internal sealed class LogMealItemEatenEndpoint(
             return;
         }
 
-        var row = await FindRowAsync(clientId, meal.Plan.ExternalId, req.MealId, todayLocalUtc, windowStartUtc, windowEndUtc, ct);
         if (!alreadyApplied)
         {
             var eatenIds = row is null ? [] : MealItemEatenState.EffectiveEatenIds(row, meal.Meal);
+            var hadEatenItems = eatenIds.Count > 0;
             eatenIds.Add(req.ItemId);
-            row = await WriteRowAsync(req, meal, row, eatenIds, items.IsSubsetOf(eatenIds), now, todayLocalUtc, ct);
+            row = await WriteRowAsync(
+                req, meal, row, eatenIds, items.IsSubsetOf(eatenIds), !hadEatenItems, now, todayLocalUtc, ct);
 
             await ClientRequestDeduplicator.RecordAsync(
                 mongo, clientId, req.ClientRequestId, OperationName, req.BasedOnPlanVersion, null,
@@ -108,7 +112,7 @@ internal sealed class LogMealItemEatenEndpoint(
         }
 
         var currentIds = row is null ? [] : MealItemEatenState.EffectiveEatenIds(row, meal.Meal);
-        var state = MealItemEatenState.StateOf(meal.Meal, currentIds, row?.EatenAt is not null);
+        var state = MealItemEatenState.StateOf(items, currentIds, row?.EatenAt is not null);
 
         await Send.OkAsync(new LogMealItemEatenResponse
         {
@@ -166,12 +170,13 @@ internal sealed class LogMealItemEatenEndpoint(
 
     private async Task<MealLog> WriteRowAsync(
         LogMealItemEatenRequest req, PlanAndMeal meal, MealLog? row, HashSet<Guid> eatenIds, bool everyItemEaten,
-        DateTime now, DateTime todayLocalUtc, CancellationToken ct)
+        bool firstEatenItem, DateTime now, DateTime todayLocalUtc, CancellationToken ct)
     {
         if (row is null)
         {
             var created = new MealLog
             {
+                EatenSnapshot = MealItemEatenState.BuildSnapshot(meal.Meal),
                 ClientId = meal.Plan.ClientId,
                 PlanId = meal.Plan.ExternalId,
                 MealId = req.MealId,
@@ -190,6 +195,14 @@ internal sealed class LogMealItemEatenEndpoint(
             .Set(l => l.EatenItemIds, eatenIds.ToList())
             .Set(l => l.LogDate, todayLocalUtc)
             .Set(l => l.FoodsEaten, meal.Meal.Foods);
+
+        // The snapshot is written once, when the row goes from nothing eaten to something eaten, and
+        // never overwritten by later ticks.
+        if (firstEatenItem && row.EatenSnapshot is null)
+        {
+            row.EatenSnapshot = MealItemEatenState.BuildSnapshot(meal.Meal);
+            update = update.Set(l => l.EatenSnapshot, row.EatenSnapshot);
+        }
 
         if (everyItemEaten)
         {

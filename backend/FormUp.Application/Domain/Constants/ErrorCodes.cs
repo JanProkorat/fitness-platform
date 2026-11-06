@@ -176,6 +176,12 @@ public static class ErrorCodes
     /// <summary>The plan version is stale; another write occurred first (optimistic concurrency).</summary>
     public const string PlanVersionConflict = "PLAN_VERSION_CONFLICT";
 
+    /// <summary>A meal the client ate (fully or partly), or one on a past day, was changed, moved or deleted.</summary>
+    public const string MealLocked = "MEAL_LOCKED";
+
+    /// <summary>A meal was added to, or moved onto, a day before the client's local today.</summary>
+    public const string PastDayLocked = "PAST_DAY_LOCKED";
+
     /// <summary>The plan has a published week that has already started, so it can no longer be deleted.</summary>
     public const string PlanAlreadyStarted = "PLAN_ALREADY_STARTED";
 
