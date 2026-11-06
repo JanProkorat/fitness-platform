@@ -1395,6 +1395,10 @@ export class ApiClient {
             result400 = JSON.parse(resultData400);
             return throwException("Tampered, expired or unknown link, or the account no longer exists (EMAIL_LINK_INVALID)", status, _responseText, _headers, result400);
 
+        } else if (status === 429) {
+            const _responseText = response.data;
+            return throwException("Rate limit exceeded", status, _responseText, _headers);
+
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
@@ -1458,6 +1462,10 @@ export class ApiClient {
             result400 = JSON.parse(resultData400);
             return throwException("Tampered, expired or unknown link, or the account no longer exists (EMAIL_LINK_INVALID)", status, _responseText, _headers, result400);
 
+        } else if (status === 429) {
+            const _responseText = response.data;
+            return throwException("Rate limit exceeded", status, _responseText, _headers);
+
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
@@ -1468,7 +1476,7 @@ export class ApiClient {
     /**
      * One-click unsubscribe from a notification email
      * @param token The token from the List-Unsubscribe link's query string.
-     * @return No Content
+     * @return The email is off
      */
     emailLinkOneClickEndpoint(token: string, signal?: AbortSignal): Promise<void> {
         let url_ = this.baseUrl + "/users/email-links/one-click?";
@@ -1507,9 +1515,17 @@ export class ApiClient {
                 }
             }
         }
-        if (status === 204) {
+        if (status === 200) {
             const _responseText = response.data;
             return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            return throwException("Tampered, expired or unknown link, or the account no longer exists; no body", status, _responseText, _headers);
+
+        } else if (status === 429) {
+            const _responseText = response.data;
+            return throwException("Rate limit exceeded", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -1637,6 +1653,14 @@ export class ApiClient {
         } else if (status === 401) {
             const _responseText = response.data;
             return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("User no longer exists", status, _responseText, _headers);
+
+        } else if (status === 429) {
+            const _responseText = response.data;
+            return throwException("Rate limit exceeded", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -9773,6 +9797,14 @@ export class ApiClient {
             result400 = JSON.parse(resultData400);
             return throwException("Unknown, expired or already used token (BANK_ACCOUNT_UNDO_INVALID)", status, _responseText, _headers, result400);
 
+        } else if (status === 409) {
+            const _responseText = response.data;
+            return throwException("The account was changed again afterwards (BANK_ACCOUNT_UNDO_SUPERSEDED)", status, _responseText, _headers);
+
+        } else if (status === 429) {
+            const _responseText = response.data;
+            return throwException("Rate limit exceeded", status, _responseText, _headers);
+
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
@@ -9821,6 +9853,13 @@ export class ApiClient {
             const _responseText = response.data;
             return Promise.resolve<void>(null as any);
 
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("The account has a password and uses it instead (REAUTH_CODE_NOT_AVAILABLE)", status, _responseText, _headers, result400);
+
         } else if (status === 401) {
             const _responseText = response.data;
             return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
@@ -9828,6 +9867,14 @@ export class ApiClient {
         } else if (status === 403) {
             const _responseText = response.data;
             return throwException("The subscription does not include payments (PAYMENTS_NOT_ENTITLED)", status, _responseText, _headers);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("The caller has no professional profile or account", status, _responseText, _headers);
+
+        } else if (status === 429) {
+            const _responseText = response.data;
+            return throwException("Rate limit exceeded", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -9963,6 +10010,14 @@ export class ApiClient {
         } else if (status === 403) {
             const _responseText = response.data;
             return throwException("The subscription does not include payments (PAYMENTS_NOT_ENTITLED)", status, _responseText, _headers);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("The caller has no professional profile or account", status, _responseText, _headers);
+
+        } else if (status === 429) {
+            const _responseText = response.data;
+            return throwException("Rate limit exceeded", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -16590,6 +16645,10 @@ export class ApiClient {
             const _responseText = response.data;
             return throwException("Forbidden", status, _responseText, _headers);
 
+        } else if (status === 409) {
+            const _responseText = response.data;
+            return throwException("The diary request is not Accepted/InProgress, or its window has expired (PHOTO_DIARY_REQUEST_EXPIRED)", status, _responseText, _headers);
+
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
@@ -17193,6 +17252,18 @@ export class ApiClient {
         } else if (status === 403) {
             const _responseText = response.data;
             return throwException("The subscription does not include payments (PAYMENTS_NOT_ENTITLED), or the coach role was removed", status, _responseText, _headers);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("No live link to the client (and no ended one with a payment assignment), or the payment is not this client\'s payment with this coach", status, _responseText, _headers);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            return throwException("The payment is already paid (PAYMENT_ALREADY_PAID) or waived (PAYMENT_ALREADY_WAIVED), the coach has no bank account (BANK_ACCOUNT_NOT_SET), or no variable symbol is left (PAYMENT_VARIABLE_SYMBOL_EXHAUSTED)", status, _responseText, _headers);
+
+        } else if (status === 429) {
+            const _responseText = response.data;
+            return throwException("The payment was requested a minute ago, or the client got ten requests in the last hour (PAYMENT_REQUEST_RATE_LIMITED)", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -21654,6 +21725,17 @@ export class ApiClient {
             result200 = JSON.parse(resultData200);
             return Promise.resolve<VerifyEmailResponse>(result200);
 
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Invalid, already used or expired verification token", status, _responseText, _headers, result400);
+
+        } else if (status === 429) {
+            const _responseText = response.data;
+            return throwException("Rate limit exceeded", status, _responseText, _headers);
+
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
@@ -21705,6 +21787,10 @@ export class ApiClient {
             let resultData200  = _responseText;
             result200 = JSON.parse(resultData200);
             return Promise.resolve<RequestNonceResponse>(result200);
+
+        } else if (status === 429) {
+            const _responseText = response.data;
+            return throwException("Rate limit exceeded", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -21769,6 +21855,22 @@ export class ApiClient {
             result400 = JSON.parse(resultData400);
             return throwException("idToken or nonce is missing or empty, Roles is invalid (Admin, unknown, or Client combined with a coach role), a coach sends healthDataConsent, or a new Client account lacks healthDataConsent=true. The nonce is already consumed by the time the consent check runs, so the client must request a new nonce to retry", status, _responseText, _headers, result400);
 
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Google ID token is invalid, expired, has wrong audience, or the nonce is invalid/consumed/expired", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Account is deactivated", status, _responseText, _headers);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            return throwException("Email belongs to an existing password-only account (social_email_conflict)", status, _responseText, _headers);
+
+        } else if (status === 429) {
+            const _responseText = response.data;
+            return throwException("Rate limit exceeded", status, _responseText, _headers);
+
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
@@ -21831,6 +21933,26 @@ export class ApiClient {
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
             return throwException("identityToken or nonce is missing or empty, Roles is invalid (Admin, unknown, or Client combined with a coach role), a coach sends healthDataConsent, or a new Client account lacks healthDataConsent=true. The nonce is already consumed by the time the consent check runs, so the client must request a new nonce to retry", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Apple identity token is invalid, expired, has wrong audience, email is explicitly unverified, or the nonce is invalid/consumed/expired", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Account is deactivated", status, _responseText, _headers);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            return throwException("Email belongs to an existing password-only account (social_email_conflict)", status, _responseText, _headers);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            return throwException("No Apple account link exists and token carries no email \u2014 cannot provision", status, _responseText, _headers);
+
+        } else if (status === 429) {
+            const _responseText = response.data;
+            return throwException("Rate limit exceeded", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -22077,6 +22199,10 @@ export class ApiClient {
             result400 = JSON.parse(resultData400);
             return throwException("Validation error", status, _responseText, _headers, result400);
 
+        } else if (status === 429) {
+            const _responseText = response.data;
+            return throwException("Rate limit exceeded", status, _responseText, _headers);
+
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
@@ -22086,7 +22212,7 @@ export class ApiClient {
 
     /**
      * Refresh access token
-     * @return Success
+     * @return New access and refresh token pair
      */
     refreshTokenEndpoint(refreshTokenRequest: RefreshTokenRequest, signal?: AbortSignal): Promise<RefreshTokenResponse> {
         let url_ = this.baseUrl + "/auth/refresh";
@@ -22138,7 +22264,11 @@ export class ApiClient {
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("Bad Request", status, _responseText, _headers, result400);
+            return throwException("Invalid input, or an invalid, expired or reused refresh token", status, _responseText, _headers, result400);
+
+        } else if (status === 429) {
+            const _responseText = response.data;
+            return throwException("Rate limit exceeded", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -22205,7 +22335,7 @@ export class ApiClient {
 
     /**
      * Authenticate user
-     * @return Success
+     * @return Login successful
      */
     loginEndpoint(loginRequest: LoginRequest, signal?: AbortSignal): Promise<LoginResponse> {
         let url_ = this.baseUrl + "/auth/login";
@@ -22257,7 +22387,11 @@ export class ApiClient {
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("Bad Request", status, _responseText, _headers, result400);
+            return throwException("Invalid input, wrong credentials (INVALID_CREDENTIALS) or a deactivated account (ACCOUNT_DEACTIVATED)", status, _responseText, _headers, result400);
+
+        } else if (status === 429) {
+            const _responseText = response.data;
+            return throwException("Rate limit exceeded", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -22326,6 +22460,14 @@ export class ApiClient {
             const _responseText = response.data;
             return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
 
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("Caller\'s account no longer exists", status, _responseText, _headers);
+
+        } else if (status === 429) {
+            const _responseText = response.data;
+            return throwException("Rate limit exceeded", status, _responseText, _headers);
+
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
@@ -22335,7 +22477,7 @@ export class ApiClient {
 
     /**
      * Resend verification email (anonymous)
-     * @return Success
+     * @return Generic confirmation, whatever the account state
      */
     anonymousResendVerificationEndpoint(anonymousResendVerificationRequest: AnonymousResendVerificationRequest, signal?: AbortSignal): Promise<AnonymousResendVerificationResponse> {
         let url_ = this.baseUrl + "/auth/resend-verification/anonymous";
@@ -22387,7 +22529,11 @@ export class ApiClient {
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("Bad Request", status, _responseText, _headers, result400);
+            return throwException("Invalid request", status, _responseText, _headers, result400);
+
+        } else if (status === 429) {
+            const _responseText = response.data;
+            return throwException("Rate limit exceeded", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
