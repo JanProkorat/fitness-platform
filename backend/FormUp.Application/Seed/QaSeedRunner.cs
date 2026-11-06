@@ -759,6 +759,7 @@ public static class QaSeedRunner
         if (existing is not null)
         {
             logger.LogInformation("QA ProfessionalProfile already present for userId={UserId}", userId);
+            await EnsureStudioSubscriptionAsync(db, existing, logger);
             return existing;
         }
 
@@ -775,9 +776,42 @@ public static class QaSeedRunner
         db.ProfessionalProfiles.Add(profile);
         await db.SaveChangesAsync();
         await DefaultCheckInForm.EnsureAsync(db, userId, "en", CancellationToken.None);
+        await EnsureStudioSubscriptionAsync(db, profile, logger);
 
         logger.LogInformation("QA ProfessionalProfile created for userId={UserId} publicId={PublicId}", userId, publicId);
         return profile;
+    }
+
+    /// <summary>
+    /// Puts a QA coach on the Studio plan (Active, its open price row) so every feature and an unlimited client
+    /// count are available to the fixtures. A coach that already has a subscription row is left as it is.
+    /// </summary>
+    private static async Task EnsureStudioSubscriptionAsync(
+        ApplicationDbContext db, ProfessionalProfile profile, ILogger logger)
+    {
+        if (await db.CoachSubscriptions.AnyAsync(cs => cs.ProfessionalProfileId == profile.Id))
+        {
+            return;
+        }
+
+        var studioPrice = await db.SubscriptionPlanPrices
+            .AsNoTracking()
+            .Where(p => p.SubscriptionPlan.Code == "studio" && p.ValidTo == null)
+            .Select(p => new { p.Id, p.SubscriptionPlanId })
+            .FirstOrDefaultAsync()
+            ?? throw new InvalidOperationException(
+                "The studio subscription plan must be seeded before the QA coaches (ApplicationDbContextSeed.SeedAsync).");
+
+        db.CoachSubscriptions.Add(new CoachSubscription
+        {
+            ProfessionalProfileId = profile.Id,
+            SubscriptionPlanId = studioPrice.SubscriptionPlanId,
+            SubscriptionPlanPriceId = studioPrice.Id,
+            Status = SubscriptionStatus.Active,
+        });
+        await db.SaveChangesAsync();
+
+        logger.LogInformation("QA coach profileId={ProfileId} put on the studio plan", profile.Id);
     }
 
     private static async Task EnsureTrainerClientLinkAsync(

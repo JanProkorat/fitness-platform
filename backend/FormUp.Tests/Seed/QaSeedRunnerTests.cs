@@ -1077,6 +1077,40 @@ public class QaSeedRunnerTests(QaSeedRunnerFactory factory)
         forms.Should().AllSatisfy(f => f.Questions.Should().HaveCount(2));
     }
 
+    [Fact]
+    public async Task SeedAsync_EveryCoach_IsActiveOnTheStudioPlanOnItsOpenPrice()
+    {
+        await _factory.EnsureDefaultSeedAsync();
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var coachIds = new[]
+        {
+            QaSeedRunner.TrainerUserId, QaSeedRunner.NutriUserId, QaSeedRunner.Trainer2UserId, QaSeedRunner.CoachUserId,
+        };
+
+        var subscriptions = await db.CoachSubscriptions
+            .AsNoTracking()
+            .Where(cs => coachIds.Contains(cs.ProfessionalProfile.UserId))
+            .Select(cs => new
+            {
+                cs.ProfessionalProfile.UserId,
+                cs.Status,
+                PlanCode = cs.SubscriptionPlan.Code,
+                PriceIsOpen = cs.SubscriptionPlanPrice.ValidTo == null
+                    && cs.SubscriptionPlanPrice.SubscriptionPlanId == cs.SubscriptionPlanId,
+            })
+            .ToListAsync(TestContext.Current.CancellationToken);
+
+        subscriptions.Select(s => s.UserId).Should().BeEquivalentTo(coachIds, "one subscription per QA coach, never a duplicate");
+        subscriptions.Should().AllSatisfy(s =>
+        {
+            s.PlanCode.Should().Be("studio");
+            s.Status.Should().Be(SubscriptionStatus.Active);
+            s.PriceIsOpen.Should().BeTrue();
+        });
+    }
+
     private static DateTime ThisMonday()
     {
         var today = DateTime.UtcNow.Date;
