@@ -5507,6 +5507,37 @@
     "weekCountRequired": "Zadejte počet týdnů.",
     "weekCountRange": "Počet týdnů musí být 1 až 52."
   },
+  "emailOff": {
+    "footer": "Form Up · Váš plán. Společně.",
+    "loading": "Vypínáme tento e-mail…",
+    "account": "Účet",
+    "emailLabel": "E-mail",
+    "settings": "Nastavení oznámení",
+    "off": {
+      "title": "Tento e-mail je vypnutý",
+      "body": "E-maily „{{event}}“ vám už nebudou chodit. Oznámení se dál zobrazuje v aplikaci.",
+      "note": "Vypnutý je jen tento e-mail. Ostatní e-mailová oznámení zůstávají beze změny.",
+      "turnOn": "Znovu zapnout",
+      "working": "Zapínáme…",
+      "turnOnFailed": "Zapnutí se nepodařilo."
+    },
+    "on": {
+      "title": "Tento e-mail je znovu zapnutý",
+      "body": "E-maily „{{event}}“ vám budeme znovu posílat.",
+      "note": "Všechna e-mailová oznámení změníte v Nastavení › Oznámení."
+    },
+    "invalid": {
+      "title": "Tento odkaz nefunguje",
+      "body": "Možná je neúplný, nebo patří k jinému účtu.",
+      "note": "Po přihlášení si v Nastavení › Oznámení vyberete, které e-maily chcete dostávat.",
+      "signIn": "Přihlásit se"
+    },
+    "failed": {
+      "title": "Něco se pokazilo",
+      "body": "Tento e-mail se teď nepodařilo vypnout. Zkuste to prosím za chvíli znovu.",
+      "retry": "Zkusit znovu"
+    }
+  },
   "entry": {
     "brand": "Form Up",
     "login": {

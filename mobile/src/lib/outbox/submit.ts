@@ -26,7 +26,7 @@ function inLane<T>(task: () => Promise<T>): Promise<T> {
 export function submitWrite(write: OutboxWrite, options: { occurredAt?: string } = {}): Promise<SubmitResult> {
   return inLane(async () => {
     await useOutboxStore.getState().hydrate();
-    const generation = useAuthStore.getState().sessionGeneration;
+    const { sessionGeneration: generation, sessionUserId: userId } = useAuthStore.getState();
     const entry: OutboxEntry = {
       ...write,
       id: newClientId(),
@@ -39,6 +39,8 @@ export function submitWrite(write: OutboxWrite, options: { occurredAt?: string }
     const queue = async (): Promise<SubmitResult> => {
       // A session that ended meanwhile must not leave this write behind for the next user.
       if (useAuthStore.getState().sessionGeneration !== generation) throw new Error('The session ended');
+      // The write belongs in the queue of the user who made it, never in another user's.
+      if (!userId || useOutboxStore.getState().ownerUserId !== userId) throw new Error('The outbox is not open');
       await useOutboxStore.getState().enqueue(entry);
       void drainOutbox();
       return 'queued';
@@ -53,6 +55,10 @@ export function submitWrite(write: OutboxWrite, options: { occurredAt?: string }
     }
     try {
       const response = await sendEntry(entry, { fromOutbox: false });
+      // The write went out, but if its session ended meanwhile its notice must not land in the next user's queue.
+      if (useAuthStore.getState().sessionGeneration !== generation || useOutboxStore.getState().ownerUserId !== userId) {
+        return 'sent';
+      }
       await recordSyncOutcome(entry, response);
       return 'sent';
     } catch (error: unknown) {

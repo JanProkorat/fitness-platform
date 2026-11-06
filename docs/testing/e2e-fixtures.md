@@ -56,10 +56,13 @@ docker ps --format '{{.Names}}'
 | Trainer 2    | `qa.trainer2@formup.test`| `66666666-6666-6666-6666-666666666666`   |
 | Client 3     | `qa.client3@formup.test`| `77777777-7777-7777-7777-777777777777`    |
 | Former client | `qa.client.former@formup.test` | `88888888-8888-8888-8888-888888888888` |
+| Ending client "QA Ending" | `qa.client.ending@formup.test` | `10101010-1010-1010-1010-101010101010` |
 | Coach (trainer + nutritionist) | `qa.coach@formup.test` | `99999999-9999-9999-9999-999999999999` |
 | Client "QA Duo" | `qa.client.both@formup.test` | `44444444-4444-4444-4444-444444444444` |
 
 The second pair (`Client 2` / `Trainer 2`) is dedicated to the multi-section shared-exercise fixture (#474). Client 3 is linked to the QA trainer only — see [the inbox fixture](#seeded-inbox-conversation--weekly-check-ins-1095) — and has no conversation and no active plan. The former client has an **ended** link to the QA trainer and one conversation — see [the ended-link fixture](#ended-link-conversation-1101). They share the same password as the other accounts (`QA_SEED_PASSWORD` from `.env.test`).
+
+The ending client ("QA Ending", client profile public id `10101010-1010-1010-aaaa-000000000001`) is for the #1752 ended-link e2e. It has a **live** link to the QA trainer, no conversation, no plan, no payment terms, and the QA trainer has no package. The spec logs in as this client and ends the link with `DELETE /client/collaborations/{publicId}`, so after that spec runs its link is ended until the next `/test/reset`.
 
 All three accounts share the password held in `QA_SEED_PASSWORD` in your local `.env.test` (gitignored). Copy `.env.test.example` to `.env.test` and fill `JWT_SECRET` (≥32 chars) and `QA_SEED_PASSWORD` before the first `npm run e2e:up`. The seed runner refuses to start if `QA_SEED_PASSWORD` is unset, so a missing env file fails fast instead of creating users with a default password.
 

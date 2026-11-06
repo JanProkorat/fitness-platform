@@ -1,5 +1,6 @@
 using System.Text.Json;
 using FormUp.Application.Domain.Common;
+using FormUp.Application.Domain.Constants;
 using FormUp.Application.Domain.Entities;
 using FormUp.Application.Domain.Enums;
 using Microsoft.AspNetCore.Identity;
@@ -114,6 +115,9 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
 
     /// <inheritdoc />
     public virtual DbSet<NotificationPreference> NotificationPreferences { get; set; } = null!;
+
+    /// <inheritdoc />
+    public virtual DbSet<PendingNotificationEmail> PendingNotificationEmails { get; set; } = null!;
 
     /// <inheritdoc />
     public virtual DbSet<Conversation> Conversations { get; set; } = null!;
@@ -611,6 +615,65 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     }
 
     /// <inheritdoc />
+    public Task UpsertPendingNotificationEmailAsync(
+        Guid recipientUserId,
+        NotificationEvent notificationEvent,
+        Guid groupId,
+        DateTime eventAtUtc,
+        CancellationToken cancellationToken = default)
+    {
+        // Every value is a bound parameter; the table and column names are fixed text. The window lengths
+        // come from NotificationEmailGrouping and are passed as seconds.
+        var eventAt = DateTime.SpecifyKind(eventAtUtc, DateTimeKind.Utc);
+        var quietSeconds = NotificationEmailGrouping.QuietWindow(notificationEvent).TotalSeconds;
+        var maxSeconds = NotificationEmailGrouping.MaxWindow(notificationEvent).TotalSeconds;
+        var firstDueAt = NotificationEmailGrouping.DueAt(notificationEvent, eventAt, eventAt);
+
+        const string sql =
+            "INSERT INTO pending_notification_emails"
+            + " (recipient_user_id, event, group_id, first_event_at, last_event_at, due_at, date_created)"
+            + " VALUES ({0}, {1}, {2}, {3}, {3}, {4}, {3})"
+            + " ON CONFLICT (recipient_user_id, event, group_id) DO UPDATE SET"
+            + " last_event_at = GREATEST(pending_notification_emails.last_event_at, EXCLUDED.last_event_at),"
+            + " due_at = LEAST("
+            + "GREATEST(pending_notification_emails.last_event_at, EXCLUDED.last_event_at) + make_interval(secs => {5}),"
+            + " pending_notification_emails.first_event_at + make_interval(secs => {6})),"
+            + " date_updated = {3}";
+
+        var parameters = new List<object>
+        {
+            recipientUserId, (int)notificationEvent, groupId, eventAt, firstDueAt, quietSeconds, maxSeconds
+        };
+
+        return Database.ExecuteSqlRawAsync(sql, parameters, cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public async Task<PendingNotificationEmail?> ClaimDuePendingNotificationEmailAsync(
+        DateTime nowUtc, CancellationToken cancellationToken = default)
+    {
+        // Identifiers come from the EF model, never from input; the instant is a real parameter. See
+        // LockClientProfileAsync for why this is concatenated, not interpolated.
+        var entityType = Model.FindEntityType(typeof(PendingNotificationEmail))!;
+        var table = entityType.GetSchema() is { } schema
+            ? QuoteIdentifier(schema) + "." + QuoteIdentifier(entityType.GetTableName()!)
+            : QuoteIdentifier(entityType.GetTableName()!);
+        var dueColumn = QuoteIdentifier(entityType.FindProperty(nameof(PendingNotificationEmail.DueAt))!.GetColumnName()!);
+        var keyColumn = QuoteIdentifier(entityType.FindPrimaryKey()!.Properties[0].GetColumnName()!);
+
+        var sql = "SELECT * FROM " + table
+                  + " WHERE " + dueColumn + " <= {0}"
+                  + " ORDER BY " + dueColumn + ", " + keyColumn
+                  + " LIMIT 1 FOR UPDATE SKIP LOCKED";
+
+        var claimed = await PendingNotificationEmails
+            .FromSqlRaw(sql, DateTime.SpecifyKind(nowUtc, DateTimeKind.Utc))
+            .ToListAsync(cancellationToken);
+
+        return claimed.SingleOrDefault();
+    }
+
+    /// <inheritdoc />
     public Task UpsertNotificationPreferencesAsync(
         Guid userId,
         IReadOnlyCollection<(NotificationEvent Event, bool EmailEnabled, bool PushEnabled)> preferences,
@@ -642,6 +705,25 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
                   + " push_enabled = EXCLUDED.push_enabled, date_updated = {1}";
 
         return Database.ExecuteSqlRawAsync(sql, parameters, cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public Task UpsertNotificationEmailEnabledAsync(
+        Guid userId,
+        NotificationEvent notificationEvent,
+        bool emailEnabled,
+        bool pushEnabledIfNew,
+        CancellationToken cancellationToken = default)
+    {
+        // Every value is bound; the conflict branch deliberately leaves push_enabled alone.
+        const string sql = "INSERT INTO notification_preferences (user_id, event, email_enabled, push_enabled, date_created) "
+                           + "VALUES ({0}, {1}, {2}, {3}, {4}) "
+                           + "ON CONFLICT (user_id, event) DO UPDATE SET email_enabled = EXCLUDED.email_enabled, date_updated = {4}";
+
+        return Database.ExecuteSqlRawAsync(
+            sql,
+            [userId, (int)notificationEvent, emailEnabled, pushEnabledIfNew, DateTime.UtcNow],
+            cancellationToken);
     }
 
     /// <summary>

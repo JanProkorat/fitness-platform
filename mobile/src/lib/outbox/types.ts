@@ -38,6 +38,10 @@ export type OutboxWrite =
 
 export type OutboxKind = OutboxWrite['kind'];
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+/** The server rejects anything older, so an older entry is dropped on the device. */
+export const OUTBOX_MAX_AGE_MS = 7 * DAY_MS;
+
 export type OutboxMeta = {
   /** The ClientRequestId sent with the write; a replay with the same id applies once. */
   id: string;

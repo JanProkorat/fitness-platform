@@ -2599,6 +2599,60 @@ namespace FormUp.Application.Infrastructure.Data.Migrations
                     b.ToTable("pending_invites", (string)null);
                 });
 
+            modelBuilder.Entity("FormUp.Application.Domain.Entities.PendingNotificationEmail", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime>("DateCreated")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("date_created");
+
+                    b.Property<DateTime?>("DateUpdated")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("date_updated");
+
+                    b.Property<DateTime>("DueAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("due_at");
+
+                    b.Property<int>("Event")
+                        .HasColumnType("integer")
+                        .HasColumnName("event");
+
+                    b.Property<DateTime>("FirstEventAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("first_event_at");
+
+                    b.Property<Guid>("GroupId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("group_id");
+
+                    b.Property<DateTime>("LastEventAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_event_at");
+
+                    b.Property<Guid>("RecipientUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("recipient_user_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_pending_notification_emails");
+
+                    b.HasIndex("DueAt")
+                        .HasDatabaseName("ix_pending_notification_emails_due_at");
+
+                    b.HasIndex("RecipientUserId", "Event", "GroupId")
+                        .IsUnique()
+                        .HasDatabaseName("ux_pending_notification_emails_recipient_event_group");
+
+                    b.ToTable("pending_notification_emails", (string)null);
+                });
+
             modelBuilder.Entity("FormUp.Application.Domain.Entities.PhotoDiaryReminderLog", b =>
                 {
                     b.Property<long>("Id")
@@ -4214,6 +4268,18 @@ namespace FormUp.Application.Infrastructure.Data.Migrations
                     b.Navigation("ProfessionalProfile");
 
                     b.Navigation("Questionnaire");
+                });
+
+            modelBuilder.Entity("FormUp.Application.Domain.Entities.PendingNotificationEmail", b =>
+                {
+                    b.HasOne("FormUp.Application.Domain.Entities.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("RecipientUserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_pending_notification_emails_users_recipient_user_id");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("FormUp.Application.Domain.Entities.PhotoDiaryReminderLog", b =>

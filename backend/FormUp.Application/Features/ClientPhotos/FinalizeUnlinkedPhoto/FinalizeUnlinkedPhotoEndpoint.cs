@@ -103,6 +103,9 @@ public class FinalizeUnlinkedPhotoEndpoint(
         await PlanPhotoVisibilityWriter.AddViewersAsync(db, logger, [photo], null, ct);
         await db.SaveChangesAsync(ct);
 
+        // The photo is free-form by construction (Body or FreeForm, no request): it joins the grouped email burst.
+        await ProgressPhotoBurst.QueueAsync(db, logger, photo, clientProfile.PublicId, ct);
+
         await Send.ResponseAsync(new PlanPhotoResponse
         {
             Id = photo.PublicId,

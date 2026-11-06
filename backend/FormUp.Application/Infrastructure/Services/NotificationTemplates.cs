@@ -134,6 +134,13 @@ public static class NotificationTemplates
                 new("Proposal declined", "{clientName} declined your package proposal."),
             [Key(NotificationType.ClientRequestProposalWithdrawn)] =
                 new("Proposal withdrawn", "{profName} withdrew the package proposal."),
+
+            [Key(NotificationType.NewMessage)] =
+                new("New message", "New message from {clientName}."),
+            [Key(NotificationType.ProgressPhotosSubmitted)] =
+                new("Progress photos submitted", "The photos from {clientName} are ready to view."),
+            [Key(NotificationType.WorkoutFinished)] =
+                new("Workout finished", "{clientName} · {sessionName}"),
         },
         ["cs"] = new()
         {
@@ -221,6 +228,13 @@ public static class NotificationTemplates
                 new("Návrh odmítnut", "{clientName} odmítl(a) váš návrh balíčku."),
             [Key(NotificationType.ClientRequestProposalWithdrawn)] =
                 new("Návrh stažen", "{profName} stáhl(a) návrh balíčku."),
+
+            [Key(NotificationType.NewMessage)] =
+                new("Nová zpráva", "Nová zpráva od {clientName}."),
+            [Key(NotificationType.ProgressPhotosSubmitted)] =
+                new("Odeslané fotky pokroku", "Fotky od {clientName} jsou připravené k zobrazení."),
+            [Key(NotificationType.WorkoutFinished)] =
+                new("Dokončený trénink", "{clientName} · {sessionName}"),
         },
         ["de"] = new()
         {
@@ -308,6 +322,13 @@ public static class NotificationTemplates
                 new("Vorschlag abgelehnt", "{clientName} hat Ihren Paketvorschlag abgelehnt."),
             [Key(NotificationType.ClientRequestProposalWithdrawn)] =
                 new("Vorschlag zurückgezogen", "{profName} hat den Paketvorschlag zurückgezogen."),
+
+            [Key(NotificationType.NewMessage)] =
+                new("Neue Nachricht", "Neue Nachricht von {clientName}."),
+            [Key(NotificationType.ProgressPhotosSubmitted)] =
+                new("Fortschrittsfotos eingereicht", "Die Fotos von {clientName} liegen zur Ansicht bereit."),
+            [Key(NotificationType.WorkoutFinished)] =
+                new("Training beendet", "{clientName} · {sessionName}"),
         },
     };
 

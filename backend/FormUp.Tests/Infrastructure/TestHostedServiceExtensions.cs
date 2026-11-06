@@ -80,6 +80,7 @@ public static class TestHostedServiceExtensions
         typeof(CoachRoleLinkSweeper),
         typeof(SocialLoginNonceReaperService),
         typeof(AutomationScheduler),
+        typeof(NotificationEmailGroupingScheduler),
         typeof(UnverifiedAccountCleanupService),
     ];
 
