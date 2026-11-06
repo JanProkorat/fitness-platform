@@ -2369,6 +2369,9 @@
       "restore": "Obnovit, co klient snědl",
       "fixOutlined": "Opravte označené jídlo a uložte znovu.",
       "fixRemoved": "Obnovte odebrané jídlo a uložte znovu.",
+      "conflictBadge": "Toto jídlo už nelze uložit. Otevřete ho pro podrobnosti.",
+      "conflictEaten": "Klient toto jídlo snědl dřív, než jste uložili změny.",
+      "conflictPast": "Tento den už proběhl, změny v něm nelze uložit.",
       "legend": {
         "label": "Barvy jídel",
         "eaten": "Snězeno",

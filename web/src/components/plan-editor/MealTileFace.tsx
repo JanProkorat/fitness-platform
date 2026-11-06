@@ -99,13 +99,15 @@ interface Props {
   lock?: TileLock;
   /** A slot on a past day with no meal: it reads "Nothing planned" and cannot be filled. */
   pastEmpty?: boolean;
+  /** The red conflict badge takes the lock icon's corner, so the icon steps aside. */
+  conflictFlag?: boolean;
 }
 
 /**
  * What a week-grid tile shows: the meal's contents. The tile (button) around it stays in its cell; only the
  * face slides, so the tile's own hover lift never fights the slide.
  */
-export default function MealTileFace({ meal, rowLabelKey, flipKey, lock, pastEmpty = false }: Props) {
+export default function MealTileFace({ meal, rowLabelKey, flipKey, lock, pastEmpty = false, conflictFlag = false }: Props) {
   const { t, i18n } = useTranslation();
   const itemCount = meal ? mealItemCount(meal) : 0;
   const names = meal ? mealItemNames(meal, i18n.language) : [];
@@ -124,7 +126,7 @@ export default function MealTileFace({ meal, rowLabelKey, flipKey, lock, pastEmp
         </span>
       ) : (
         <>
-          {lock && <Lock data-testid="meal-lock-icon" className="absolute top-0 right-0 size-3.5 text-muted-foreground" aria-hidden="true" />}
+          {lock && !conflictFlag && <Lock data-testid="meal-lock-icon" className="absolute top-0 right-0 size-3.5 text-muted-foreground" aria-hidden="true" />}
           <span
             className={cn(
               'flex min-h-0 min-w-0 flex-1 flex-col gap-0.5 overflow-hidden [mask-image:linear-gradient(to_bottom,black_calc(100%-1.25rem),transparent)]',

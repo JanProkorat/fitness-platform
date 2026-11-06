@@ -2295,6 +2295,9 @@
       "restore": "Restore what the client ate",
       "fixOutlined": "Fix the outlined meal and save again.",
       "fixRemoved": "Restore the removed meal and save again.",
+      "conflictBadge": "This meal can no longer be saved. Open it for details.",
+      "conflictEaten": "The client ate this meal before you saved your changes.",
+      "conflictPast": "This day is over, so changes to it can't be saved.",
       "legend": {
         "label": "Meal colours",
         "eaten": "Eaten",

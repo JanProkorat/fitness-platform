@@ -1,7 +1,7 @@
 import { useCallback, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useDraggable, useDroppable } from '@dnd-kit/react';
-import { Lock, Plus, StickyNote, X } from 'lucide-react';
+import { CircleAlert, Lock, Plus, StickyNote, X } from 'lucide-react';
 import { MealLockState, type MealKind } from '@/api/generated';
 import { cn } from '@/lib/utils';
 import DayTargetPopover from '@/components/plan-editor/DayTargetPopover';
@@ -17,12 +17,11 @@ import {
   type RemovedGhost,
   isRejectedTile,
   useLockRejection,
+  useLockConflicts,
   useMealLocks,
-  useRestoreRejected,
   type MealLockView,
 } from '@/components/plan-editor/meal-locks';
 import MealRowInsertLine from '@/components/plan-editor/MealRowInsertLine';
-import { Button } from '@/components/ui/button';
 import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Textarea } from '@/components/ui/textarea';
 import { usePopoverBoundary } from '@/components/plan-editor/PopoverBoundary';
@@ -129,8 +128,10 @@ function MealCell({
   const { t } = useTranslation();
   const boundary = usePopoverBoundary();
   const locked = lock?.locked ?? false;
-  const rejected = isRejectedTile(useLockRejection(), meal?.mealId, weekIndex + 1, dayOfWeek);
-  const restore = useRestoreRejected();
+  const lockConflicts = useLockConflicts();
+  const flagged = meal ? lockConflicts.has(meal.mealId) : false;
+  const serverRejected = isRejectedTile(useLockRejection(), meal?.mealId, weekIndex + 1, dayOfWeek);
+  const rejected = flagged || serverRejected;
   const { ref: dropRef, isDropTarget } = useDroppable({
     id: `cell:${weekIndex}:${dayOfWeek}:${rowIndex}`,
     data: { weekIndex, dayOfWeek, rowIndex },
@@ -253,31 +254,33 @@ function MealCell({
                 : undefined
             }
             pastEmpty={pastDay && shownCount === 0}
+            conflictFlag={flagged}
           />
           {conflict && <ConflictBadge className="absolute top-2 right-2 size-5" />}
-          {rejected && restore && (
-            // A span, not a nested button; it overlays the tile's bottom edge so the tile does not grow.
-            <Button asChild size="sm" variant="outline" className="absolute inset-x-2 bottom-2 h-auto min-h-0 py-1 text-meta">
-              <span
-                role="button"
-                tabIndex={0}
-                data-testid="meal-restore"
-                onPointerDown={(event) => event.stopPropagation()}
-                onClick={(event) => {
+          {flagged && (
+            // A span with role=button, not a nested <button> (invalid inside the tile's button). A click bubbles to the
+            // tile, which opens the popover; the key press does the same on its behalf.
+            <span
+              role="button"
+              tabIndex={0}
+              data-testid="meal-lock-conflict"
+              aria-label={t('planEditor.locks.conflictBadge')}
+              title={t('planEditor.locks.conflictBadge')}
+              onPointerDown={(event) => event.stopPropagation()}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
                   event.stopPropagation();
-                  restore();
-                }}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter' || event.key === ' ') {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    restore();
-                  }
-                }}
-              >
-                <span className="truncate">{t('planEditor.locks.restore')}</span>
-              </span>
-            </Button>
+                  onSelect();
+                }
+              }}
+              className={cn(
+                'absolute top-1.5 flex size-5 cursor-pointer items-center justify-center rounded-full bg-error text-card outline-none focus-visible:ring-3 focus-visible:ring-ring/50',
+                conflict ? 'right-8' : 'right-1.5',
+              )}
+            >
+              <CircleAlert className="size-3.5" aria-hidden="true" />
+            </span>
           )}
         </button>
       </PopoverAnchor>

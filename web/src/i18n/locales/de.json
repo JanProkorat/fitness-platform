@@ -2294,6 +2294,9 @@
       "restore": "Wiederherstellen, was der Klient gegessen hat",
       "fixOutlined": "Korrigieren Sie die markierte Mahlzeit und speichern Sie erneut.",
       "fixRemoved": "Stellen Sie die entfernte Mahlzeit wieder her und speichern Sie erneut.",
+      "conflictBadge": "Diese Mahlzeit kann nicht mehr gespeichert werden. Öffnen Sie sie für Details.",
+      "conflictEaten": "Der Klient hat diese Mahlzeit gegessen, bevor Sie Ihre Änderungen gespeichert haben.",
+      "conflictPast": "Dieser Tag ist vorbei, Änderungen daran können nicht gespeichert werden.",
       "legend": {
         "label": "Mahlzeitenfarben",
         "eaten": "Gegessen",

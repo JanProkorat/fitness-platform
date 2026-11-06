@@ -1,8 +1,8 @@
 import { useTranslation } from 'react-i18next';
-import { Check, ChevronRight, Contrast, Lock, StickyNote, X } from 'lucide-react';
+import { Check, ChevronRight, CircleAlert, Contrast, Lock, StickyNote, X } from 'lucide-react';
 import { MealLockState, SeenMealItemKind } from '@/api/generated';
 import MacroDots from '@/components/plan-editor/MacroDots';
-import type { MealLockView } from '@/components/plan-editor/meal-locks';
+import type { LockConflictKind, MealLockView } from '@/components/plan-editor/meal-locks';
 import { mealKindLabelKey } from '@/components/plan-editor/plan-editor-format';
 import { mealItemEntries, type Totals } from '@/components/plan-editor/plan-editor-nutrition';
 import type { EditorMeal } from '@/components/plan-editor/plan-editor-types';
@@ -81,7 +81,12 @@ interface Props {
   pastDay: boolean;
   language: string;
   onClose: () => void;
-  onOpenDay: () => void;
+  /** Absent where there is no day to open (the day view already is one). */
+  onOpenDay?: () => void;
+  /** Set when the coach's unsaved draft of this meal clashes with the lock; shows the notice and the restore. */
+  conflict?: LockConflictKind;
+  /** Puts the server's copy back; absent while that copy is being refetched, which disables the button. */
+  onRestore?: () => void;
 }
 
 /** What opens from a locked meal: what the client ate of it, read-only, with the way on to its day. */
@@ -95,6 +100,8 @@ export default function LockedMealPopover({
   language,
   onClose,
   onOpenDay,
+  conflict,
+  onRestore,
 }: Props) {
   const { t } = useTranslation();
   const rows = itemRows(meal, lock, language);
@@ -147,6 +154,17 @@ export default function LockedMealPopover({
         </button>
       </div>
 
+      {conflict && (
+        <div
+          role="alert"
+          data-testid="meal-lock-conflict-notice"
+          className="flex items-start gap-2 rounded-xl border border-error bg-error-soft px-4 py-3 text-body text-error"
+        >
+          <CircleAlert className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+          <span className="min-w-0">{t(conflict === 'eaten' ? 'planEditor.locks.conflictEaten' : 'planEditor.locks.conflictPast')}</span>
+        </div>
+      )}
+
       <div className="flex flex-col gap-2">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
           <span
@@ -188,7 +206,10 @@ export default function LockedMealPopover({
                 <span className="sr-only">{t('planEditor.locks.item.eaten')}</span>
               </span>
             ) : (
-              <span className="size-6 shrink-0 rounded-full border-2 border-line" aria-hidden="true" />
+              <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-error text-card">
+                <X className="size-3.5" aria-hidden="true" />
+                <span className="sr-only">{t('planEditor.locks.item.notEaten')}</span>
+              </span>
             )}
             <div className="flex min-w-0 flex-1 flex-col">
               <span className="truncate text-copy font-semibold text-ink">{row.name}</span>
@@ -222,11 +243,19 @@ export default function LockedMealPopover({
         <p className="min-w-0 text-body text-muted-foreground">
           {hasSnapshot ? t('planEditor.locks.snapshotNote', { name: clientName }) : t('planEditor.locks.lockedNote')}
         </p>
-        <Button type="button" variant="outline" size="sm" className="shrink-0 gap-1" onClick={onOpenDay}>
-          {t('planEditor.locks.openDay', { day: dayLong })}
-          <ChevronRight className="size-4" aria-hidden="true" />
-        </Button>
+        {onOpenDay && (
+          <Button type="button" variant="outline" size="sm" className="shrink-0 gap-1" onClick={onOpenDay}>
+            {t('planEditor.locks.openDay', { day: dayLong })}
+            <ChevronRight className="size-4" aria-hidden="true" />
+          </Button>
+        )}
       </div>
+
+      {conflict && (
+        <Button type="button" variant="destructive" size="sm" data-testid="meal-restore" disabled={!onRestore} onClick={onRestore}>
+          {t('planEditor.locks.restore')}
+        </Button>
+      )}
     </div>
   );
 }

@@ -1,7 +1,7 @@
-import { useCallback, type ReactNode } from 'react';
+import { useCallback, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useDraggable, useDroppable } from '@dnd-kit/react';
-import { Check, Contrast, GripVertical, History, Lock, StickyNote, Trash2, X } from 'lucide-react';
+import { Check, CircleAlert, Contrast, GripVertical, History, Lock, StickyNote, Trash2, X } from 'lucide-react';
 import { MealLockState } from '@/api/generated';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -30,13 +30,18 @@ import {
   setMealNote,
   setRecipeServings,
 } from '@/components/plan-editor/plan-editor-ops';
-import { Button } from '@/components/ui/button';
+import LockedMealPopover from '@/components/plan-editor/LockedMealPopover';
+import { usePopoverBoundary } from '@/components/plan-editor/PopoverBoundary';
+import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover';
 import {
+  isPastDay,
   isRejectedTile,
   lockedTileSurfaceClass,
   mealLockView,
+  slotDate,
   snapshotEntries,
   sumEntries,
+  useLockConflicts,
   useLockRejection,
   useMealLocks,
   useRestoreRejected,
@@ -104,8 +109,13 @@ export default function MealBlock({
   const conflicts = useSyncConflicts();
   const conflict = conflicts?.forMeal(weekIndex, meal.mealId);
   const locks = useMealLocks();
-  const rejected = isRejectedTile(useLockRejection(), meal.mealId, weekIndex + 1, dayOfWeek);
+  const conflictKind = useLockConflicts().get(meal.mealId);
+  const flagged = conflictKind !== undefined;
+  const serverRejected = isRejectedTile(useLockRejection(), meal.mealId, weekIndex + 1, dayOfWeek);
+  const rejected = flagged || serverRejected;
   const restore = useRestoreRejected();
+  const boundary = usePopoverBoundary();
+  const [conflictOpen, setConflictOpen] = useState(false);
   // A locked meal reads like a read-only one: it neither moves nor takes a drop, and its controls are gone.
   const lockView = locks ? mealLockView(locks, meal.mealId, weekIndex + 1, dayOfWeek) : undefined;
   const locked = lockView?.locked ?? false;
@@ -163,6 +173,8 @@ export default function MealBlock({
   const dropMode = hovered && cellDrag?.mode === 'copy' ? 'copy' : undefined;
 
   return (
+    <Popover open={conflictOpen} modal={false} onOpenChange={setConflictOpen}>
+    <PopoverAnchor asChild>
     <li
       ref={ref}
       data-testid="meal-block"
@@ -176,7 +188,12 @@ export default function MealBlock({
       data-lock={locked ? lockState : undefined}
       tabIndex={readOnly ? undefined : 0}
       aria-label={kindLabel}
-      onClick={onSelect}
+      onClick={() => {
+        onSelect();
+        if (flagged) {
+          setConflictOpen((open) => !open);
+        }
+      }}
       aria-keyshortcuts={draggable && onKeyMove ? MOVE_KEY_SHORTCUTS : undefined}
       onKeyDown={(event) => {
         const direction = draggable && onKeyMove ? moveDirection(event) : null;
@@ -203,7 +220,25 @@ export default function MealBlock({
       <div data-flip-key={meal.mealId} className="relative flex flex-col gap-3">
         <div className={cn('flex flex-wrap items-center gap-x-3 gap-y-1.5', draggable && 'cursor-grab active:cursor-grabbing')}>
           {draggable && <GripVertical className="size-4 shrink-0 text-faint" aria-hidden="true" />}
-          {locked && <Lock data-testid="meal-lock-icon" className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />}
+          {locked && !flagged && (
+            <Lock data-testid="meal-lock-icon" className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+          )}
+          {flagged && (
+            <button
+              type="button"
+              data-testid="meal-lock-conflict"
+              aria-label={t('planEditor.locks.conflictBadge')}
+              title={t('planEditor.locks.conflictBadge')}
+              onPointerDown={(event) => event.stopPropagation()}
+              onClick={(event) => {
+                event.stopPropagation();
+                setConflictOpen((open) => !open);
+              }}
+              className="flex size-5 shrink-0 cursor-pointer items-center justify-center rounded-full bg-error text-card outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+            >
+              <CircleAlert className="size-3.5" aria-hidden="true" />
+            </button>
+          )}
           <h3 className="font-display text-card-title font-semibold text-ink">{kindLabel}</h3>
           <span className="text-copy font-semibold text-ink">
             {t('planEditor.cell.kcal', { kcal: Math.round(totals.kcal) })}
@@ -252,22 +287,6 @@ export default function MealBlock({
                 ? t('planEditor.locks.notMarkedEaten')
                 : t(conflict ? 'planEditor.locks.eatenAtOffline' : 'planEditor.locks.eatenAt', { time: eatenTime })}
             </span>
-          )}
-          {rejected && restore && (
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              data-testid="meal-restore"
-              className="ml-auto"
-              onPointerDown={(event) => event.stopPropagation()}
-              onClick={(event) => {
-                event.stopPropagation();
-                restore();
-              }}
-            >
-              {t('planEditor.locks.restore')}
-            </Button>
           )}
           {!frozen && (
             <span className="ml-auto flex items-center gap-1">
@@ -361,5 +380,39 @@ export default function MealBlock({
         )}
       </div>
     </li>
+    </PopoverAnchor>
+    {conflictOpen && flagged && locks && lockView && (
+      <PopoverContent
+        side="bottom"
+        align="start"
+        collisionBoundary={boundary}
+        collisionPadding={{ top: 0, right: 16, bottom: 16, left: 16 }}
+        sideOffset={8}
+        data-testid="meal-detail"
+        className="max-h-(--radix-popover-content-available-height) w-140 max-w-[calc(100vw-2rem)] overflow-y-auto rounded-2xl border-line bg-card p-5"
+        onOpenAutoFocus={(event) => event.preventDefault()}
+      >
+        <LockedMealPopover
+          meal={meal}
+          lock={lockView}
+          clientName={locks.clientName}
+          dayOfWeek={dayOfWeek}
+          date={slotDate(locks.startDate, weekIndex + 1, dayOfWeek)}
+          pastDay={isPastDay(locks, weekIndex + 1, dayOfWeek)}
+          language={language}
+          conflict={conflictKind}
+          onClose={() => setConflictOpen(false)}
+          onRestore={
+            restore
+              ? () => {
+                  restore(meal.mealId);
+                  setConflictOpen(false);
+                }
+              : undefined
+          }
+        />
+      </PopoverContent>
+    )}
+    </Popover>
   );
 }

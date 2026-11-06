@@ -31,8 +31,10 @@ import {
   dayEatenKcal,
   dayHasLock,
   isPastDay,
+  findLockConflicts,
   findStoredMeal,
   keepLocked,
+  LockConflictsContext,
   LockRejectionContext,
   RestoreRejectedContext,
   mealLockView,
@@ -121,6 +123,7 @@ import {
   moveMealContents,
   nextSnackKind,
   removeLastWeek,
+  removeMeal,
   removeMealRow,
   reorderMealItems,
   restoreStoredMeal,
@@ -450,22 +453,62 @@ export default function PlanEditor({
     () => (storedDocument && lockRejection?.mealId ? findStoredMeal(storedDocument, lockRejection.mealId) : undefined),
     [storedDocument, lockRejection],
   );
-  const restoreRejected = useMemo(() => {
-    if (!storedRejected || !lockRejection?.mealId) {
+  // Restores one meal by id: the server's copy goes back in, or a meal the server never had (added to a past day) is
+  // removed. Only the fresh stored copy is used, never the last one kept for the flags.
+  const restoreMeal = useMemo(() => {
+    if (!storedDocument) {
       return null;
     }
-    const { meal, weekNumber, dayOfWeek: storedDay } = storedRejected;
-    const mealId = lockRejection.mealId;
-    if (!doc.weeks.some((candidate) => candidate.weekNumber === weekNumber)) {
-      return null;
-    }
-    return () =>
+    return (mealId: string) => {
+      const stored = findStoredMeal(storedDocument, mealId);
       rawEdit((current) => {
-        const next = restoreStoredMeal(current, meal, weekNumber, storedDay);
+        let next = current;
+        if (stored) {
+          next = restoreStoredMeal(current, stored.meal, stored.weekNumber, stored.dayOfWeek);
+        } else {
+          current.weeks.forEach((week, weekIdx) =>
+            week.days.forEach((day) => {
+              if (day.meals.some((meal) => meal.mealId === mealId)) {
+                next = removeMeal(next, weekIdx, day.dayOfWeek, mealId);
+              }
+            }),
+          );
+        }
         return locksRef.current ? keepLocked(locksRef.current, next, current, mealId) : next;
       });
-  }, [storedRejected, lockRejection, doc.weeks, rawEdit]);
+    };
+  }, [storedDocument, rawEdit]);
+  const restoreRejected = useMemo(() => {
+    const mealId = lockRejection?.mealId;
+    if (!storedRejected || !mealId || !restoreMeal) {
+      return null;
+    }
+    if (!doc.weeks.some((candidate) => candidate.weekNumber === storedRejected.weekNumber)) {
+      return null;
+    }
+    return () => restoreMeal(mealId);
+  }, [storedRejected, lockRejection, doc.weeks, restoreMeal]);
   const rejectedInDocument = lockRejection ? rejectionFingerprint(doc, lockRejection)[0] !== undefined : false;
+  // The last non-null stored copy: while a refetch is in flight `storedDocument` is null, and the flags must not flicker.
+  const [lastStored, setLastStored] = useState(storedDocument);
+  if (storedDocument && storedDocument !== lastStored) {
+    setLastStored(storedDocument);
+  }
+  // Meals whose draft clashes with a lock, found live; the server's refusal flags its meal the same way as a fallback.
+  const lockConflicts = useMemo(() => {
+    const found = findLockConflicts(doc, lastStored, locks);
+    if (lockRejection?.mealId && !found.has(lockRejection.mealId)) {
+      const [placed, weekNumber, day] = rejectionFingerprint(doc, lockRejection);
+      if (placed !== undefined) {
+        const view =
+          locks && typeof weekNumber === 'number' && typeof day === 'number'
+            ? mealLockView(locks, lockRejection.mealId, weekNumber, day)
+            : undefined;
+        found.set(lockRejection.mealId, view && !view.info?.locked ? 'pastDay' : 'eaten');
+      }
+    }
+    return found;
+  }, [doc, lastStored, locks, lockRejection]);
   const targets = doc.targets;
   const dailyKcalTarget = targets.kcal;
   const [weekIndex, setWeekIndex] = useState(0);
@@ -775,7 +818,8 @@ export default function PlanEditor({
     const meal = mealAt(cell.dayOfWeek, cell.rowIndex);
     const reopen = detailCell?.dayOfWeek === cell.dayOfWeek && detailCell.rowIndex === cell.rowIndex;
     const hasConflict = meal ? conflictsModel?.forMeal(currentIndex, meal.mealId) !== undefined : false;
-    setDetailCell(meal && (mealItemCount(meal) > 0 || hasConflict) && !reopen ? cell : null);
+    const flagged = meal ? lockConflicts.has(meal.mealId) : false;
+    setDetailCell(meal && (mealItemCount(meal) > 0 || hasConflict || flagged) && !reopen ? cell : null);
   }
 
   function renderDetail(cell: SelectedCell): ReactNode {
@@ -799,6 +843,15 @@ export default function PlanEditor({
     if (locks && lock?.locked) {
       return (
         <LockedMealPopover
+          conflict={lockConflicts.get(meal.mealId)}
+          onRestore={
+            restoreMeal
+              ? () => {
+                  restoreMeal(meal.mealId);
+                  setDetailCell(null);
+                }
+              : undefined
+          }
           meal={meal}
           lock={lock}
           clientName={locks.clientName}
@@ -1553,7 +1606,8 @@ export default function PlanEditor({
     <SyncConflictsContext.Provider value={conflictsModel}>
     <MealLocksContext.Provider value={locks}>
     <LockRejectionContext.Provider value={lockRejection}>
-    <RestoreRejectedContext.Provider value={restoreRejected}>
+    <LockConflictsContext.Provider value={lockConflicts}>
+    <RestoreRejectedContext.Provider value={restoreMeal}>
     <PopoverBoundaryContext.Provider value={scrollArea}>
     <DragDropProvider
       sensors={DRAG_SENSORS}
@@ -1965,6 +2019,7 @@ export default function PlanEditor({
     </DragDropProvider>
     </PopoverBoundaryContext.Provider>
     </RestoreRejectedContext.Provider>
+    </LockConflictsContext.Provider>
     </LockRejectionContext.Provider>
     </MealLocksContext.Provider>
     </SyncConflictsContext.Provider>
