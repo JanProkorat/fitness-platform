@@ -3362,7 +3362,7 @@ export class ApiClient {
     /**
      * Update client data
      * @param clientId Client profile public ID (route parameter).
-     * @return Success
+     * @return Client data updated
      */
     updateClientDataEndpoint(clientId: string, updateClientDataRequest: UpdateClientDataRequest, signal?: AbortSignal): Promise<UpdateClientDataResponse> {
         let url_ = this.baseUrl + "/trainer/clients/{clientId}";
@@ -3421,11 +3421,11 @@ export class ApiClient {
 
         } else if (status === 401) {
             const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
 
         } else if (status === 403) {
             const _responseText = response.data;
-            return throwException("Forbidden", status, _responseText, _headers);
+            return throwException("Request carries nutrition targets but the link has no nutrition capability", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -14772,7 +14772,7 @@ export class ApiClient {
      * Save photos / note for a training session diary entry
      * @param sessionId The unique identifier of the training session whose photos/note are being saved.
     Sourced from the route segment {SessionId}.
-     * @return No Content
+     * @return Photos saved
      */
     saveSessionPhotosEndpoint(sessionId: string, saveSessionPhotosRequest: SaveSessionPhotosRequest, signal?: AbortSignal): Promise<void> {
         let url_ = this.baseUrl + "/client/training/log/sessions/{sessionId}/photos";
@@ -14823,7 +14823,7 @@ export class ApiClient {
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("Bad Request", status, _responseText, _headers, result400);
+            return throwException("Invalid request, or a photo URL is not a blob URL from this session\'s upload folder (INVALID_BLOB_URL)", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
@@ -18047,7 +18047,7 @@ export class ApiClient {
 
     /**
      * Save plan-level day photos / note for today
-     * @return No Content
+     * @return Photos saved
      */
     saveDayPhotosEndpoint(saveDayPhotosRequest: SaveDayPhotosRequest, signal?: AbortSignal): Promise<void> {
         let url_ = this.baseUrl + "/client/nutrition/log/day/photos";
@@ -18095,7 +18095,7 @@ export class ApiClient {
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("Bad Request", status, _responseText, _headers, result400);
+            return throwException("Invalid request, or a photo URL is not a blob URL from this plan\'s upload folder (INVALID_BLOB_URL)", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
@@ -21661,7 +21661,7 @@ export class ApiClient {
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("idToken or nonce is missing or empty", status, _responseText, _headers, result400);
+            return throwException("idToken or nonce is missing or empty, Roles is invalid (Admin, unknown, or Client combined with a coach role), a coach sends healthDataConsent, or a new Client account lacks healthDataConsent=true. The nonce is already consumed by the time the consent check runs, so the client must request a new nonce to retry", status, _responseText, _headers, result400);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -21724,7 +21724,7 @@ export class ApiClient {
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("identityToken or nonce is missing or empty", status, _responseText, _headers, result400);
+            return throwException("identityToken or nonce is missing or empty, Roles is invalid (Admin, unknown, or Client combined with a coach role), a coach sends healthDataConsent, or a new Client account lacks healthDataConsent=true. The nonce is already consumed by the time the consent check runs, so the client must request a new nonce to retry", status, _responseText, _headers, result400);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -26760,10 +26760,10 @@ export interface NutritionPlanTemplateDetailDto {
     weeks?: TemplateWeek[];
     /** Number of weeks, server-computed from Weeks. */
     weekCount?: number;
-    /** Most common meal count over the template's non-empty days (days with at least one meal,
-across all weeks); ties resolve to the smaller count. Null when no day has a meal. */
+    /** Most common meal count (empty rows included) over days with at least one food or recipe;
+ties go to the smaller count. Null when no day has a food or recipe. */
     mealsPerDay?: number | undefined;
-    /** Average kcal per non-empty day, in whole kcal. Null when no day has a meal. */
+    /** Average kcal per day with at least one food or recipe, rounded to whole kcal. Null when no such day. */
     avgKcalPerDay?: number | undefined;
     /** Who can read this entry besides its owner. */
     visibility?: LibraryVisibility;
@@ -27017,10 +27017,10 @@ export interface NutritionPlanTemplateSummaryDto {
     dietaryStyle?: DietaryStyle | undefined;
     /** Number of weeks, server-computed from the template's week tree. */
     weekCount?: number;
-    /** Most common meal count over the template's non-empty days (days with at least one meal,
-across all weeks); ties resolve to the smaller count. Null when no day has a meal. */
+    /** Most common meal count (empty rows included) over days with at least one food or recipe;
+ties go to the smaller count. Null when no day has a food or recipe. */
     mealsPerDay?: number | undefined;
-    /** Average kcal per non-empty day, in whole kcal. Null when no day has a meal. */
+    /** Average kcal per day with at least one food or recipe, rounded to whole kcal. Null when no such day. */
     avgKcalPerDay?: number | undefined;
     /** Number of the caller's own Active plans instantiated from this template; other
 nutritionists' usage is never counted. */
@@ -31626,6 +31626,12 @@ export interface GoogleSocialLoginRequest {
 The client must pass the same raw value that was embedded in the Google sign-in flow
 (Google embeds the raw nonce directly in the id_token's nonce field — no hashing). */
     nonce: string;
+    /** Roles requested for a brand-new account: Trainer, Nutritionist or Client (never combined with a coach role).
+Empty or absent means Client. Ignored when the Google identity is already linked to an account. */
+    roles?: string[];
+    /** Art. 9 health-data consent. Must be true when a new Client account is created and
+must be absent for a coach sign-up. Ignored when the Google identity is already linked. */
+    healthDataConsent?: boolean | undefined;
 }
 
 /** Response returned on a successful Apple Sign-In. Identical shape to Google Social Login response. */
@@ -31660,6 +31666,12 @@ Apple does not re-send this on subsequent authentications. */
 The client must pass the same raw value that was embedded in the Apple sign-in flow
 (Apple hashes it before embedding: SHA-256(nonce) appears in the id_token's nonce claim). */
     nonce: string;
+    /** Roles requested for a brand-new account: Trainer, Nutritionist or Client (never combined with a coach role).
+Empty or absent means Client. Ignored when the Apple identity is already linked to an account. */
+    roles?: string[];
+    /** Art. 9 health-data consent. Must be true when a new Client account is created and
+must be absent for a coach sign-up. Ignored when the Apple identity is already linked. */
+    healthDataConsent?: boolean | undefined;
 }
 
 /** Request model for completing a password reset using a token. */
