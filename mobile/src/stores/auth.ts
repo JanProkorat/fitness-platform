@@ -124,8 +124,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   logout: async (options) => {
-    // Captured before the state clears so the server-side push token can be removed as this user.
-    const endingAccessToken = get().accessToken;
     const endingUserId = get().sessionUserId;
     set((state) => ({
       accessToken: null,
@@ -144,7 +142,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     else await useOutboxStore.getState().release();
     // Fire and forget, imported lazily because the API client imports this store.
     void import('@/api/pushToken')
-      .then(({ unregisterPushToken }) => unregisterPushToken(endingAccessToken))
+      .then(({ unregisterPushToken }) => unregisterPushToken())
       .catch(() => undefined);
     await SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY);
     await clearStoredSessionUserId();

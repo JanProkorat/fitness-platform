@@ -1442,7 +1442,7 @@
         "GET /client/notifications",
         "GET /conversations",
         "POST /client/push-token",
-        "DELETE /client/push-token",
+        "POST /client/push-token/remove",
         "GET /client/payments",
         "GET /client/app-config",
         "GET /client/collaborations",

@@ -214,6 +214,19 @@ builder.Services.AddRateLimiter(options =>
                     QueueLimit = 0
                 }));
 
+    // Anonymous push token removal: see AppPolicies.PushTokenRemoveRateLimit for why this is not the auth budget.
+    options.AddPolicy(AppPolicies.PushTokenRemoveRateLimit, context =>
+        rateLimitingDisabled
+            ? RateLimitPartition.GetNoLimiter("disabled")
+            : RateLimitPartition.GetFixedWindowLimiter(
+                partitionKey: GetPartitionKey(context),
+                factory: _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = 60,
+                    Window = TimeSpan.FromMinutes(15),
+                    QueueLimit = 0
+                }));
+
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
 });
 
