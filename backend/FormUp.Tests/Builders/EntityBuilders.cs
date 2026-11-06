@@ -1225,3 +1225,16 @@ public static class CoachSubscriptionBuilder
             .Where(cs => cs.ProfessionalProfileId == coach.ProfileId)
             .ExecuteDeleteAsync(TestContext.Current.CancellationToken);
 }
+
+/// <summary>
+/// Builds the <see cref="FormUp.Application.Domain.Services.EntitlementService"/> a unit test passes to an endpoint.
+/// </summary>
+public static class EntitlementServiceBuilder
+{
+    /// <summary>
+    /// A service over <paramref name="db"/> with the system clock and a null logger.
+    /// </summary>
+    /// <param name="db">The database context the service reads.</param>
+    public static FormUp.Application.Domain.Services.EntitlementService For(IApplicationDbContext db) =>
+        new(db, TimeProvider.System, Microsoft.Extensions.Logging.Abstractions.NullLogger<FormUp.Application.Domain.Services.EntitlementService>.Instance);
+}

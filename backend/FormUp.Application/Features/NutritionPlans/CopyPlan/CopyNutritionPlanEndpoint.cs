@@ -65,13 +65,6 @@ public class CopyNutritionPlanEndpoint(
 
         var nutritionistId = Guid.Parse(userId);
 
-        if (await this.RespondIfFeatureNotEntitledAsync(
-                db, nutritionistId, entitlements => entitlements.CanCreatePlans,
-                "The current subscription does not include creating plans.", ct))
-        {
-            return;
-        }
-
         var source = await this.LoadOwnedNutritionPlanIfAllowedAsync(
             mongo, linkAuthorizationService, req.PlanId, nutritionistId, ct);
 
@@ -86,6 +79,14 @@ public class CopyNutritionPlanEndpoint(
         if (capabilities is not { CanViewNutritionPlans: true })
         {
             await Send.NotFoundAsync(ct);
+            return;
+        }
+
+        // After the source and target lookups, so a missing or foreign plan or client still answers 404.
+        if (await this.RespondIfFeatureNotEntitledAsync(
+                db, nutritionistId, entitlements => entitlements.CanCreatePlans,
+                "The current subscription does not include creating plans.", ct))
+        {
             return;
         }
 

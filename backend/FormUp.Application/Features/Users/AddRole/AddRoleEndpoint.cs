@@ -82,6 +82,15 @@ public class AddRoleEndpoint(
                 return;
             }
 
+            // Restoring a role is a second role only while the other coach role is still active; restoring the
+            // only role after a full removal or disable is not.
+            var otherRoleActive = CoachRoleStatus.ActiveRoles(currentRoles, existingProfile)
+                .Any(role => role != req.Role);
+
+            if (otherRoleActive && await this.RespondIfSecondRoleNotAvailableAsync(db, userId, ct))
+            {
+                return;
+            }
         }
         else
         {

@@ -67,13 +67,6 @@ public class UpdateTrainingPlanEndpoint(
 
         var trainerId = Guid.Parse(userId);
 
-        if (await this.RespondIfFeatureNotEntitledAsync(
-                db, trainerId, entitlements => entitlements.CanCreatePlans,
-                "The current subscription does not include editing plans.", ct))
-        {
-            return;
-        }
-
         var lookupFilter = Builders<TrainingPlan>.Filter.Eq(p => p.ExternalId, req.PlanId)
                      & Builders<TrainingPlan>.Filter.Eq(p => p.TrainerId, trainerId);
         var replaceFilter = Builders<TrainingPlan>.Filter.Eq(p => p.ExternalId, req.PlanId)
@@ -466,13 +459,16 @@ public class UpdateTrainingPlanEndpoint(
         var capabilities = await linkAuthorizationService.GetCapabilitiesByClientUserIdAsync(
             trainerId, plan.ClientId, ct);
 
-        if (capabilities is { CanViewTrainingPlans: true })
+        if (capabilities is not { CanViewTrainingPlans: true })
         {
-            return true;
+            await Send.NotFoundAsync(ct);
+            return false;
         }
 
-        await Send.NotFoundAsync(ct);
-        return false;
+        // The subscription gate comes after the lookup, so a missing or foreign plan still answers 404.
+        return !await this.RespondIfFeatureNotEntitledAsync(
+            db, trainerId, entitlements => entitlements.CanCreatePlans,
+            "The current subscription does not include editing plans.", ct);
     }
 
     /// <summary>

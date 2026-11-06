@@ -60,13 +60,6 @@ public class PublishTrainingWeekEndpoint(
 
         var trainerId = Guid.Parse(userId);
 
-        if (await this.RespondIfFeatureNotEntitledAsync(
-                db, trainerId, entitlements => entitlements.CanCreatePlans,
-                "The current subscription does not include publishing plans.", ct))
-        {
-            return;
-        }
-
         var lookupFilter = Builders<TrainingPlan>.Filter.Eq(p => p.ExternalId, req.PlanId)
                      & Builders<TrainingPlan>.Filter.Eq(p => p.TrainerId, trainerId);
 
@@ -82,13 +75,16 @@ public class PublishTrainingWeekEndpoint(
             var capabilities = await linkAuthorizationService.GetCapabilitiesByClientUserIdAsync(
                 trainerId, plan.ClientId, authorizeCt);
 
-            if (capabilities is { CanViewTrainingPlans: true })
+            if (capabilities is not { CanViewTrainingPlans: true })
             {
-                return true;
+                await Send.NotFoundAsync(authorizeCt);
+                return false;
             }
 
-            await Send.NotFoundAsync(authorizeCt);
-            return false;
+            // The subscription gate comes after the lookup, so a missing or foreign plan still answers 404.
+            return !await this.RespondIfFeatureNotEntitledAsync(
+                db, trainerId, entitlements => entitlements.CanCreatePlans,
+                "The current subscription does not include publishing plans.", authorizeCt);
         }
 
         Task<bool> Validate(TrainingPlan plan, CancellationToken validateCt)

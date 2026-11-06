@@ -76,13 +76,6 @@ public class UpdatePlanEndpoint(
 
         var nutritionistId = Guid.Parse(userId);
 
-        if (await this.RespondIfFeatureNotEntitledAsync(
-                db, nutritionistId, entitlements => entitlements.CanCreatePlans,
-                "The current subscription does not include editing plans.", ct))
-        {
-            return;
-        }
-
         var lookupFilter = Builders<NutritionPlan>.Filter.Eq(p => p.ExternalId, req.PlanId)
                      & Builders<NutritionPlan>.Filter.Eq(p => p.NutritionistId, nutritionistId);
         var replaceFilter = Builders<NutritionPlan>.Filter.Eq(p => p.ExternalId, req.PlanId)
@@ -152,13 +145,16 @@ public class UpdatePlanEndpoint(
         var capabilities = await linkAuthorizationService.GetCapabilitiesByClientUserIdAsync(
             nutritionistId, plan.ClientId, ct);
 
-        if (capabilities is { CanViewNutritionPlans: true })
+        if (capabilities is not { CanViewNutritionPlans: true })
         {
-            return true;
+            await Send.NotFoundAsync(ct);
+            return false;
         }
 
-        await Send.NotFoundAsync(ct);
-        return false;
+        // The subscription gate comes after the lookup, so a missing or foreign plan still answers 404.
+        return !await this.RespondIfFeatureNotEntitledAsync(
+            db, nutritionistId, entitlements => entitlements.CanCreatePlans,
+            "The current subscription does not include editing plans.", ct);
     }
 
     private async Task<bool> RefuseExtensionAsync(CancellationToken ct)

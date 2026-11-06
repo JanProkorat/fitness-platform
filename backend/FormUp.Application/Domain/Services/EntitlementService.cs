@@ -2,9 +2,7 @@ using FormUp.Application.Domain.Constants;
 using FormUp.Application.Domain.Enums;
 using FormUp.Application.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 
 namespace FormUp.Application.Domain.Services;
 
@@ -31,21 +29,11 @@ public class EntitlementService
     /// <param name="db">Application database context.</param>
     /// <param name="timeProvider">Clock used to compare against <c>FreeUntil</c>.</param>
     /// <param name="logger">Logger for the missing-Free-plan error.</param>
-    [ActivatorUtilitiesConstructor]
     public EntitlementService(IApplicationDbContext db, TimeProvider timeProvider, ILogger<EntitlementService> logger)
     {
         this.db = db;
         this.timeProvider = timeProvider;
         this.logger = logger;
-    }
-
-    /// <summary>
-    /// Creates the service with the system clock and no logging, for callers that already hold only a database context.
-    /// </summary>
-    /// <param name="db">Application database context.</param>
-    public EntitlementService(IApplicationDbContext db)
-        : this(db, TimeProvider.System, NullLogger<EntitlementService>.Instance)
-    {
     }
 
     /// <summary>

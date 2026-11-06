@@ -58,13 +58,6 @@ public class CreateTrainingPlanEndpoint(
 
         var trainerId = Guid.Parse(userId);
 
-        if (await this.RespondIfFeatureNotEntitledAsync(
-                db, trainerId, entitlements => entitlements.CanCreatePlans,
-                "The current subscription does not include creating plans.", ct))
-        {
-            return;
-        }
-
         // req.ClientId is the trainer-facing ClientProfile.PublicId — the PublicId-addressed
         // overload. Training plans require CanViewTrainingPlans specifically.
         var capabilities = await linkAuthorizationService.GetCapabilitiesByClientPublicIdAsync(
@@ -73,6 +66,13 @@ public class CreateTrainingPlanEndpoint(
         if (capabilities is not { CanViewTrainingPlans: true })
         {
             await Send.NotFoundAsync(ct);
+            return;
+        }
+
+        if (await this.RespondIfFeatureNotEntitledAsync(
+                db, trainerId, entitlements => entitlements.CanCreatePlans,
+                "The current subscription does not include creating plans.", ct))
+        {
             return;
         }
 

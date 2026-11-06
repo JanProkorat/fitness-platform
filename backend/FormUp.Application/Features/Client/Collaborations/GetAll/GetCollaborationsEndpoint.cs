@@ -11,7 +11,9 @@ namespace FormUp.Application.Features.Client.Collaborations.GetAll;
 /// <summary>
 /// Returns the client's active professional collaborations.
 /// </summary>
-public class GetCollaborationsEndpoint(IApplicationDbContext db, TimeProvider timeProvider) : EndpointWithoutRequest<GetCollaborationsResponse>
+public class GetCollaborationsEndpoint(
+    IApplicationDbContext db, EntitlementService entitlementService, TimeProvider timeProvider)
+    : EndpointWithoutRequest<GetCollaborationsResponse>
 {
     public override void Configure()
     {
@@ -202,7 +204,6 @@ public class GetCollaborationsEndpoint(IApplicationDbContext db, TimeProvider ti
                 .ToListAsync(ct))
             .ToLookup(a => a.ClientProfessionalLinkId, a => a.ClientTagId);
 
-        var entitlementService = new EntitlementService(db);
         var localToday = DateOnly.FromDateTime(timeProvider.GetUtcNow().UtcDateTime);
 
         foreach (var link in links)

@@ -66,13 +66,6 @@ public class CreatePlanEndpoint(
 
         var nutritionistId = Guid.Parse(userId);
 
-        if (await this.RespondIfFeatureNotEntitledAsync(
-                db, nutritionistId, entitlements => entitlements.CanCreatePlans,
-                "The current subscription does not include creating plans.", ct))
-        {
-            return;
-        }
-
         // req.ClientId is the nutritionist-facing ClientProfile.PublicId — the PublicId-addressed
         // overload. Nutrition plans require CanViewNutritionPlans specifically.
         var capabilities = await linkAuthorizationService.GetCapabilitiesByClientPublicIdAsync(
@@ -81,6 +74,13 @@ public class CreatePlanEndpoint(
         if (capabilities is not { CanViewNutritionPlans: true })
         {
             await Send.NotFoundAsync(ct);
+            return;
+        }
+
+        if (await this.RespondIfFeatureNotEntitledAsync(
+                db, nutritionistId, entitlements => entitlements.CanCreatePlans,
+                "The current subscription does not include creating plans.", ct))
+        {
             return;
         }
 

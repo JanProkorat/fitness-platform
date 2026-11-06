@@ -10,16 +10,16 @@ using FormUp.Application.Features.NutritionPlans.CopyPlan;
 using FormUp.Application.Features.NutritionPlans.CreatePlan;
 using FormUp.Application.Features.NutritionPlans.PublishWeek;
 using FormUp.Application.Features.NutritionPlans.UpdatePlan;
-using FormUp.Application.Features.NutritionPlanTemplates.InstantiateTemplate;
 using FormUp.Application.Features.Trainers.AssignQuestionnaire;
 using FormUp.Application.Features.Trainers.ReplaceQuestionnaire;
 using FormUp.Application.Features.TrainingPlans.CreateTrainingPlan;
 using FormUp.Application.Features.TrainingPlans.PublishTrainingWeek;
 using FormUp.Application.Features.TrainingPlans.UpdateTrainingPlan;
-using FormUp.Application.Features.TrainingPlanTemplates.InstantiateTemplate;
 using FormUp.Application.Infrastructure.Data;
 using FormUp.Application.Infrastructure.Data.MongoDb;
 using FormUp.Tests.Builders;
+using FormUp.Tests.Endpoints.NutritionPlans;
+using FormUp.Tests.Endpoints.TrainingPlans;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
@@ -28,8 +28,9 @@ namespace FormUp.Tests.Endpoints.CoachSubscriptions;
 
 /// <summary>
 /// Every endpoint gated on a subscription feature answers 403 SUBSCRIPTION_REQUIRED when the coach's plan lacks
-/// that feature. The gate runs before any lookup, so each case calls <c>HandleAsync</c> with an empty request
-/// and stubbed dependencies.
+/// that feature. The plan endpoints check it after their lookup, so each case first lets the lookup succeed (and
+/// one case per update endpoint shows a missing plan still answers 404). The two instantiate endpoints are covered
+/// in <see cref="InstantiateEntitlementGateIntegrationTests"/>.
 /// </summary>
 public class EntitlementGateEndpointTests
 {
@@ -81,15 +82,27 @@ public class EntitlementGateEndpointTests
             .Should().Contain(ErrorCodes.SubscriptionRequired);
     }
 
-    private static IMongoContext Mongo() => Substitute.For<IMongoContext>();
+    private static IMongoContext EmptyMongo() => Substitute.For<IMongoContext>();
 
-    private static IClientLinkAuthorizationService Links() => Substitute.For<IClientLinkAuthorizationService>();
+    private static IClientLinkAuthorizationService GrantingLinks() =>
+        EndpointTestHelpers.CreateGrantingLinkAuthorizationService();
+
+    private UpdatePlanEndpoint CreateUpdatePlanEndpoint(IMongoContext mongo, MemoryStream body) =>
+        Factory.Create<UpdatePlanEndpoint>(
+            Caller(AppRoles.Nutritionist, body), mongo, Substitute.For<IMacroCalculatorService>(), DbOnAPlanWithoutFeatures(),
+            Substitute.For<IRealtimeNotifier>(), new PlanConcurrencyGuard(), GrantingLinks(), TimeProvider.System);
+
+    private UpdateTrainingPlanEndpoint CreateUpdateTrainingPlanEndpoint(IMongoContext mongo, MemoryStream body) =>
+        Factory.Create<UpdateTrainingPlanEndpoint>(
+            Caller(AppRoles.Trainer, body), mongo, Substitute.For<ISessionLockService>(), Substitute.For<IRealtimeNotifier>(),
+            new PlanConcurrencyGuard(), DbOnAPlanWithoutFeatures(), GrantingLinks());
 
     [Fact]
     public async Task CreatePlan_PlanWithoutCanCreatePlans_Returns403SubscriptionRequired()
     {
         var body = new MemoryStream();
-        var ep = Factory.Create<CreatePlanEndpoint>(Caller(AppRoles.Nutritionist, body), Mongo(), Links(), DbOnAPlanWithoutFeatures());
+        var ep = Factory.Create<CreatePlanEndpoint>(
+            Caller(AppRoles.Nutritionist, body), EmptyMongo(), GrantingLinks(), DbOnAPlanWithoutFeatures());
 
         await ep.HandleAsync(new CreatePlanRequest(), TestContext.Current.CancellationToken);
 
@@ -99,25 +112,35 @@ public class EntitlementGateEndpointTests
     [Fact]
     public async Task UpdatePlan_PlanWithoutCanCreatePlans_Returns403SubscriptionRequired()
     {
+        var plan = PlanTestHelpers.CreatePlan(nutritionistId: _userId);
         var body = new MemoryStream();
-        var ep = Factory.Create<UpdatePlanEndpoint>(
-            Caller(AppRoles.Nutritionist, body), Mongo(), Substitute.For<IMacroCalculatorService>(), DbOnAPlanWithoutFeatures(),
-            Substitute.For<IRealtimeNotifier>(), new PlanConcurrencyGuard(), Links(), TimeProvider.System);
+        var ep = CreateUpdatePlanEndpoint(PlanTestHelpers.CreateMockMongo(plans: [plan]), body);
 
-        await ep.HandleAsync(new UpdatePlanRequest(), TestContext.Current.CancellationToken);
+        await ep.HandleAsync(new UpdatePlanRequest { PlanId = plan.ExternalId, Version = plan.Version }, TestContext.Current.CancellationToken);
 
         await AssertSubscriptionRequiredAsync(ep, body);
     }
 
     [Fact]
+    public async Task UpdatePlan_MissingPlanOnAPlanWithoutCanCreatePlans_StillReturns404()
+    {
+        var ep = CreateUpdatePlanEndpoint(PlanTestHelpers.CreateMockMongo(plans: []), new MemoryStream());
+
+        await ep.HandleAsync(new UpdatePlanRequest { PlanId = Guid.NewGuid(), Version = 1 }, TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(StatusCodes.Status404NotFound);
+    }
+
+    [Fact]
     public async Task PublishWeek_PlanWithoutCanCreatePlans_Returns403SubscriptionRequired()
     {
+        var plan = PlanTestHelpers.CreatePlan(nutritionistId: _userId);
         var body = new MemoryStream();
         var ep = Factory.Create<PublishWeekEndpoint>(
-            Caller(AppRoles.Nutritionist, body), Mongo(), DbOnAPlanWithoutFeatures(), Substitute.For<INotificationService>(),
-            Substitute.For<IRealtimeNotifier>(), new PlanConcurrencyGuard(), Links());
+            Caller(AppRoles.Nutritionist, body), PlanTestHelpers.CreateMockMongo(plans: [plan]), DbOnAPlanWithoutFeatures(),
+            Substitute.For<INotificationService>(), Substitute.For<IRealtimeNotifier>(), new PlanConcurrencyGuard(), GrantingLinks());
 
-        await ep.HandleAsync(new PublishWeekRequest(), TestContext.Current.CancellationToken);
+        await ep.HandleAsync(new PublishWeekRequest { PlanId = plan.ExternalId, WeekNumber = 1 }, TestContext.Current.CancellationToken);
 
         await AssertSubscriptionRequiredAsync(ep, body);
     }
@@ -125,23 +148,13 @@ public class EntitlementGateEndpointTests
     [Fact]
     public async Task CopyNutritionPlan_PlanWithoutCanCreatePlans_Returns403SubscriptionRequired()
     {
+        var plan = PlanTestHelpers.CreatePlan(nutritionistId: _userId);
         var body = new MemoryStream();
         var ep = Factory.Create<CopyNutritionPlanEndpoint>(
-            Caller(AppRoles.Nutritionist, body), Mongo(), Links(), DbOnAPlanWithoutFeatures(), TimeProvider.System);
+            Caller(AppRoles.Nutritionist, body), PlanTestHelpers.CreateMockMongo(plans: [plan]), GrantingLinks(),
+            DbOnAPlanWithoutFeatures(), TimeProvider.System);
 
-        await ep.HandleAsync(new CopyNutritionPlanRequest(), TestContext.Current.CancellationToken);
-
-        await AssertSubscriptionRequiredAsync(ep, body);
-    }
-
-    [Fact]
-    public async Task InstantiateNutritionPlanTemplate_PlanWithoutCanCreatePlans_Returns403SubscriptionRequired()
-    {
-        var body = new MemoryStream();
-        var ep = Factory.Create<InstantiateTemplateEndpoint>(
-            Caller(AppRoles.Nutritionist, body), Mongo(), Links(), DbOnAPlanWithoutFeatures(), TimeProvider.System);
-
-        await ep.HandleAsync(new InstantiateNutritionPlanTemplateRequest(), TestContext.Current.CancellationToken);
+        await ep.HandleAsync(new CopyNutritionPlanRequest { PlanId = plan.ExternalId }, TestContext.Current.CancellationToken);
 
         await AssertSubscriptionRequiredAsync(ep, body);
     }
@@ -150,7 +163,8 @@ public class EntitlementGateEndpointTests
     public async Task CreateTrainingPlan_PlanWithoutCanCreatePlans_Returns403SubscriptionRequired()
     {
         var body = new MemoryStream();
-        var ep = Factory.Create<CreateTrainingPlanEndpoint>(Caller(AppRoles.Trainer, body), Mongo(), Links(), DbOnAPlanWithoutFeatures());
+        var ep = Factory.Create<CreateTrainingPlanEndpoint>(
+            Caller(AppRoles.Trainer, body), EmptyMongo(), GrantingLinks(), DbOnAPlanWithoutFeatures());
 
         await ep.HandleAsync(new CreateTrainingPlanRequest(), TestContext.Current.CancellationToken);
 
@@ -160,37 +174,36 @@ public class EntitlementGateEndpointTests
     [Fact]
     public async Task UpdateTrainingPlan_PlanWithoutCanCreatePlans_Returns403SubscriptionRequired()
     {
+        var plan = TrainingPlanTestHelpers.CreatePlan(trainerId: _userId);
         var body = new MemoryStream();
-        var ep = Factory.Create<UpdateTrainingPlanEndpoint>(
-            Caller(AppRoles.Trainer, body), Mongo(), Substitute.For<ISessionLockService>(), Substitute.For<IRealtimeNotifier>(),
-            new PlanConcurrencyGuard(), DbOnAPlanWithoutFeatures(), Links());
+        var ep = CreateUpdateTrainingPlanEndpoint(TrainingPlanTestHelpers.CreateMockMongo(plan), body);
 
-        await ep.HandleAsync(new UpdateTrainingPlanRequest(), TestContext.Current.CancellationToken);
+        await ep.HandleAsync(new UpdateTrainingPlanRequest { PlanId = plan.ExternalId, Version = plan.Version }, TestContext.Current.CancellationToken);
 
         await AssertSubscriptionRequiredAsync(ep, body);
+    }
+
+    [Fact]
+    public async Task UpdateTrainingPlan_MissingPlanOnAPlanWithoutCanCreatePlans_StillReturns404()
+    {
+        var ep = CreateUpdateTrainingPlanEndpoint(TrainingPlanTestHelpers.CreateMockMongo(), new MemoryStream());
+
+        await ep.HandleAsync(new UpdateTrainingPlanRequest { PlanId = Guid.NewGuid(), Version = 1 }, TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(StatusCodes.Status404NotFound);
     }
 
     [Fact]
     public async Task PublishTrainingWeek_PlanWithoutCanCreatePlans_Returns403SubscriptionRequired()
     {
+        var plan = TrainingPlanTestHelpers.CreatePlan(trainerId: _userId);
         var body = new MemoryStream();
         var ep = Factory.Create<PublishTrainingWeekEndpoint>(
-            Caller(AppRoles.Trainer, body), Mongo(), DbOnAPlanWithoutFeatures(), Substitute.For<INotificationService>(),
-            Substitute.For<IRealtimeNotifier>(), Substitute.For<ISessionLockService>(), new PlanConcurrencyGuard(), Links());
+            Caller(AppRoles.Trainer, body), TrainingPlanTestHelpers.CreateMockMongo(plan), DbOnAPlanWithoutFeatures(),
+            Substitute.For<INotificationService>(), Substitute.For<IRealtimeNotifier>(), Substitute.For<ISessionLockService>(),
+            new PlanConcurrencyGuard(), GrantingLinks());
 
-        await ep.HandleAsync(new PublishTrainingWeekRequest(), TestContext.Current.CancellationToken);
-
-        await AssertSubscriptionRequiredAsync(ep, body);
-    }
-
-    [Fact]
-    public async Task InstantiateTrainingPlanTemplate_PlanWithoutCanCreatePlans_Returns403SubscriptionRequired()
-    {
-        var body = new MemoryStream();
-        var ep = Factory.Create<InstantiateTrainingPlanTemplateEndpoint>(
-            Caller(AppRoles.Trainer, body), Mongo(), Links(), DbOnAPlanWithoutFeatures(), TimeProvider.System);
-
-        await ep.HandleAsync(new InstantiateTrainingPlanTemplateRequest(), TestContext.Current.CancellationToken);
+        await ep.HandleAsync(new PublishTrainingWeekRequest { PlanId = plan.ExternalId, WeekNumber = 1 }, TestContext.Current.CancellationToken);
 
         await AssertSubscriptionRequiredAsync(ep, body);
     }

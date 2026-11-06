@@ -4,6 +4,7 @@ using FormUp.Application.Domain.Enums;
 using FormUp.Application.Domain.Services;
 using FormUp.Application.Infrastructure.Data;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace FormUp.Application.Domain.Extensions;
 
@@ -137,9 +138,10 @@ public static class EntitlementGateExtensions
     }
 
     /// <summary>
-    /// The request's scoped <see cref="EntitlementService"/> (clock and logger wired), or one built over
-    /// <paramref name="db"/> when the request has no service provider.
+    /// The request's scoped <see cref="EntitlementService"/> (clock and logger wired). Only when the request has
+    /// no such service — an endpoint unit test built without a host — is one built over <paramref name="db"/>.
     /// </summary>
     private static EntitlementService ResolveEntitlementService(this IEndpoint endpoint, IApplicationDbContext db) =>
-        endpoint.HttpContext.RequestServices?.GetService<EntitlementService>() ?? new EntitlementService(db);
+        endpoint.HttpContext.RequestServices?.GetService<EntitlementService>()
+        ?? new EntitlementService(db, TimeProvider.System, NullLogger<EntitlementService>.Instance);
 }

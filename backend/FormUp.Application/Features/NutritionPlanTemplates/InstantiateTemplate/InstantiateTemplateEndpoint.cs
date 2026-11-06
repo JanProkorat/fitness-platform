@@ -61,13 +61,6 @@ public class InstantiateTemplateEndpoint(
 
         var nutritionistId = Guid.Parse(userId);
 
-        if (await this.RespondIfFeatureNotEntitledAsync(
-                db, nutritionistId, entitlements => entitlements.CanCreatePlans,
-                "The current subscription does not include creating plans.", ct))
-        {
-            return;
-        }
-
         // Read-guarded, not write-guarded — another nutritionist's Public template must stay
         // instantiable even though this endpoint writes a new NutritionPlan.
         var template = await this.LoadLibraryEntryForReadOrRespondAsync(
@@ -89,6 +82,14 @@ public class InstantiateTemplateEndpoint(
             // confirm the client exists to an unlinked coach. Matches the TrainingPlanTemplates
             // sibling (#939).
             await this.SendLibraryNotFoundAsync(NutritionPlanTemplateLibrary.Denial, ct);
+            return;
+        }
+
+        // After the template and client-link checks, so a missing template or unlinked client still answers 404.
+        if (await this.RespondIfFeatureNotEntitledAsync(
+                db, nutritionistId, entitlements => entitlements.CanCreatePlans,
+                "The current subscription does not include creating plans.", ct))
+        {
             return;
         }
 
