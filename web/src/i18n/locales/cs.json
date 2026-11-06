@@ -248,11 +248,99 @@
     "nutritionist": "Nutriční poradce",
     "client": "Klient"
   },
+  "subscription": {
+    "seePlans": "Zobrazit tarify",
+    "clientsOfLimit": "{{count}} z {{limit}} klientů",
+    "status": {
+      "Trialing": "Zkušební období",
+      "Active": "Aktivní",
+      "PastDue": "Platba selhala",
+      "Canceled": "Zrušeno",
+      "Incomplete": "Nedokončeno"
+    },
+    "paywall": {
+      "notOnPlan": "Není ve vašem tarifu {{plan}}",
+      "forms": {
+        "title": "Formuláře jsou součástí vyššího tarifu",
+        "body": "Zeptejte se klientů na to podstatné, než jim sestavíte plán, a dozvíte se o jejich týdnu ještě před jeho začátkem.",
+        "benefit1": "Posílání dotazníků a úvodních formulářů",
+        "benefit2": "Týdenní check-iny s odpověďmi v kartě každého klienta"
+      },
+      "checkIns": {
+        "title": "Týdenní check-iny jsou součástí vyššího tarifu",
+        "body": "Zjistěte, jak se každému klientovi vedlo, než začne další týden.",
+        "benefit1": "Týdenní check-in odesílaný podle vašeho rozvrhu",
+        "benefit2": "Odpovědi v kartě každého klienta"
+      }
+    },
+    "clientLimit": {
+      "title": "Váš tarif je plný",
+      "description": "Váš tarif {{plan}} zahrnuje {{limit}} aktivních klientů.",
+      "descriptionUnknown": "Ve vašem tarifu {{plan}} už není místo pro dalšího klienta.",
+      "hintAccept": "Žádost klienta {{name}} zůstává ve vaší schránce. Místo uvolníte také ukončením spolupráce s některým klientem.",
+      "hintInvite": "Místo uvolníte také ukončením spolupráce s některým klientem.",
+      "notNow": "Teď ne"
+    },
+    "checkIns": {
+      "locked": "Formuláře týdenního check-inu jsou součástí vyššího tarifu.",
+      "overrideLocked": "Úprava tohoto check-inu pro jednoho klienta je součástí vyššího tarifu."
+    },
+    "sidebar": {
+      "plan": "Tarif {{plan}}",
+      "usage": "{{used}} z {{limit}} klientů",
+      "unlimited": "Klienti: {{count}} · bez limitu",
+      "aria": "Tarif {{plan}}, {{detail}}. Otevřít tarif a platby"
+    },
+    "plan": {
+      "title": "Tarif a platby",
+      "description": "Co platíte Form Upu. Vaši klienti za aplikaci neplatí nikdy.",
+      "loadError": "Tarif se nepodařilo načíst. Obnovte prosím stránku.",
+      "renews": "Měsíčně · Obnovení {{date}}",
+      "ends": "Končí {{date}}",
+      "freeUntil": "V ceně do {{date}}",
+      "changePlan": "Změnit tarif",
+      "manageBilling": "Spravovat platby",
+      "bill": {
+        "title": "Vaše měsíční platba",
+        "free": "Bez měsíčního poplatku.",
+        "plan": "Tarif {{plan}}",
+        "secondRole": "Druhá role",
+        "total": "Celkem",
+        "perMonth": "{{amount}} / měsíc",
+        "secondRoleUnavailable": "Druhá profesní role není součástí tohoto tarifu."
+      },
+      "clients": {
+        "title": "Klienti",
+        "ofLimit": "z {{limit}} aktivních klientů",
+        "unlimited": "aktivních klientů · bez limitu",
+        "countsOnce": "Klient, kterého vedete v obou rolích, se počítá jednou."
+      },
+      "features": {
+        "plans": "Tréninkové a jídelní plány",
+        "messaging": "Chat, fotky pokroku, míry",
+        "forms": "Formuláře",
+        "checkIns": "Týdenní check-iny",
+        "perClientCheckIns": "Nastavení check-inu pro jednotlivé klienty",
+        "payments": "Platby"
+      },
+      "code": {
+        "label": "Máte kód?",
+        "placeholder": "Zadejte kód",
+        "hint": "Vždy jen jedna nabídka. Kód po použití nahradí aktuální nabídku.",
+        "apply": "Použít"
+      },
+      "card": {
+        "title": "Karta, faktury a zrušení",
+        "description": "Bude k dispozici, jakmile se otevře výběr tarifu."
+      }
+    }
+  },
   "accountMenu": {
     "trigger": "Nabídka účtu",
     "title": "Účet",
     "profile": "Váš profil",
     "settings": "Nastavení",
+    "planBilling": "Tarif a platby",
     "language": "Jazyk",
     "theme": "Motiv",
     "languages": {
@@ -3344,8 +3432,8 @@
     "CHECK_IN_RULE_EXISTS": "Týdenní check-in už máte zapnutý. Nejprve ho vypněte, nebo upravte ten stávající.",
     "AUTOMATION_CHECK_IN_INVALID": "Týdenní check-in potřebuje den v týdnu, čas, dobu na odpověď a týdenní interval.",
     "AUTOMATION_CHECK_IN_FIELDS_NOT_ALLOWED": "Den v týdnu, doba na odpověď a připomenutí patří jen pravidlům týdenního check-inu.",
-    "CHECK_INS_NOT_ENTITLED": "Týdenní check-iny nejsou ve vašem tarifu.",
-    "PER_CLIENT_CHECK_IN_CONFIG_NOT_ENTITLED": "Úprava týdenního check-inu pro jednoho klienta není ve vašem tarifu.",
+    "SUBSCRIPTION_REQUIRED": "Tohle není součástí vašeho tarifu.",
+    "CLIENT_LIMIT_REACHED": "Váš tarif je plný. Není v něm místo pro dalšího klienta.",
     "CHECK_IN_ANSWER_WINDOW_CLOSED": "Čas na odpověď na tento check-in už vypršel.",
     "INVALID_CREDENTIALS": "Neplatný email nebo heslo.",
     "ACCOUNT_DEACTIVATED": "Váš účet byl deaktivován.",

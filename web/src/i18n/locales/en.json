@@ -248,11 +248,99 @@
     "nutritionist": "Nutritionist",
     "client": "Client"
   },
+  "subscription": {
+    "seePlans": "See plans",
+    "clientsOfLimit": "{{count}} of {{limit}} clients",
+    "status": {
+      "Trialing": "Trial",
+      "Active": "Active",
+      "PastDue": "Payment failed",
+      "Canceled": "Canceled",
+      "Incomplete": "Incomplete"
+    },
+    "paywall": {
+      "notOnPlan": "Not on your {{plan}} plan",
+      "forms": {
+        "title": "Forms come with a higher plan",
+        "body": "Ask clients the right questions before you build their plan, and hear about their week before it starts.",
+        "benefit1": "Send questionnaires and onboarding forms",
+        "benefit2": "Weekly check-ins, with answers in each client's card"
+      },
+      "checkIns": {
+        "title": "Weekly check-ins come with a higher plan",
+        "body": "Hear how each client's week went before the next one starts.",
+        "benefit1": "A weekly check-in sent on your schedule",
+        "benefit2": "Answers in each client's card"
+      }
+    },
+    "clientLimit": {
+      "title": "Your plan is full",
+      "description": "Your {{plan}} plan covers {{limit}} active clients.",
+      "descriptionUnknown": "Your {{plan}} plan has no room for another client.",
+      "hintAccept": "{{name}}'s request stays in your Inbox. You can also end work with a client to free a place.",
+      "hintInvite": "You can also end work with a client to free a place.",
+      "notNow": "Not now"
+    },
+    "checkIns": {
+      "locked": "Weekly check-in forms come with a higher plan.",
+      "overrideLocked": "Changing this check-in for one client comes with a higher plan."
+    },
+    "sidebar": {
+      "plan": "{{plan}} plan",
+      "usage": "{{used}} of {{limit}} clients",
+      "unlimited": "Clients: {{count}} · no limit",
+      "aria": "{{plan}} plan, {{detail}}. Open plan and billing"
+    },
+    "plan": {
+      "title": "Plan and billing",
+      "description": "What you pay Form Up. Your clients never pay for the app.",
+      "loadError": "Could not load your plan. Please refresh the page.",
+      "renews": "Monthly · Renews {{date}}",
+      "ends": "Ends {{date}}",
+      "freeUntil": "Included until {{date}}",
+      "changePlan": "Change plan",
+      "manageBilling": "Manage billing",
+      "bill": {
+        "title": "Your monthly bill",
+        "free": "No monthly charge.",
+        "plan": "{{plan}} plan",
+        "secondRole": "Second role",
+        "total": "Total",
+        "perMonth": "{{amount}} / month",
+        "secondRoleUnavailable": "A second professional role is not part of this plan."
+      },
+      "clients": {
+        "title": "Clients",
+        "ofLimit": "of {{limit}} active clients",
+        "unlimited": "active clients · no limit",
+        "countsOnce": "A client you coach in both roles counts once."
+      },
+      "features": {
+        "plans": "Training and nutrition plans",
+        "messaging": "Chat, progress photos, measurements",
+        "forms": "Forms",
+        "checkIns": "Weekly check-ins",
+        "perClientCheckIns": "Check-in settings per client",
+        "payments": "Payments"
+      },
+      "code": {
+        "label": "Have a code?",
+        "placeholder": "Enter code",
+        "hint": "One offer at a time. A code replaces the current offer when you apply it.",
+        "apply": "Apply"
+      },
+      "card": {
+        "title": "Card, invoices and cancelling",
+        "description": "Available once plan selection opens."
+      }
+    }
+  },
   "accountMenu": {
     "trigger": "Account menu",
     "title": "Account",
     "profile": "Your profile",
     "settings": "Settings",
+    "planBilling": "Plan and billing",
     "language": "Language",
     "theme": "Theme",
     "languages": {
@@ -3232,8 +3320,8 @@
     "CHECK_IN_RULE_EXISTS": "You already have a weekly check-in rule switched on. Switch it off first, or edit that one.",
     "AUTOMATION_CHECK_IN_INVALID": "A weekly check-in needs a weekday, a time, an answer window and a weekly interval.",
     "AUTOMATION_CHECK_IN_FIELDS_NOT_ALLOWED": "Weekday, answer window and reminder settings belong to weekly check-in rules only.",
-    "CHECK_INS_NOT_ENTITLED": "Weekly check-ins are not included in your plan.",
-    "PER_CLIENT_CHECK_IN_CONFIG_NOT_ENTITLED": "Changing the weekly check-in for one client is not included in your plan.",
+    "SUBSCRIPTION_REQUIRED": "This isn't part of your plan.",
+    "CLIENT_LIMIT_REACHED": "Your plan is full. It has no room for another client.",
     "CHECK_IN_ANSWER_WINDOW_CLOSED": "The time to answer this check-in has passed.",
     "INVALID_CREDENTIALS": "Invalid email or password.",
     "ACCOUNT_DEACTIVATED": "Your account has been deactivated.",
