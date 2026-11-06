@@ -20,7 +20,7 @@ export class ApiClient {
 
         this.instance = instance || axios.create();
 
-        this.baseUrl = baseUrl ?? "https://localhost:54652";
+        this.baseUrl = baseUrl ?? "https://localhost:5001";
 
     }
 
