@@ -2,6 +2,7 @@ using FormUp.Application.Domain.Entities;
 using FormUp.Application.Domain.Enums;
 using FormUp.Application.Domain.Services;
 using FormUp.Application.Infrastructure.Data;
+using FormUp.Tests.Builders;
 using FormUp.Tests.Infrastructure;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
@@ -69,7 +70,6 @@ public class EntitlementServiceTests(FitnessApiFactory factory)
 
     private async Task<long> CreateSubscriptionPlanAsync(
         string tag,
-        ApplicableRoles applicableRoles = ApplicableRoles.Both,
         int? maxActiveClients = null,
         bool canCreatePlans = true,
         bool canMessage = true,
@@ -87,7 +87,7 @@ public class EntitlementServiceTests(FitnessApiFactory factory)
             NameCs = "Plán",
             NameEn = "Plan",
             NameDe = "Plan",
-            ApplicableRoles = applicableRoles,
+            BothRolesIncluded = true,
             CanCreatePlans = canCreatePlans,
             CanMessage = canMessage,
             CanSendQuestionnaires = canSendQuestionnaires,
@@ -101,6 +101,7 @@ public class EntitlementServiceTests(FitnessApiFactory factory)
             IsActive = true
         };
 
+        SubscriptionPlanPriceBuilder.OpenPriceFor(plan);
         db.SubscriptionPlans.Add(plan);
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);
         return plan.Id;
@@ -111,10 +112,16 @@ public class EntitlementServiceTests(FitnessApiFactory factory)
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
+        var priceId = await db.SubscriptionPlanPrices
+            .Where(p => p.SubscriptionPlanId == subscriptionPlanId && p.ValidTo == null)
+            .Select(p => p.Id)
+            .SingleAsync(TestContext.Current.CancellationToken);
+
         db.CoachSubscriptions.Add(new CoachSubscription
         {
             ProfessionalProfileId = professionalProfileId,
             SubscriptionPlanId = subscriptionPlanId,
+            SubscriptionPlanPriceId = priceId,
             Status = status
         });
 
@@ -169,29 +176,6 @@ public class EntitlementServiceTests(FitnessApiFactory factory)
         var entitlements = await service.GetEntitlementsAsync(professionalProfileId, TestContext.Current.CancellationToken);
 
         entitlements.CanUsePayments.Should().Be(canUsePayments);
-        scope.Dispose();
-    }
-
-    // ── GetEntitlementsAsync — role axis (ApplicableRoles does not gate the flags) ──
-
-    [Theory]
-    [InlineData(ApplicableRoles.Trainer)]
-    [InlineData(ApplicableRoles.Nutritionist)]
-    [InlineData(ApplicableRoles.Both)]
-    public async Task GetEntitlementsAsync_AnyApplicableRoles_ResolvesPlanFlagsUnaffectedByRole(
-        ApplicableRoles applicableRoles)
-    {
-        var professionalUserId = await RegisterProfessionalAsync($"role-{applicableRoles}");
-        var professionalProfileId = await GetProfessionalProfileIdAsync(professionalUserId);
-        var planId = await CreateSubscriptionPlanAsync($"role-{applicableRoles}", applicableRoles: applicableRoles);
-        await CreateCoachSubscriptionAsync(professionalProfileId, planId, SubscriptionStatus.Active);
-        var service = CreateService(out var scope);
-
-        var entitlements = await service.GetEntitlementsAsync(professionalProfileId, TestContext.Current.CancellationToken);
-
-        entitlements.CanCreatePlans.Should().BeTrue(
-            "ApplicableRoles is a role-gating axis reserved for the endpoint layer (#594) — " +
-            "EntitlementService itself must not filter on it");
         scope.Dispose();
     }
 

@@ -58,7 +58,7 @@ internal sealed class CreateSubscriptionPlanEndpoint(IApplicationDbContext db)
             NameCs = req.NameCs,
             NameEn = req.NameEn,
             NameDe = req.NameDe,
-            ApplicableRoles = req.ApplicableRoles,
+            BothRolesIncluded = req.BothRolesIncluded,
             CanCreatePlans = req.CanCreatePlans,
             CanMessage = req.CanMessage,
             CanSendQuestionnaires = req.CanSendQuestionnaires,
@@ -67,11 +67,22 @@ internal sealed class CreateSubscriptionPlanEndpoint(IApplicationDbContext db)
             CanUsePayments = req.CanUsePayments,
             MaxActiveClients = req.MaxActiveClients,
             PriceMinorUnits = req.PriceMinorUnits,
+            SecondRoleAddOnPriceMinorUnits = req.SecondRoleAddOnPriceMinorUnits,
             Currency = req.Currency,
             BillingInterval = req.BillingInterval,
-            ExternalPriceId = req.ExternalPriceId,
             IsActive = req.IsActive,
         };
+
+        plan.Prices.Add(new SubscriptionPlanPrice
+        {
+            SubscriptionPlan = plan,
+            SubscriptionPlanId = 0,
+            PriceMinorUnits = req.PriceMinorUnits,
+            SecondRoleAddOnPriceMinorUnits = req.SecondRoleAddOnPriceMinorUnits,
+            Currency = req.Currency,
+            ExternalPriceId = req.ExternalPriceId,
+            ValidFrom = DateTime.UtcNow,
+        });
 
         db.SubscriptionPlans.Add(plan);
 
@@ -93,7 +104,7 @@ internal sealed class CreateSubscriptionPlanEndpoint(IApplicationDbContext db)
             return;
         }
 
-        await Send.ResponseAsync(SubscriptionPlanDto.FromEntity(plan), StatusCodes.Status201Created, ct);
+        await Send.ResponseAsync(SubscriptionPlanDto.FromEntity(plan, req.ExternalPriceId, 0), StatusCodes.Status201Created, ct);
     }
 
     private static bool IsUniqueViolation(DbUpdateException ex) =>

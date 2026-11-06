@@ -450,6 +450,12 @@ public static class ErrorCodes
     /// <summary>Subscription plan not found for the given Code.</summary>
     public const string SubscriptionPlanNotFound = "SUBSCRIPTION_PLAN_NOT_FOUND";
 
+    /// <summary>A plan must either include both roles or carry a positive second-role add-on price, never both or neither.</summary>
+    public const string SecondRoleOptionInvalid = "SECOND_ROLE_OPTION_INVALID";
+
+    /// <summary>The Free plan is fixed at price 0 and must stay offered; it cannot be repriced, hidden or deactivated.</summary>
+    public const string FreePlanLocked = "FREE_PLAN_LOCKED";
+
     /// <summary>Currency is not one of the platform's supported billing currencies.</summary>
     public const string UnsupportedCurrency = "UNSUPPORTED_CURRENCY";
 
