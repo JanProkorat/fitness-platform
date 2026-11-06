@@ -227,8 +227,12 @@ export default function PhotoViewerDialog({
                 </p>
               </div>
             ) : weighInFailed ? (
-              <div role="alert" className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-                <p className="text-body text-muted-foreground">{t('common.dataLoadError')}</p>
+              <div
+                role="alert"
+                data-testid="photo-viewer-weigh-in-error"
+                className="flex flex-wrap items-center gap-x-3 gap-y-1.5"
+              >
+                <p className="text-body text-muted-foreground">{t('clientDetail.photos.loadError')}</p>
                 <Button type="button" variant="outline" size="sm" onClick={retryWeighIn}>
                   {t('clients.retry')}
                 </Button>

@@ -143,8 +143,12 @@ export default function RequestPhotosDrawer({
         </SheetHeader>
 
         {lookupFailed ? (
-          <div role="alert" className="flex flex-1 flex-col items-center justify-center gap-3 px-6 py-5 text-center">
-            <p className="text-body text-muted-foreground">{t('common.dataLoadError')}</p>
+          <div
+            role="alert"
+            data-testid="photo-request-lookup-error"
+            className="flex flex-1 flex-col items-center justify-center gap-3 px-6 py-5 text-center"
+          >
+            <p className="text-body text-muted-foreground">{t('clientDetail.photos.loadError')}</p>
             <Button type="button" variant="outline" onClick={onRetryLookup}>
               {t('clients.retry')}
             </Button>

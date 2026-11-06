@@ -4499,6 +4499,7 @@
       "planRemoved": "Plán odstraněn",
       "weightValue": "{{value}} kg",
       "noWeighIn": "V blízkosti této fotky není žádné vážení",
+      "loadError": "Data se nepodařilo načíst.",
       "range": {
         "1m": "Poslední měsíc",
         "3m": "Poslední 3 měsíce",

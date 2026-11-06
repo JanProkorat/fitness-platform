@@ -220,8 +220,12 @@ export default function PhotoCompareDialog({
               />
             )}
             {weighInFailed && (
-              <div role="alert" className="flex max-w-40 flex-col items-center gap-2">
-                <p className="text-caption text-muted-foreground">{t('common.dataLoadError')}</p>
+              <div
+                role="alert"
+                data-testid="photo-compare-weigh-in-error"
+                className="flex max-w-40 flex-col items-center gap-2"
+              >
+                <p className="text-caption text-muted-foreground">{t('clientDetail.photos.loadError')}</p>
                 <Button type="button" variant="outline" size="sm" onClick={retryWeighIns}>
                   {t('clients.retry')}
                 </Button>
