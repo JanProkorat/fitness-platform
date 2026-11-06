@@ -20,7 +20,7 @@ export class ApiClient {
 
         this.instance = instance || axios.create();
 
-        this.baseUrl = baseUrl ?? "https://localhost:53605";
+        this.baseUrl = baseUrl ?? "https://localhost:5001";
 
     }
 
@@ -763,7 +763,10 @@ export class ApiClient {
 
         } else if (status === 400) {
             const _responseText = response.data;
-            return throwException("Invalid request, or INVALID_TIME_ZONE", status, _responseText, _headers);
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Invalid request, or INVALID_TIME_ZONE", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
@@ -827,7 +830,10 @@ export class ApiClient {
 
         } else if (status === 400) {
             const _responseText = response.data;
-            return throwException("Invalid request", status, _responseText, _headers);
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Invalid request", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
@@ -3206,7 +3212,10 @@ export class ApiClient {
 
         } else if (status === 400) {
             const _responseText = response.data;
-            return throwException("Invalid request", status, _responseText, _headers);
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Invalid request", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
@@ -7213,7 +7222,10 @@ export class ApiClient {
 
         } else if (status === 400) {
             const _responseText = response.data;
-            return throwException("RECIPE_NOT_OWNED or RECIPE_GALLERY_IMAGE_NOT_FOUND", status, _responseText, _headers);
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("RECIPE_NOT_OWNED or RECIPE_GALLERY_IMAGE_NOT_FOUND", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
@@ -13174,7 +13186,10 @@ export class ApiClient {
 
         } else if (status === 400) {
             const _responseText = response.data;
-            return throwException("FOOD_NOT_OWNED or FOOD_GALLERY_IMAGE_NOT_FOUND", status, _responseText, _headers);
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("FOOD_NOT_OWNED or FOOD_GALLERY_IMAGE_NOT_FOUND", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
@@ -21793,7 +21808,10 @@ export class ApiClient {
 
         } else if (status === 400) {
             const _responseText = response.data;
-            return throwException("Invalid input, or invalid/expired reset request", status, _responseText, _headers);
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Invalid input, or invalid/expired reset request", status, _responseText, _headers, result400);
 
         } else if (status === 429) {
             const _responseText = response.data;
@@ -21853,7 +21871,10 @@ export class ApiClient {
 
         } else if (status === 400) {
             const _responseText = response.data;
-            return throwException("Invalid request", status, _responseText, _headers);
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Invalid request", status, _responseText, _headers, result400);
 
         } else if (status === 404) {
             const _responseText = response.data;
