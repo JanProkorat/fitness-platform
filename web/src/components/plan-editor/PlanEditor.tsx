@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useUnsavedChangesBlocker } from '@/hooks/useUnsavedChangesBlocker';
 import { useTranslation } from 'react-i18next';
 import { AutoScroller, Feedback, KeyboardSensor, PointerSensor } from '@dnd-kit/dom';
 import { move } from '@dnd-kit/helpers';
@@ -521,7 +522,7 @@ export default function PlanEditor({
   const [libraryOpen, setLibraryOpen] = useState(true);
   const [sideTab, setSideTab] = useState<EditorSideTab>('library');
   const [pendingRemoval, setPendingRemoval] = useState<(PendingRowRemoval & { rowIndex: number }) | null>(null);
-  const [leaveOpen, setLeaveOpen] = useState(false);
+  const leaveBlocker = useUnsavedChangesBlocker(dirty);
   const [pendingDrop, setPendingDrop] = useState<PendingDrop | null>(null);
   const [pendingLabel, setPendingLabel] = useState<LabelMove | null>(null);
   const addToast = useToastStore((state) => state.addToast);
@@ -1514,11 +1515,8 @@ export default function PlanEditor({
     }
   }
 
+  // A dirty editor is intercepted by the navigation blocker, which opens the leave dialog.
   function leave() {
-    if (dirty) {
-      setLeaveOpen(true);
-      return;
-    }
     breadcrumb.onNavigate();
   }
 
@@ -2000,17 +1998,32 @@ export default function PlanEditor({
         },
       })}
 
-      <Dialog open={leaveOpen} onOpenChange={setLeaveOpen}>
+      <Dialog
+        open={leaveBlocker.state === 'blocked'}
+        onOpenChange={(open) => {
+          if (!open && leaveBlocker.state === 'blocked') {
+            leaveBlocker.reset();
+          }
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{t('planEditor.leave.title')}</DialogTitle>
             <DialogDescription>{t('planEditor.leave.body')}</DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setLeaveOpen(false)}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => leaveBlocker.state === 'blocked' && leaveBlocker.reset()}
+            >
               {t('planEditor.leave.stay')}
             </Button>
-            <Button type="button" variant="destructive" onClick={breadcrumb.onNavigate}>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={() => leaveBlocker.state === 'blocked' && leaveBlocker.proceed()}
+            >
               {t('planEditor.leave.discard')}
             </Button>
           </DialogFooter>
