@@ -1028,10 +1028,99 @@ public static class CheckInFixtures
 }
 
 /// <summary>
+/// Gives a test plan the open price row every plan has in production.
+/// </summary>
+public static class SubscriptionPlanPriceBuilder
+{
+    /// <summary>
+    /// Adds an open price row mirroring the plan's current price fields and returns it. The row
+    /// is saved together with the plan.
+    /// </summary>
+    /// <param name="plan">The plan to give a price row.</param>
+    public static SubscriptionPlanPrice OpenPriceFor(SubscriptionPlan plan)
+    {
+        var price = new SubscriptionPlanPrice
+        {
+            SubscriptionPlanId = 0,
+            SubscriptionPlan = plan,
+            PriceMinorUnits = plan.PriceMinorUnits,
+            SecondRoleAddOnPriceMinorUnits = plan.SecondRoleAddOnPriceMinorUnits,
+            Currency = plan.Currency,
+            ValidFrom = DateTime.UtcNow,
+        };
+        plan.Prices.Add(price);
+        return price;
+    }
+
+    /// <summary>
+    /// Makes sure the Free plan exists (price 0, active) — the shared test database only has it
+    /// after something ran the seed.
+    /// </summary>
+    /// <param name="factory">The test host.</param>
+    public static async Task EnsureFreePlanAsync(FitnessApiFactory factory)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        if (await db.SubscriptionPlans.AnyAsync(p => p.Code == "free", TestContext.Current.CancellationToken))
+        {
+            return;
+        }
+
+        var plan = new SubscriptionPlan
+        {
+            Code = "free",
+            NameCs = "Zdarma",
+            NameEn = "Free",
+            NameDe = "Kostenlos",
+            BothRolesIncluded = true,
+            MaxActiveClients = 2,
+            PriceMinorUnits = 0,
+            Currency = "CZK",
+            BillingInterval = BillingInterval.Monthly,
+            IsActive = true,
+        };
+        OpenPriceFor(plan);
+        db.SubscriptionPlans.Add(plan);
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+    }
+}
+
+/// <summary>
 /// Subscribes a coach to a fresh plan with the given check-in flags.
 /// </summary>
 public static class CoachSubscriptionBuilder
 {
+    /// <summary>
+    /// Subscribes the coach to an existing plan, on the plan's open price row.
+    /// </summary>
+    /// <param name="factory">The test host.</param>
+    /// <param name="coach">The coach to subscribe.</param>
+    /// <param name="planCode">Code of the plan to subscribe to.</param>
+    /// <param name="status">The subscription status.</param>
+    public static async Task SubscribeToPlanAsync(
+        FitnessApiFactory factory,
+        Actor coach,
+        string planCode,
+        SubscriptionStatus status = SubscriptionStatus.Active)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        var price = await db.SubscriptionPlanPrices
+            .Where(p => p.SubscriptionPlan.Code == planCode && p.ValidTo == null)
+            .SingleAsync(TestContext.Current.CancellationToken);
+
+        db.CoachSubscriptions.Add(new CoachSubscription
+        {
+            ProfessionalProfileId = coach.ProfileId,
+            SubscriptionPlanId = price.SubscriptionPlanId,
+            SubscriptionPlanPriceId = price.Id,
+            Status = status,
+        });
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+    }
+
     /// <summary>
     /// Writes a plan with the given check-in flags and a subscription of the coach to it.
     /// </summary>
@@ -1056,7 +1145,7 @@ public static class CoachSubscriptionBuilder
             NameCs = "Plán",
             NameEn = "Plan",
             NameDe = "Plan",
-            ApplicableRoles = ApplicableRoles.Both,
+            BothRolesIncluded = true,
             CanUseWeeklyCheckIns = canUseWeeklyCheckIns,
             CanUsePerClientCheckInConfig = canUsePerClientCheckInConfig,
             PriceMinorUnits = 99900,
@@ -1064,6 +1153,7 @@ public static class CoachSubscriptionBuilder
             BillingInterval = BillingInterval.Monthly,
             IsActive = true,
         };
+        var price = SubscriptionPlanPriceBuilder.OpenPriceFor(plan);
         db.SubscriptionPlans.Add(plan);
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);
 
@@ -1071,6 +1161,7 @@ public static class CoachSubscriptionBuilder
         {
             ProfessionalProfileId = coach.ProfileId,
             SubscriptionPlanId = plan.Id,
+            SubscriptionPlanPriceId = price.Id,
             Status = status,
         });
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);

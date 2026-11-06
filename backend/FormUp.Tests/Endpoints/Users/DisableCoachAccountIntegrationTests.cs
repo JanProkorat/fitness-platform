@@ -43,6 +43,7 @@ public class DisableCoachAccountIntegrationTests(FitnessApiFactory factory)
             NameDe = "Plan",
             Currency = "CZK",
         };
+        var price = SubscriptionPlanPriceBuilder.OpenPriceFor(plan);
         db.SubscriptionPlans.Add(plan);
         await db.SaveChangesAsync(Ct);
 
@@ -50,6 +51,7 @@ public class DisableCoachAccountIntegrationTests(FitnessApiFactory factory)
         {
             ProfessionalProfileId = profileId,
             SubscriptionPlanId = plan.Id,
+            SubscriptionPlanPriceId = price.Id,
             Status = status,
             CurrentPeriodEndsAt = periodEndsAt,
             TrialEndsAt = trialEndsAt,

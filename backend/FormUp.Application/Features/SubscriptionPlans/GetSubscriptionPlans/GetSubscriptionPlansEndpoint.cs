@@ -32,14 +32,24 @@ internal sealed class GetSubscriptionPlansEndpoint(IApplicationDbContext db)
     /// <inheritdoc />
     public override async Task HandleAsync(CancellationToken ct)
     {
-        var plans = await db.SubscriptionPlans
+        var rows = await db.SubscriptionPlans
             .AsNoTracking()
             .OrderBy(p => p.Code)
+            .Select(p => new
+            {
+                Plan = p,
+                ExternalPriceId = p.Prices
+                    .Where(price => price.ValidTo == null)
+                    .Select(price => price.ExternalPriceId)
+                    .FirstOrDefault(),
+                CoachCount = db.CoachSubscriptions.Count(cs =>
+                    cs.SubscriptionPlanId == p.Id && LiveSubscriptionStatuses.All.Contains(cs.Status)),
+            })
             .ToListAsync(ct);
 
         await Send.OkAsync(new GetSubscriptionPlansResponse
         {
-            Plans = plans.Select(SubscriptionPlanDto.FromEntity).ToList(),
+            Plans = rows.Select(r => SubscriptionPlanDto.FromEntity(r.Plan, r.ExternalPriceId, r.CoachCount)).ToList(),
         }, ct);
     }
 }

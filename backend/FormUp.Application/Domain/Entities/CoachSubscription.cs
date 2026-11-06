@@ -31,6 +31,32 @@ public class CoachSubscription : TimestampableEntity
     public SubscriptionPlan SubscriptionPlan { get; set; } = null!;
 
     /// <summary>
+    /// Foreign key to the price row the coach currently pays.
+    /// </summary>
+    public required long SubscriptionPlanPriceId { get; set; }
+
+    /// <summary>
+    /// Navigation property to the price row the coach currently pays.
+    /// </summary>
+    public SubscriptionPlanPrice SubscriptionPlanPrice { get; set; } = null!;
+
+    /// <summary>
+    /// Price row the coach moves to at the next renewal, or null when they stay on
+    /// <see cref="SubscriptionPlanPriceId"/>. Only marks the intent; applying it is billing's job.
+    /// </summary>
+    public long? PendingSubscriptionPlanPriceId { get; set; }
+
+    /// <summary>
+    /// Navigation property to the pending price row.
+    /// </summary>
+    public SubscriptionPlanPrice? PendingSubscriptionPlanPrice { get; set; }
+
+    /// <summary>
+    /// True when the coach pays for the second-role add-on.
+    /// </summary>
+    public bool PaysSecondRoleAddOn { get; set; }
+
+    /// <summary>
     /// Current lifecycle status of the subscription.
     /// </summary>
     public SubscriptionStatus Status { get; set; }
