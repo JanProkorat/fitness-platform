@@ -41,6 +41,7 @@ public class CreateTrainingPlanEndpoint(
         {
             s.Summary = "Create a training plan";
             s.Description = "Creates a new training plan in Draft status for a client.";
+            s.Responses[StatusCodes.Status403Forbidden] = "The subscription does not include plans (SUBSCRIPTION_REQUIRED)";
         });
     }
 
@@ -56,6 +57,13 @@ public class CreateTrainingPlanEndpoint(
         }
 
         var trainerId = Guid.Parse(userId);
+
+        if (await this.RespondIfFeatureNotEntitledAsync(
+                db, trainerId, entitlements => entitlements.CanCreatePlans,
+                "The current subscription does not include creating plans.", ct))
+        {
+            return;
+        }
 
         // req.ClientId is the trainer-facing ClientProfile.PublicId — the PublicId-addressed
         // overload. Training plans require CanViewTrainingPlans specifically.

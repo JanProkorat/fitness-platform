@@ -55,6 +55,7 @@ public class UpdatePlanEndpoint(
                             "meals are kept as stored instead and the rest of the payload is applied.";
             s.Responses[StatusCodes.Status200OK] = "Updated plan";
             s.Responses[StatusCodes.Status401Unauthorized] = "Missing or unreadable caller claim";
+            s.Responses[StatusCodes.Status403Forbidden] = "The subscription does not include plans (SUBSCRIPTION_REQUIRED)";
             s.Responses[StatusCodes.Status404NotFound] = "Plan not found, or not editable by the caller";
             s.Responses[StatusCodes.Status409Conflict] =
                 "PLAN_VERSION_CONFLICT, MEAL_LOCKED or PAST_DAY_LOCKED. Lock responses (MEAL_LOCKED, " +
@@ -74,6 +75,13 @@ public class UpdatePlanEndpoint(
         }
 
         var nutritionistId = Guid.Parse(userId);
+
+        if (await this.RespondIfFeatureNotEntitledAsync(
+                db, nutritionistId, entitlements => entitlements.CanCreatePlans,
+                "The current subscription does not include editing plans.", ct))
+        {
+            return;
+        }
 
         var lookupFilter = Builders<NutritionPlan>.Filter.Eq(p => p.ExternalId, req.PlanId)
                      & Builders<NutritionPlan>.Filter.Eq(p => p.NutritionistId, nutritionistId);

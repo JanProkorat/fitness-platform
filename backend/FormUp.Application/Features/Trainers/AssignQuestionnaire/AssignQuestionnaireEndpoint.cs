@@ -30,6 +30,8 @@ public class AssignQuestionnaireEndpoint(
         {
             s.Summary = "Assign a questionnaire to a client";
             s.Description = "Assigns a questionnaire to an existing linked client, creating a pending response.";
+            s.Responses[StatusCodes.Status403Forbidden] =
+                "The subscription does not include questionnaires (SUBSCRIPTION_REQUIRED), or a removed coach role";
         });
     }
 
@@ -51,6 +53,13 @@ public class AssignQuestionnaireEndpoint(
         if (professionalProfile is null)
         {
             this.ThrowErrorWithCode(ErrorCodes.TrainerProfileMissing, "Professional profile not found.");
+            return;
+        }
+
+        if (await this.RespondIfFeatureNotEntitledAsync(
+                db, professionalProfile.Id, entitlements => entitlements.CanSendQuestionnaires,
+                "The current subscription does not include sending questionnaires.", ct))
+        {
             return;
         }
 

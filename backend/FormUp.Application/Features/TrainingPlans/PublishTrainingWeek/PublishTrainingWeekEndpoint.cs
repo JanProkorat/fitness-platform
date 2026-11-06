@@ -44,6 +44,7 @@ public class PublishTrainingWeekEndpoint(
             s.Summary = "Publish a week of a training plan";
             s.Description = "Sets the week's status to Published. Archives other Active training plans for the same client whose date window overlaps this plan's. " +
                             "Clears any stale Editing lock docs for the week's sessions.";
+            s.Responses[StatusCodes.Status403Forbidden] = "The subscription does not include plans (SUBSCRIPTION_REQUIRED)";
         });
     }
 
@@ -58,6 +59,13 @@ public class PublishTrainingWeekEndpoint(
         }
 
         var trainerId = Guid.Parse(userId);
+
+        if (await this.RespondIfFeatureNotEntitledAsync(
+                db, trainerId, entitlements => entitlements.CanCreatePlans,
+                "The current subscription does not include publishing plans.", ct))
+        {
+            return;
+        }
 
         var lookupFilter = Builders<TrainingPlan>.Filter.Eq(p => p.ExternalId, req.PlanId)
                      & Builders<TrainingPlan>.Filter.Eq(p => p.TrainerId, trainerId);

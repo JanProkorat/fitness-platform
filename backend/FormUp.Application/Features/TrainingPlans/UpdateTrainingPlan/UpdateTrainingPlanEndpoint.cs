@@ -51,6 +51,7 @@ public class UpdateTrainingPlanEndpoint(
             s.Description = "Replaces the plan's name, description, and all weeks/sessions/exercises/sets. " +
                             "Per-week publish status is preserved. Uses optimistic concurrency via version field. " +
                             "Published sessions with content changes require an active Editing lock.";
+            s.Responses[StatusCodes.Status403Forbidden] = "The subscription does not include plans (SUBSCRIPTION_REQUIRED), or a removed coach role";
         });
     }
 
@@ -65,6 +66,13 @@ public class UpdateTrainingPlanEndpoint(
         }
 
         var trainerId = Guid.Parse(userId);
+
+        if (await this.RespondIfFeatureNotEntitledAsync(
+                db, trainerId, entitlements => entitlements.CanCreatePlans,
+                "The current subscription does not include editing plans.", ct))
+        {
+            return;
+        }
 
         var lookupFilter = Builders<TrainingPlan>.Filter.Eq(p => p.ExternalId, req.PlanId)
                      & Builders<TrainingPlan>.Filter.Eq(p => p.TrainerId, trainerId);

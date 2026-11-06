@@ -41,6 +41,7 @@ public class PublishWeekEndpoint(
         {
             s.Summary = "Publish a week of a nutrition plan";
             s.Description = "Sets the week's status to Published. Archives other Active plans for the same client whose date window overlaps this plan's.";
+            s.Responses[StatusCodes.Status403Forbidden] = "The subscription does not include plans (SUBSCRIPTION_REQUIRED)";
         });
     }
 
@@ -55,6 +56,13 @@ public class PublishWeekEndpoint(
         }
 
         var nutritionistId = Guid.Parse(userId);
+
+        if (await this.RespondIfFeatureNotEntitledAsync(
+                db, nutritionistId, entitlements => entitlements.CanCreatePlans,
+                "The current subscription does not include publishing plans.", ct))
+        {
+            return;
+        }
 
         var lookupFilter = Builders<NutritionPlan>.Filter.Eq(p => p.ExternalId, req.PlanId)
                      & Builders<NutritionPlan>.Filter.Eq(p => p.NutritionistId, nutritionistId);

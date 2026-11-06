@@ -44,6 +44,7 @@ public class InstantiateTemplateEndpoint(
         {
             s.Summary = "Instantiate a nutrition plan template";
             s.Description = "Creates a new Draft client plan from a template, every week Draft.";
+            s.Responses[StatusCodes.Status403Forbidden] = "The subscription does not include plans (SUBSCRIPTION_REQUIRED)";
         });
     }
 
@@ -59,6 +60,13 @@ public class InstantiateTemplateEndpoint(
         }
 
         var nutritionistId = Guid.Parse(userId);
+
+        if (await this.RespondIfFeatureNotEntitledAsync(
+                db, nutritionistId, entitlements => entitlements.CanCreatePlans,
+                "The current subscription does not include creating plans.", ct))
+        {
+            return;
+        }
 
         // Read-guarded, not write-guarded — another nutritionist's Public template must stay
         // instantiable even though this endpoint writes a new NutritionPlan.

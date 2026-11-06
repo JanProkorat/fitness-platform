@@ -47,6 +47,8 @@ public class AcceptInvitationEndpoint(
         {
             s.Summary = "Accept a trainer invitation";
             s.Description = "Accepts a one-time invitation token from a trainer, creating a client-professional relationship.";
+            s.Responses[StatusCodes.Status403Forbidden] =
+                "The coach role was removed, or the coach is at the active-client limit (CLIENT_LIMIT_REACHED)";
         });
     }
 
@@ -107,6 +109,11 @@ public class AcceptInvitationEndpoint(
         // Taken AFTER the find-or-create save above, or the row would not exist yet.
         await using var transaction = await db.BeginTransactionAsync(ct);
         await db.LockClientProfileAsync(clientProfile.Id, ct);
+
+        if (await this.RespondIfClientLimitReachedAsync(db, invitation.ProfessionalProfileId, clientProfile.Id, ct))
+        {
+            return;
+        }
 
         // Find the matching live pending invite to get questionnaire assignment. An expired
         // row may coexist with a re-invite (#1541), so ignore it and prefer the newest.

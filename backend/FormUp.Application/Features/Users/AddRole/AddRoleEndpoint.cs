@@ -38,6 +38,8 @@ public class AddRoleEndpoint(
         {
             s.Summary = "Add a professional role";
             s.Description = "Allows a Trainer to also become a Nutritionist, or vice versa. Returns fresh tokens with updated roles.";
+            s.Responses[StatusCodes.Status403Forbidden] =
+                "The subscription does not cover a second professional role (SUBSCRIPTION_REQUIRED)";
         });
     }
 
@@ -83,6 +85,12 @@ public class AddRoleEndpoint(
         }
         else
         {
+            // Every caller already holds one professional role, so a new one is the second role.
+            if (await this.RespondIfSecondRoleNotAvailableAsync(db, userId, ct))
+            {
+                return;
+            }
+
             await userManager.AddToRoleAsync(user, req.Role);
         }
 

@@ -2144,6 +2144,10 @@ namespace FormUp.Application.Infrastructure.Data.Migrations
                         .HasColumnType("text")
                         .HasColumnName("external_subscription_id");
 
+                    b.Property<DateTimeOffset?>("FreeUntil")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("free_until");
+
                     b.Property<bool>("PaysSecondRoleAddOn")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")

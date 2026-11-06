@@ -61,7 +61,7 @@ public class CreatePendingInviteEndpoint(
             s.Responses[StatusCodes.Status400BadRequest] =
                 "Requested scope exceeds the caller's held roles, a discount was sent without a package, or a fixed discount is in another currency than the package (CURRENCY_MISMATCH).";
             s.Responses[StatusCodes.Status403Forbidden] =
-                "The coach role was removed, or the subscription does not include payments (PAYMENTS_NOT_ENTITLED).";
+                "The coach role was removed, the subscription does not include payments (PAYMENTS_NOT_ENTITLED), or the active-client limit is reached (CLIENT_LIMIT_REACHED).";
             s.Responses[StatusCodes.Status404NotFound] = "The package or discount is unknown or belongs to another coach.";
             s.Responses[StatusCodes.Status409Conflict] =
                 "A duplicate invite exists, or the package is archived (PACKAGE_ARCHIVED), the discount is archived (DISCOUNT_ARCHIVED) or does not apply to the package (DISCOUNT_PACKAGE_INVALID).";
@@ -168,6 +168,14 @@ public class CreatePendingInviteEndpoint(
         {
             await this.SendProblemAsync(429, ErrorCodes.TooManyPendingInvites,
                 "Maximum number of outstanding pending invites reached.", ct);
+            return;
+        }
+
+        // Pending invites do not count toward the limit, but a coach who is already at it cannot
+        // invite a client who would take a new slot.
+        if (await this.RespondIfClientLimitReachedAsync(
+                entitlementService, professionalProfile.Id, inviteeClientProfileId, ct))
+        {
             return;
         }
 
