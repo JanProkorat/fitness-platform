@@ -55,6 +55,13 @@ public class ExpoPushNotificationService(
 
             var staleTokens = FindUnregisteredTokens(tokens, responseBody);
 
+            if (staleTokens is null)
+            {
+                // The push was accepted; an unreadable body only means there are no tickets to act on.
+                logger.LogWarning("Expo push response for user {UserId} was not valid JSON; skipping ticket handling", userId);
+                return;
+            }
+
             if (staleTokens.Count > 0)
             {
                 await PruneTokensAsync(userId, staleTokens, ct);
@@ -69,12 +76,24 @@ public class ExpoPushNotificationService(
     /// <summary>
     /// Returns the tokens whose ticket reports <c>details.error == DeviceNotRegistered</c>. Expo returns
     /// <c>data</c> tickets in the order the messages were sent (one object for a single message).
+    /// Returns <c>null</c> when the body is not valid JSON.
     /// </summary>
-    private static List<string> FindUnregisteredTokens(IReadOnlyList<string> tokens, string responseBody)
+    private static List<string>? FindUnregisteredTokens(IReadOnlyList<string> tokens, string responseBody)
     {
         var stale = new List<string>();
 
-        using var document = JsonDocument.Parse(responseBody);
+        JsonDocument document;
+
+        try
+        {
+            document = JsonDocument.Parse(responseBody);
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+
+        using var parsed = document;
 
         if (document.RootElement.ValueKind != JsonValueKind.Object
             || !document.RootElement.TryGetProperty("data", out var data))
@@ -137,15 +156,13 @@ public class ExpoPushNotificationService(
 
     private async Task PruneTokensAsync(Guid userId, List<string> staleTokens, CancellationToken ct)
     {
-        var rows = await db.DevicePushTokens
+        // Set-based delete: nothing is tracked on the caller's shared context, so a racing prune cannot poison its next SaveChanges.
+        var deleted = await db.DevicePushTokens
             .Where(t => staleTokens.Contains(t.Token))
-            .ToListAsync(ct);
-
-        db.DevicePushTokens.RemoveRange(rows);
-        await db.SaveChangesAsync(ct);
+            .ExecuteDeleteAsync(ct);
 
         logger.LogInformation(
             "Pruned {Count} push token(s) reported as {Error} for user {UserId}",
-            rows.Count, DeviceNotRegisteredError, userId);
+            deleted, DeviceNotRegisteredError, userId);
     }
 }

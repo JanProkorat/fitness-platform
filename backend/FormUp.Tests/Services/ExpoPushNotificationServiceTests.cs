@@ -123,6 +123,21 @@ public class ExpoPushNotificationServiceTests(NotificationServiceContainerFixtur
     }
 
     [Fact]
+    public async Task SendAsync_NonJsonSuccessBody_KeepsTokensAndDoesNotReportAFailedSend()
+    {
+        var userId = Guid.NewGuid();
+        var token = NewToken();
+        await SeedAsync(userId, token);
+        var logger = new CapturingLogger();
+        var service = BuildService(HttpStatusCode.OK, "<html>gateway ok</html>", logger);
+
+        await service.SendAsync(userId, "title", "body", ct: TestContext.Current.CancellationToken);
+
+        (await TokensOfAsync(userId)).Should().Equal(token);
+        logger.Text.Should().NotContain("Failed to send").And.NotContain("gateway ok");
+    }
+
+    [Fact]
     public async Task SendAsync_RequestLevelError_KeepsTokensAndNeverLogsTheBody()
     {
         var userId = Guid.NewGuid();
