@@ -894,6 +894,10 @@
       },
       "emailLabel": "E-mail",
       "emailHelper": "Už je na Form Up? Pozvánka mu dorazí i do zpráv.",
+      "slotTaken": {
+        "training": "Uživatel s e-mailem {{email}} už má trenéra.",
+        "nutrition": "Uživatel s e-mailem {{email}} už má nutričního poradce."
+      },
       "scope": {
         "training": "Trénink",
         "nutrition": "Výživa",
@@ -4499,6 +4503,7 @@
       "planRemoved": "Plán odstraněn",
       "weightValue": "{{value}} kg",
       "noWeighIn": "V blízkosti této fotky není žádné vážení",
+      "loadError": "Data se nepodařilo načíst.",
       "range": {
         "1m": "Poslední měsíc",
         "3m": "Poslední 3 měsíce",

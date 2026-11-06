@@ -16,7 +16,39 @@
  * `getByText` would resolve two matches once both exist, so every assertion
  * inside the drawer test below is scoped to `page.getByRole('dialog')`.
  */
+import type { Locator, Page } from '@playwright/test';
 import { trainerTest as test, expect } from '../fixtures/auth';
+
+interface ExitRecord {
+  closedWhileConnected: boolean;
+  closedAnimationName: string;
+}
+
+type RecorderWindow = Window & { __sheetExit?: Record<string, ExitRecord> };
+
+/**
+ * Records, inside the page, whether the element was seen with
+ * `data-state="closed"` while still connected, and its computed
+ * `animation-name` at that moment (same approach as overlay-primitives.spec.ts).
+ */
+async function recordExit(locator: Locator, key: string): Promise<void> {
+  await locator.evaluate((element, recorderKey) => {
+    const recorderWindow = window as RecorderWindow;
+    const records = (recorderWindow.__sheetExit ??= {});
+    records[recorderKey] = { closedWhileConnected: false, closedAnimationName: '' };
+    new MutationObserver(() => {
+      if (element.getAttribute('data-state') === 'closed' && element.isConnected) {
+        records[recorderKey] = {
+          closedWhileConnected: true,
+          closedAnimationName: getComputedStyle(element).animationName,
+        };
+      }
+    }).observe(element, { attributes: true, attributeFilter: ['data-state'] });
+  }, key);
+}
+
+const readExit = (page: Page, key: string): Promise<ExitRecord | undefined> =>
+  page.evaluate((recorderKey) => (window as RecorderWindow).__sheetExit?.[recorderKey], key);
 
 const ROUTES = [
   { path: '/clients', heading: 'Clients' },
@@ -160,20 +192,28 @@ test.describe('app shell responsive behaviour', () => {
       const enterContentName = await dialog.evaluate((el) => getComputedStyle(el).animationName);
       const enterOverlayName = await overlay.evaluate((el) => getComputedStyle(el).animationName);
 
+      // The exit animations last 200ms, shorter than a few sequential
+      // Playwright round trips under load, so record the closed state inside
+      // the page instead of polling for it after the click.
+      await recordExit(dialog, 'content');
+      await recordExit(overlay, 'overlay');
+
       await dialog.getByRole('button', { name: 'Close' }).click();
 
       // B. Exit suspension — the actual regression test. Before the fix
-      // this assertion failed: the element was already gone (unmounted on
-      // the same tick as the click) by the time Playwright could observe
-      // it, because there was no real CSS animation to suspend the removal
-      // on.
-      await expect(dialog).toHaveAttribute('data-state', 'closed');
-      await expect(dialog).toHaveCSS('animation-name', 'sheet-out-left');
-      await expect(overlay).toHaveCSS('animation-name', 'sheet-overlay-out');
-      const exitContentName = await dialog.evaluate((el) => getComputedStyle(el).animationName);
-      const exitOverlayName = await overlay.evaluate((el) => getComputedStyle(el).animationName);
-      expect(exitContentName).not.toBe(enterContentName);
-      expect(exitOverlayName).not.toBe(enterOverlayName);
+      // the element was already gone (unmounted on the same tick as the
+      // click), so it was never seen with data-state="closed" while still
+      // connected: there was no real CSS animation to suspend the removal on.
+      await expect
+        .poll(() => readExit(page, 'content'))
+        .toMatchObject({ closedWhileConnected: true, closedAnimationName: 'sheet-out-left' });
+      await expect
+        .poll(() => readExit(page, 'overlay'))
+        .toMatchObject({ closedWhileConnected: true, closedAnimationName: 'sheet-overlay-out' });
+      const contentExit = await readExit(page, 'content');
+      const overlayExit = await readExit(page, 'overlay');
+      expect(contentExit?.closedAnimationName).not.toBe(enterContentName);
+      expect(overlayExit?.closedAnimationName).not.toBe(enterOverlayName);
 
       await expect(dialog).toBeHidden();
     });

@@ -61,7 +61,59 @@ public sealed partial class EmailTemplateRenderer(IConfiguration configuration)
     private const string ResourcePrefix = "FormUp.Application.Infrastructure.EmailTemplates.";
     private const string LogoPath = "/email/formup-logo.png";
 
+    private const string IconsPath = "/email/icons/";
+
+    // Icon file stem, light tile background and icon size (px) per template; the dark background is in Layout.*.html.
+    private static readonly Dictionary<string, (string Icon, string LightBackground, int Size)> HeaderIcons = new()
+    {
+        [EmailVerification] = ("mail", "#EFF7E6", 20),
+        [PasswordReset] = ("lock", "#FFE8D2", 20),
+        [ReauthCode] = ("lock", "#FFE8D2", 20),
+        [Invitation] = ("user-plus", "#FDE4E1", 20),
+        [PaymentRequest] = ("banknote", "#FFE8D2", 17),
+        [BankAccountChanged] = ("banknote", "#FFE8D2", 17),
+        [NewMessage] = ("message", "#E3EBFA", 20),
+        [CheckIn] = ("activity", "#FDE4E1", 20),
+        [JoinRequest] = ("inbox", "#EEE7FA", 20),
+        [Workout] = ("dumbbell", "#FFE8D2", 20),
+        [Photos] = ("camera", "#F8E4EF", 20)
+    };
+
+    // Icon file stem of the note row's leading icon, for templates that have such a row.
+    private static readonly Dictionary<string, string> NoteIcons = new()
+    {
+        [EmailVerification] = "note-clock",
+        [PasswordReset] = "note-clock",
+        [Photos] = "note-shield"
+    };
+
     private static readonly HashSet<string> SupportedLanguages = ["en", "cs", "de"];
+
+    /// <summary>
+    /// Every icon file the renderer can reference (light and dark variants, tile, note and package icons).
+    /// </summary>
+    internal static IEnumerable<string> IconFileNames =>
+        HeaderIcons.Values.Select(entry => "tile-" + entry.Icon)
+            .Concat(NoteIcons.Values)
+            .Append("package")
+            .Distinct()
+            .SelectMany(stem => new[] { $"{stem}-light.png", $"{stem}-dark.png" });
+
+    /// <summary>
+    /// A light icon image followed by its hidden dark twin; the layout's dark-mode block swaps them.
+    /// </summary>
+    /// <param name="assetBaseUrl">Public asset base URL without a trailing slash.</param>
+    /// <param name="stem">Icon file stem, without the -light/-dark suffix.</param>
+    /// <param name="size">Rendered width and height in pixels.</param>
+    /// <param name="extraStyle">Extra CSS appended to both images.</param>
+    internal static string IconPair(string assetBaseUrl, string stem, int size, string extraStyle)
+    {
+        string Image(string variant, string cssClass, string display) =>
+            $"""<img class="{cssClass}" src="{WebUtility.HtmlEncode($"{assetBaseUrl}{IconsPath}{stem}-{variant}.png")}" width="{size}" height="{size}" alt="" style="{display}border:0;{extraStyle}">""";
+
+        return Image("light", "fu-ic-light", "display:inline-block;")
+               + Image("dark", "fu-ic-dark", "display:none;mso-hide:all;");
+    }
 
     // Derives its signing key on first use, so a renderer built without a JWT secret still renders account emails.
     private readonly EmailTurnOffTokenService _tokens = new(configuration, TimeProvider.System);
@@ -181,6 +233,14 @@ public sealed partial class EmailTemplateRenderer(IConfiguration configuration)
     {
         var lang = NormalizeLanguage(language);
         var (body, preheader, footnote) = Split(LoadResource(template, lang));
+        var iconValues = new Dictionary<string, string>
+        {
+            ["HeaderIcon"] = HeaderIconHtml(template),
+            ["NoteIcon"] = NoteIconHtml(template)
+        };
+
+        body = PlaceholderPattern().Replace(body, match => iconValues.GetValueOrDefault(match.Groups[1].Value, match.Value));
+
         var layoutValues = new Dictionary<string, string>
         {
             ["Logo"] = LogoHtml(),
@@ -219,7 +279,7 @@ public sealed partial class EmailTemplateRenderer(IConfiguration configuration)
             },
             new Dictionary<string, string>
             {
-                ["PackageBlock"] = InvitationPackageBlock.Render(package, lang),
+                ["PackageBlock"] = InvitationPackageBlock.Render(package, lang, AssetBaseUrl()),
                 ["PersonalMessage"] = PersonalMessageBlock(personalMessage, lang, firstName)
             });
     }
@@ -537,9 +597,44 @@ public sealed partial class EmailTemplateRenderer(IConfiguration configuration)
             : string.Concat(parts.Take(2).Select(part => char.ToUpperInvariant(part[0])));
     }
 
-    private string LogoHtml()
+    // Null when no public asset base URL is configured; every image in the email is then left out.
+    private string? AssetBaseUrl()
     {
         var assetBaseUrl = configuration[ConfigKeys.EmailAssetBaseUrl]?.Trim().TrimEnd('/');
+
+        return string.IsNullOrEmpty(assetBaseUrl) ? null : assetBaseUrl;
+    }
+
+    private string HeaderIconHtml(string template)
+    {
+        var assetBaseUrl = AssetBaseUrl();
+
+        if (assetBaseUrl is null || !HeaderIcons.TryGetValue(template, out var entry))
+        {
+            return string.Empty;
+        }
+
+        return $"""
+              <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 16px;">
+                <tr>
+                  <td class="fu-tile-{entry.Icon}" width="48" height="48" align="center" valign="middle" style="width:48px;height:48px;border-radius:14px;background-color:{entry.LightBackground};line-height:0;">{IconPair(assetBaseUrl, "tile-" + entry.Icon, entry.Size, "")}</td>
+                </tr>
+              </table>
+              """;
+    }
+
+    private string NoteIconHtml(string template)
+    {
+        var assetBaseUrl = AssetBaseUrl();
+
+        return assetBaseUrl is null || !NoteIcons.TryGetValue(template, out var stem)
+            ? string.Empty
+            : IconPair(assetBaseUrl, stem, 16, "vertical-align:-3px;margin-right:10px;");
+    }
+
+    private string LogoHtml()
+    {
+        var assetBaseUrl = AssetBaseUrl();
 
         if (string.IsNullOrEmpty(assetBaseUrl))
         {

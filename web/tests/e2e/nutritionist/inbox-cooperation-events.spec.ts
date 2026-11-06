@@ -62,6 +62,52 @@ async function loginAsClient2(baseURL: string): Promise<{ api: APIRequestContext
   return { api, accessToken };
 }
 
+interface MyRequestsBody {
+  requests: Array<{ publicId: string; professionalPublicId: string; status: string }>;
+}
+
+interface CollaborationsBody {
+  collaborations: Array<{ publicId: string; professionalPublicId: string }>;
+}
+
+const sameId = (left: string, right: string): boolean => left.toLowerCase() === right.toLowerCase();
+
+/**
+ * Makes the setup idempotent: as qa.client2, cancels any Pending request to qa.nutri and ends any live
+ * link with qa.nutri, so an earlier failed attempt (which leaves a Pending request or an accepted link)
+ * cannot turn this attempt's POST /client/requests into REQUEST_ALREADY_PENDING. Older cards stay in the
+ * thread, so the assertions below target the newest card.
+ */
+async function resetClient2WithNutritionist(api: APIRequestContext, accessToken: string): Promise<void> {
+  const headers = { Authorization: `Bearer ${accessToken}` };
+
+  const requestsResponse = await api.get('/client/requests', { headers });
+  if (!requestsResponse.ok()) {
+    throw new Error(`[inbox-cooperation-events] GET /client/requests as qa.client2 returned ${requestsResponse.status()}.`);
+  }
+  const { requests } = (await requestsResponse.json()) as MyRequestsBody;
+  for (const pending of requests.filter(
+    (item) => item.status === 'Pending' && sameId(item.professionalPublicId, NUTRITIONIST_PROFESSIONAL_PUBLIC_ID),
+  )) {
+    const cancelled = await api.delete(`/client/requests/${pending.publicId}`, { headers });
+    if (cancelled.status() !== 204) {
+      throw new Error(`[inbox-cooperation-events] DELETE /client/requests/{publicId} returned ${cancelled.status()}.`);
+    }
+  }
+
+  const collaborationsResponse = await api.get('/client/collaborations', { headers });
+  if (!collaborationsResponse.ok()) {
+    throw new Error(`[inbox-cooperation-events] GET /client/collaborations as qa.client2 returned ${collaborationsResponse.status()}.`);
+  }
+  const { collaborations } = (await collaborationsResponse.json()) as CollaborationsBody;
+  for (const link of collaborations.filter((item) => sameId(item.professionalPublicId, NUTRITIONIST_PROFESSIONAL_PUBLIC_ID))) {
+    const ended = await api.delete(`/client/collaborations/${link.publicId}`, { headers });
+    if (ended.status() !== 204) {
+      throw new Error(`[inbox-cooperation-events] DELETE /client/collaborations/{publicId} returned ${ended.status()}.`);
+    }
+  }
+}
+
 /**
  * Sends a fresh client request from qa.client2 to qa.nutri. Throws with the
  * response status + body on failure — rather than a bare `expect(...).toBe(true)`
@@ -114,6 +160,7 @@ test.describe('inbox client-request card (#1100, #1547)', () => {
   }) => {
     const { api, accessToken } = await loginAsClient2(baseURL ?? 'http://localhost:5173');
     try {
+      await resetClient2WithNutritionist(api, accessToken);
       await sendClient2Request(api, accessToken, 'Hi, I would like to work with you.');
     } finally {
       await api.dispose();
@@ -140,7 +187,8 @@ test.describe('inbox client-request card (#1100, #1547)', () => {
     await page.waitForLoadState('networkidle');
 
     // The Requested event renders as a card with a package line and View invite, not a grey pill.
-    const card = page.getByTestId('client-request-card');
+    // Cards from earlier attempts may remain in the thread; the newest one is last.
+    const card = page.getByTestId('client-request-card').last();
     await expect(card).toBeVisible();
     await expect(card.getByText(/^QA Client2 wants /)).toBeVisible();
     await expect(card.getByTestId('client-request-card-package')).toContainText('Not chosen');
@@ -183,6 +231,6 @@ test.describe('inbox client-request card (#1100, #1547)', () => {
     await expect(acceptedRow.getByText("You accepted QA Client2's request")).toBeVisible();
     await acceptedRow.click();
     await page.waitForLoadState('networkidle');
-    await expect(page.getByTestId('client-request-card').getByText('Request accepted')).toBeVisible();
+    await expect(page.getByTestId('client-request-card').last().getByText('Request accepted')).toBeVisible();
   });
 });

@@ -148,7 +148,12 @@ async function savedKinds(baseURL: string, templateId: string): Promise<Record<n
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-/** A Monday ten weeks out, as YYYY-MM-DD: publishable (never in the past) and clear of the other specs' plans. */
+/**
+ * A Monday ten weeks out, as YYYY-MM-DD: publishable (never in the past) and clear of the other specs' plans.
+ * Start weeks reserved for this client (specs run in parallel, overlapping plans get 409 PLAN_OVERLAP):
+ * +3 client-plan-editor, +10 plan-template-editor-label-drag (this spec), +12 plan-editor-sync-conflicts,
+ * +14 plan-template-editor-meal-reorder.
+ */
 function farFutureMonday(): string {
   const now = new Date();
   const today = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());

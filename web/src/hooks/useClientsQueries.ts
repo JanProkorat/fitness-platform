@@ -11,7 +11,12 @@ import {
   type UpdateClientTagRequest,
 } from '@/api/client-tags';
 import { broadcastMessage, type BroadcastMessageRequest } from '@/api/broadcast';
-import { createPendingInvite, deletePendingInvite, type CreatePendingInviteRequest } from '@/api/pending-invites';
+import {
+  checkPendingInviteSlot,
+  createPendingInvite,
+  deletePendingInvite,
+  type CreatePendingInviteRequest,
+} from '@/api/pending-invites';
 import {
   acceptClientRequest,
   getIncomingRequests,
@@ -289,6 +294,21 @@ export function useCreatePendingInvite() {
       }
       showApiError(error, 'clients.addClient.error');
     },
+  });
+}
+
+/**
+ * Live check of whether the invitee already has a coach for the caller's profession(s).
+ * Advisory only: no retry and no toast, so an error or a 429 simply yields no data.
+ */
+export function usePendingInviteSlotCheck(email: string, enabled: boolean) {
+  const normalized = email.trim().toLowerCase();
+  return useQuery({
+    queryKey: ['pendingInvites', 'slotCheck', normalized],
+    queryFn: ({ signal }) => checkPendingInviteSlot(email.trim(), signal),
+    enabled: enabled && normalized.length > 0,
+    retry: false,
+    staleTime: 60_000,
   });
 }
 

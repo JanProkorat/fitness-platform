@@ -127,19 +127,14 @@ public class CreatePendingInviteEndpoint(
         // An email that belongs to an account holding a coaching professional role (Trainer or
         // Nutritionist — even with Client as a second role) is not rejected: rejecting would let
         // the caller probe which addresses are coach accounts. Such an invite is stored as a
-        // silent row instead — see the class remarks.
-        var normalizedInviteeEmailForRoleCheck = req.Email.ToUpper();
-        var inviteeUserForRoleCheck = await db.Users
-            .AsNoTracking()
-            .FirstOrDefaultAsync(u => u.NormalizedEmail == normalizedInviteeEmailForRoleCheck, ct);
+        // silent row instead — see the class remarks. The same lookup also answers the
+        // profession-slot question used further down.
+        var inviteeSlots = await InviteeProfessionSlotCheck.CheckAsync(
+            db, userManager, req.Email, professionalProfile.Id,
+            wantsNutritionPlans, wantsTrainingPlans, ct);
 
-        var isProfessionalInvitee = false;
-
-        if (inviteeUserForRoleCheck is not null)
-        {
-            var inviteeRoles = await userManager.GetRolesAsync(inviteeUserForRoleCheck);
-            isProfessionalInvitee = inviteeRoles.Contains(AppRoles.Trainer) || inviteeRoles.Contains(AppRoles.Nutritionist);
-        }
+        var isProfessionalInvitee = inviteeSlots.IsCoachAccount;
+        var inviteeClientProfileId = inviteeSlots.ClientProfileId;
 
         // Reject a duplicate pending invite for the same professional and email — repeatedly
         // re-inviting the same target is the abuse shape, not a legitimate workflow need (a
@@ -176,43 +171,23 @@ public class CreatePendingInviteEndpoint(
             return;
         }
 
-        // Refuse to invite a client who already has an active coach in the profession this
-        // invite would grant. The authoritative check stays at accept time — that one runs
-        // inside the row lock (#1009) and is what actually protects the invariant, since the
-        // client's links can change between invite and accept. This one exists so the inviting
-        // professional finds out now rather than the client discovering it as a 400 days later
-        // on a link they were never able to form.
+        // Backstop for the live slot check the invite drawer runs while the coach types
+        // (GET /trainer/pending-invites/slot-check, #1148): refuse to invite a client who already
+        // has an active coach in the profession this invite would grant. The authoritative check
+        // stays at accept time — that one runs inside the row lock (#1009) and is what actually
+        // protects the invariant, since the client's links can change between invite and accept.
         //
         // Note this necessarily tells the inviting professional that the address they typed
         // belongs to an account whose slot is taken. That is a deliberate trade-off for the
         // earlier feedback, and it is narrow: only for an email they already knew, and it
-        // reveals that the slot is occupied, never by whom.
-        //
-        // Skipped entirely when the invitee has no account yet — the common case for a
-        // prospective client, and there is no ClientProfile or link to check.
-        var normalizedInviteeEmail = req.Email.ToUpper();
-        var inviteeClientProfileId = await db.Users
-            .AsNoTracking()
-            .Where(u => u.NormalizedEmail == normalizedInviteeEmail)
-            .Join(db.ClientProfiles.AsNoTracking(),
-                u => u.Id,
-                cp => cp.UserId,
-                (_, cp) => cp.Id)
-            .FirstOrDefaultAsync(ct);
-
-        if (inviteeClientProfileId != 0 && !isProfessionalInvitee)
+        // reveals that the slot is occupied, never by whom. The shared helper reports no taken
+        // slot for coach accounts or for invitees without a client profile, so neither is refused.
+        if (inviteeSlots.AnySlotTaken)
         {
-            // Same derivation the accept paths use (CoachRoleStatus.TryResolveLinkGrant, above):
-            // the professional's active roles narrowed by the scope they requested.
-            if (await ProfessionSlotGuard.IsSlotTakenByAnotherProfessionalAsync(
-                    db.ClientProfessionalLinks, inviteeClientProfileId, professionalProfile.Id,
-                    wantsNutritionPlans, wantsTrainingPlans, ct))
-            {
-                this.ThrowErrorWithCode(
-                    ErrorCodes.ProfessionAlreadyOccupied,
-                    "The client already has an active professional occupying this profession slot.");
-                return;
-            }
+            this.ThrowErrorWithCode(
+                ErrorCodes.ProfessionAlreadyOccupied,
+                "The client already has an active professional occupying this profession slot.");
+            return;
         }
 
         // The package and discount are checked with the rules the coach's own client terms follow, before

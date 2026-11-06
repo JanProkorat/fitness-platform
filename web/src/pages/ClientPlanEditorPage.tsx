@@ -178,7 +178,7 @@ function LoadedClientPlanEditor({
                 void deletePlan().then((deleted) => {
                   setDeleteOpen(false);
                   if (deleted) {
-                    backToNutrition();
+                    host.leaveWithoutPrompt(backToNutrition);
                   }
                 });
               }}
@@ -191,7 +191,7 @@ function LoadedClientPlanEditor({
                 void finishPlan(host.flush).then((finished) => {
                   setFinishOpen(false);
                   if (finished) {
-                    backToNutrition();
+                    host.leaveWithoutPrompt(backToNutrition);
                   }
                 });
               }}
