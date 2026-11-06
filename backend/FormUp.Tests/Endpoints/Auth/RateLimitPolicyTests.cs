@@ -504,5 +504,53 @@ public class RateLimitPolicyTests(RateLimitEnabledFactory factory)
             "professional #2 must have their own independent bucket even when sharing the same IP as professional #1");
     }
 
+    /// <summary>
+    /// The live slot check has its own per-professional budget of 60: exhausting it answers 429,
+    /// another professional on the same IP is unaffected, and the same professional's create-invite
+    /// budget is untouched.
+    /// </summary>
+    [Fact]
+    public async Task PendingInviteSlotCheckBudget_PerProfessional_LeavesCreateBudgetAndOthersUntouched()
+    {
+        var sharedIp = UniqueTrustedIp();
+        const int permitLimit = 60;
+
+        using var client1 = CreateClientWithIp(sharedIp);
+        using var client2 = CreateClientWithIp(sharedIp);
+
+        var professional1Email = UniqueEmail();
+        await TestHelpers.RegisterAsync(client1, professional1Email, "TestPass1!", "Coach", "One", "Trainer");
+        var (professional1Access, _) = await TestHelpers.LoginAsync(client1, professional1Email, "TestPass1!");
+        TestHelpers.SetBearerToken(client1, professional1Access);
+
+        var professional2Email = UniqueEmail();
+        await TestHelpers.RegisterAsync(client2, professional2Email, "TestPass1!", "Coach", "Two", "Trainer");
+        var (professional2Access, _) = await TestHelpers.LoginAsync(client2, professional2Email, "TestPass1!");
+        TestHelpers.SetBearerToken(client2, professional2Access);
+
+        var slotCheckUrl = $"/trainer/pending-invites/slot-check?email=slot-{Guid.NewGuid():N}@ratelimit-test.com";
+
+        for (var i = 0; i < permitLimit; i++)
+        {
+            var response = await client1.GetAsync(slotCheckUrl);
+            response.StatusCode.Should().Be(HttpStatusCode.OK,
+                $"slot check #{i + 1} should still be inside the budget of {permitLimit}");
+        }
+
+        var exhausted = await client1.GetAsync(slotCheckUrl);
+        exhausted.StatusCode.Should().Be(HttpStatusCode.TooManyRequests);
+
+        var otherProfessional = await client2.GetAsync(slotCheckUrl);
+        otherProfessional.StatusCode.Should().Be(HttpStatusCode.OK,
+            "another professional on the same IP has an independent slot-check bucket");
+
+        var createInvite = await client1.PostAsJsonAsync("/trainer/pending-invites", new
+        {
+            Email = $"invitee-{Guid.NewGuid():N}@ratelimit-test.com"
+        });
+        createInvite.StatusCode.Should().NotBe(HttpStatusCode.TooManyRequests,
+            "slot checks must not consume the create-invite budget");
+    }
+
     private record RefreshResult(string AccessToken, string RefreshToken, DateTime ExpiresAt);
 }

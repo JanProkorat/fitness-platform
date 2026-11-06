@@ -402,6 +402,76 @@ test.describe('plan template editor', () => {
     }
   });
 
+  test('the sidebar asks before discarding unsaved edits, and Keep editing keeps them', async ({ page, baseURL }) => {
+    const origin = baseURL ?? 'http://localhost:5173';
+    const name = `QA Editor Sidebar Leave ${Date.now()}`;
+    const templateId = await createTemplate(origin, name, buildWeeks(1, LUNCH_AND_BREAKFAST));
+    try {
+      await page.goto(`/plan-templates/${templateId}`);
+      const nameInput = page.getByLabel('Plan name');
+      await nameInput.fill(`${name} edited`);
+      const sidebarLink = page
+        .getByRole('navigation', { name: 'Navigation', exact: true })
+        .getByRole('link', { name: 'Plan templates' });
+      await sidebarLink.click();
+
+      const dialog = page.getByRole('dialog');
+      await expect(dialog.getByRole('heading', { name: 'Leave without saving?' })).toBeVisible();
+      await dialog.getByRole('button', { name: 'Keep editing' }).click();
+      await expect(dialog).toHaveCount(0);
+      await expect(page).toHaveURL(new RegExp(`/plan-templates/${templateId}$`));
+      await expect(nameInput).toHaveValue(`${name} edited`);
+
+      await sidebarLink.click();
+      await page.getByRole('dialog').getByRole('button', { name: 'Leave' }).click();
+      await expect(page).toHaveURL(/\/plan-templates$/);
+    } finally {
+      await deleteTemplate(origin, templateId);
+    }
+  });
+
+  test('browser Back asks before discarding unsaved edits, and Keep editing stays put', async ({ page, baseURL }) => {
+    const origin = baseURL ?? 'http://localhost:5173';
+    const name = `QA Editor History Leave ${Date.now()}`;
+    const templateId = await createTemplate(origin, name, buildWeeks(1, LUNCH_AND_BREAKFAST));
+    try {
+      // Open the editor from the list so history holds an in-app entry to go back to.
+      await page.goto('/plan-templates');
+      await page.getByRole('row').filter({ hasText: name }).getByText(name).first().click();
+      await expect(page).toHaveURL(new RegExp(`/plan-templates/${templateId}$`));
+
+      const nameInput = page.getByLabel('Plan name');
+      await nameInput.fill(`${name} edited`);
+      await page.goBack();
+
+      const dialog = page.getByRole('dialog');
+      await expect(dialog.getByRole('heading', { name: 'Leave without saving?' })).toBeVisible();
+      await dialog.getByRole('button', { name: 'Keep editing' }).click();
+      await expect(dialog).toHaveCount(0);
+      await expect(page).toHaveURL(new RegExp(`/plan-templates/${templateId}$`));
+      await expect(nameInput).toHaveValue(`${name} edited`);
+    } finally {
+      await deleteTemplate(origin, templateId);
+    }
+  });
+
+  test('the sidebar navigates without a dialog when nothing was edited', async ({ page, baseURL }) => {
+    const origin = baseURL ?? 'http://localhost:5173';
+    const templateId = await createTemplate(origin, `QA Editor Clean Leave ${Date.now()}`, buildWeeks(1, LUNCH_AND_BREAKFAST));
+    try {
+      await page.goto(`/plan-templates/${templateId}`);
+      await expect(page.getByTestId('meal-cell')).toHaveCount(14);
+      await page
+        .getByRole('navigation', { name: 'Navigation', exact: true })
+        .getByRole('link', { name: 'Plan templates' })
+        .click();
+      await expect(page).toHaveURL(/\/plan-templates$/);
+      await expect(page.getByRole('dialog')).toHaveCount(0);
+    } finally {
+      await deleteTemplate(origin, templateId);
+    }
+  });
+
   test('a save after the template changed elsewhere shows a conflict and keeps the edits', async ({ page, baseURL }) => {
     const origin = baseURL ?? 'http://localhost:5173';
     const name = `QA Editor Conflict ${Date.now()}`;

@@ -857,6 +857,10 @@
       },
       "emailLabel": "Email",
       "emailHelper": "Already on Form Up? The invite also arrives in their messages.",
+      "slotTaken": {
+        "training": "User with email {{email}} already has a coach for training.",
+        "nutrition": "User with email {{email}} already has a coach for nutrition."
+      },
       "scope": {
         "training": "Training",
         "nutrition": "Nutrition",
@@ -4371,6 +4375,7 @@
       "planRemoved": "Plan removed",
       "weightValue": "{{value}} kg",
       "noWeighIn": "No weigh-in near this photo",
+      "loadError": "Couldn't load the data.",
       "range": {
         "1m": "Last month",
         "3m": "Last 3 months",

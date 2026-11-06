@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useTranslation } from 'react-i18next';
@@ -24,7 +24,8 @@ import {
   type OfferPackage,
 } from '@/components/offer/offerModel';
 import { LinkCapabilityScope, QuestionnaireType } from '@/api/generated';
-import { useCreatePendingInvite } from '@/hooks/useClientsQueries';
+import { useCreatePendingInvite, usePendingInviteSlotCheck } from '@/hooks/useClientsQueries';
+import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { useTrainerQuestionnaires } from '@/hooks/useQuestionnaireQueries';
 import { isNotEntitled } from '@/components/client-detail/payment/paymentErrors';
 import { usePaymentDiscounts, usePaymentPackages } from '@/hooks/useClientPaymentQueries';
@@ -32,6 +33,7 @@ import { useAuthStore } from '@/stores/auth';
 import { cn } from '@/lib/utils';
 
 const EMAIL_MAX_LENGTH = 100;
+const SLOT_CHECK_DEBOUNCE_MS = 400;
 
 interface FormValues {
   email: string;
@@ -96,12 +98,27 @@ function InviteForm({ onClose }: { onClose: () => void }) {
   const {
     register,
     handleSubmit,
+    control,
     formState: { errors, isValid },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
     mode: 'onTouched',
     defaultValues: { email: '' },
   });
+
+  // Live "already has a coach" hint: only for an address that passes the schema, after the typing settles.
+  const typedEmail = useWatch({ control, name: 'email' }).trim();
+  const debouncedEmail = useDebouncedValue(typedEmail, SLOT_CHECK_DEBOUNCE_MS);
+  const slotCheck = usePendingInviteSlotCheck(debouncedEmail, schema.shape.email.safeParse(debouncedEmail).success);
+  const slotLabels: string[] = [];
+  if (slotCheck.data && debouncedEmail === typedEmail) {
+    if (slotCheck.data.trainingTaken && scope !== LinkCapabilityScope.NutritionOnly) {
+      slotLabels.push(t('clients.addClientDrawer.slotTaken.training', { email: typedEmail }));
+    }
+    if (slotCheck.data.nutritionTaken && scope !== LinkCapabilityScope.TrainingOnly) {
+      slotLabels.push(t('clients.addClientDrawer.slotTaken.nutrition', { email: typedEmail }));
+    }
+  }
 
   const formsQuery = useTrainerQuestionnaires({ type: QuestionnaireType.Onboarding });
   const forms: OfferForm[] = (formsQuery.data ?? [])
@@ -184,11 +201,20 @@ function InviteForm({ onClose }: { onClose: () => void }) {
               aria-invalid={!!errors.email}
               {...register('email')}
             />
-            {errors.email ? (
-              <p className="text-meta text-destructive">{errors.email.message}</p>
-            ) : (
-              <p className="text-meta text-muted-foreground">{t('clients.addClientDrawer.emailHelper')}</p>
-            )}
+            {/* Always mounted so a screen reader announces content swaps (error, slot label, helper). */}
+            <div aria-live="polite" className="flex flex-col gap-1">
+              {errors.email ? (
+                <p className="text-meta text-destructive">{errors.email.message}</p>
+              ) : slotLabels.length > 0 ? (
+                slotLabels.map((label) => (
+                  <p key={label} data-testid="invite-slot-taken" className="text-meta text-destructive">
+                    {label}
+                  </p>
+                ))
+              ) : (
+                <p className="text-meta text-muted-foreground">{t('clients.addClientDrawer.emailHelper')}</p>
+              )}
+            </div>
           </div>
         </section>
 

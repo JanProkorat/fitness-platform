@@ -19,7 +19,8 @@ public class RegisterPushTokenEndpoint(IApplicationDbContext db) : Endpoint<Regi
         Summary(s =>
         {
             s.Summary = "Register push token";
-            s.Description = "Registers or updates an Expo push token for the authenticated user's device.";
+            s.Description = "Registers or updates an Expo push token for the authenticated user's device. A token identifies one device install, so rows holding the same token for other users are deleted.";
+            s.Response(StatusCodes.Status204NoContent, "Token registered");
         });
     }
 
@@ -29,6 +30,13 @@ public class RegisterPushTokenEndpoint(IApplicationDbContext db) : Endpoint<Regi
         if (userId is null) { await Send.UnauthorizedAsync(ct); return; }
 
         var userGuid = Guid.Parse(userId);
+
+        // The token identifies the device install: a sign-out removal that never arrived must not leave
+        // the previous account's row behind, or this device keeps receiving that account's pushes.
+        var otherUsersRows = await db.DevicePushTokens
+            .Where(t => t.Token == req.Token && t.UserId != userGuid)
+            .ToListAsync(ct);
+        db.DevicePushTokens.RemoveRange(otherUsersRows);
 
         // Upsert: if this token already exists for this user, update the platform
         var existing = await db.DevicePushTokens

@@ -1,5 +1,6 @@
 import api from '@/lib/api';
-import type { LinkCapabilityScope } from '@/api/generated';
+import { apiClient } from '@/api/client';
+import type { CheckPendingInviteSlotResponse, LinkCapabilityScope } from '@/api/generated';
 
 export interface PendingInviteDto {
   /** Internal integer PK of the PendingInvite row. Used for diary requests. */
@@ -53,6 +54,17 @@ export async function getPendingInvites(): Promise<GetPendingInvitesResponse> {
     '/trainer/pending-invites',
   );
   return data;
+}
+
+/**
+ * Which of the caller's professions are already taken for this invitee, via
+ * GET /trainer/pending-invites/slot-check. Errors: 400 bad email, 429 rate limit.
+ */
+export async function checkPendingInviteSlot(
+  email: string,
+  signal?: AbortSignal,
+): Promise<CheckPendingInviteSlotResponse> {
+  return apiClient.checkPendingInviteSlotEndpoint(email, signal);
 }
 
 export async function deletePendingInvite(id: string): Promise<void> {

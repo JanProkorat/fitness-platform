@@ -15,7 +15,8 @@ internal static class InvitationPackageBlock
     /// </summary>
     /// <param name="package">The package, or null.</param>
     /// <param name="language">A supported language code (en, cs, de).</param>
-    public static string Render(InvitationPackageInfo? package, string language)
+    /// <param name="assetBaseUrl">Public asset base URL without a trailing slash; when null the package icon tile is left out.</param>
+    public static string Render(InvitationPackageInfo? package, string language, string? assetBaseUrl = null)
     {
         if (package is null)
         {
@@ -29,13 +30,38 @@ internal static class InvitationPackageBlock
             _ => ("Package", "See the price and details in the Form Up app.")
         };
 
+        var lines = $"""
+                    <p class="fu-muted" style="margin:0 0 2px;font-size:12px;font-weight:600;color:#6B6863;">{label}</p>
+                    <p class="fu-text" style="margin:0 0 2px;font-size:15px;font-weight:700;color:#141414;">{WebUtility.HtmlEncode(package.Name)} &middot; {WebUtility.HtmlEncode(BillingLabel(package, language))}</p>
+                    <p class="fu-muted" style="margin:0;font-size:13px;line-height:1.5;color:#6B6863;">{priceNote}</p>
+              """;
+
+        if (!string.IsNullOrEmpty(assetBaseUrl))
+        {
+            var icon = EmailTemplateRenderer.IconPair(assetBaseUrl, "package", 18, "");
+            lines = $"""
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                      <tr>
+                        <td width="36" valign="top" style="width:36px;padding-right:12px;">
+                          <table role="presentation" cellpadding="0" cellspacing="0">
+                            <tr>
+                              <td class="fu-panel" width="36" height="36" align="center" valign="middle" style="width:36px;height:36px;border-radius:10px;background-color:#F6F4F0;line-height:0;">{icon}</td>
+                            </tr>
+                          </table>
+                        </td>
+                        <td valign="top">
+                {lines}
+                        </td>
+                      </tr>
+                    </table>
+              """;
+        }
+
         return $"""
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
                 <tr>
                   <td class="fu-rule" style="border:1px solid #E7E4DE;border-radius:14px;padding:14px 16px;">
-                    <p class="fu-muted" style="margin:0 0 2px;font-size:12px;font-weight:600;color:#6B6863;">{label}</p>
-                    <p class="fu-text" style="margin:0 0 2px;font-size:15px;font-weight:700;color:#141414;">{WebUtility.HtmlEncode(package.Name)} &middot; {WebUtility.HtmlEncode(BillingLabel(package, language))}</p>
-                    <p class="fu-muted" style="margin:0;font-size:13px;line-height:1.5;color:#6B6863;">{priceNote}</p>
+              {lines}
                   </td>
                 </tr>
               </table>

@@ -706,6 +706,100 @@ public class UploadWithDiaryRequestTests(FitnessApiFactory factory)
             "GET should return the DiaryRequestId for the uploaded photo");
     }
 
+    // ── Expired windows ────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Seeds an own plan plus a diary request whose window ended (CreatedAt + DurationDays in the
+    /// past), owned by the link's client. Returns the ids the upload call needs.
+    /// </summary>
+    private async Task<(Guid PlanId, Guid RequestId)> SeedExpiredRequestAsync(
+        Guid planClientId,
+        Guid profId,
+        long linkId,
+        PhotoDiaryStatus status,
+        PhotoDiaryMode mode)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var mongo = scope.ServiceProvider.GetRequiredService<FormUp.Application.Infrastructure.Data.MongoDb.IMongoContext>();
+
+        var planId = Guid.NewGuid();
+        await mongo.NutritionPlans.InsertOneAsync(new FormUp.Application.Domain.Documents.NutritionPlan
+        {
+            ExternalId = planId,
+            ClientId = planClientId,
+            NutritionistId = profId,
+            Status = FormUp.Application.Domain.Enums.NutritionPlanStatus.Active,
+        }, cancellationToken: TestContext.Current.CancellationToken);
+
+        var request = new PhotoDiaryRequest
+        {
+            Id = Guid.NewGuid(),
+            ProfessionalId = profId,
+            LinkId = linkId,
+            DurationDays = 3,
+            Status = status,
+            Mode = mode,
+            AcceptedAt = DateTimeOffset.UtcNow.AddDays(-9),
+            CreatedAt = DateTimeOffset.UtcNow.AddDays(-10),
+            UpdatedAt = DateTimeOffset.UtcNow.AddDays(-9),
+        };
+        db.PhotoDiaryRequests.Add(request);
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+        return (planId, request.Id);
+    }
+
+    [Theory]
+    [InlineData(PhotoDiaryStatus.Accepted, PhotoDiaryMode.Workflow)]
+    [InlineData(PhotoDiaryStatus.InProgress, PhotoDiaryMode.Workflow)]
+    [InlineData(PhotoDiaryStatus.Accepted, PhotoDiaryMode.Bulk)]
+    public async Task Upload_AgainstExpiredRequest_Returns409Expired_NoPhoto_StatusUnchanged(
+        PhotoDiaryStatus status,
+        PhotoDiaryMode mode)
+    {
+        var (_, profId, _) = await SetupProfessionalAsync();
+        var (clientHttp, clientId, _) = await SetupClientAsync();
+        var linkId = await InsertLinkAsync(clientId, profId);
+        var (planId, requestId) = await SeedExpiredRequestAsync(clientId, profId, linkId, status, mode);
+
+        var response = await clientHttp.PostAsJsonAsync(
+            $"/client/plans/{planId}/photos",
+            BuildUploadBody(planId, requestId),
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        (await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken))
+            .Should().Contain("PHOTO_DIARY_REQUEST_EXPIRED");
+
+        using var verifyScope = factory.Services.CreateScope();
+        var verifyDb = verifyScope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        (await verifyDb.PlanPhotos.CountAsync(p => p.DiaryRequestId == requestId, TestContext.Current.CancellationToken))
+            .Should().Be(0, "an expired request must not accept a photo");
+        (await verifyDb.PhotoDiaryRequests.AsNoTracking()
+                .Where(r => r.Id == requestId).Select(r => r.Status)
+                .FirstAsync(TestContext.Current.CancellationToken))
+            .Should().Be(status, "the rejected upload must not transition the request");
+    }
+
+    [Fact]
+    public async Task Upload_AgainstAnotherClientsExpiredRequest_Returns404_NotExpired()
+    {
+        // Ordering guard: ownership is checked before expiry, so expiry never leaks existence.
+        var (_, profId, _) = await SetupProfessionalAsync();
+        var (_, ownerId, _) = await SetupClientAsync();
+        var (otherHttp, otherId, _) = await SetupClientAsync();
+        var linkId = await InsertLinkAsync(ownerId, profId);
+        var (planId, requestId) = await SeedExpiredRequestAsync(
+            otherId, profId, linkId, PhotoDiaryStatus.Accepted, PhotoDiaryMode.Workflow);
+
+        var response = await otherHttp.PostAsJsonAsync(
+            $"/client/plans/{planId}/photos",
+            BuildUploadBody(planId, requestId),
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
     // ── Response shape ─────────────────────────────────────────────────────────
 
     private record PhotoResponseBody(

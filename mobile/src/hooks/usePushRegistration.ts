@@ -1,3 +1,4 @@
+import { isAxiosError } from 'axios';
 import Constants from 'expo-constants';
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
@@ -6,7 +7,7 @@ import { useEffect } from 'react';
 import { Platform } from 'react-native';
 
 import { getPushRequestId, isNutritionPlanPayload } from '@/api/notifications';
-import { registerPushToken, rememberRegisteredToken, removePushTokenAs } from '@/api/pushToken';
+import { registerPushToken, rememberRegisteredToken, removePushToken } from '@/api/pushToken';
 import { isPaymentRequestedType } from '@/api/payments';
 import { usePaymentsEnabled } from '@/hooks/usePaymentsEnabled';
 import i18n from '@/i18n';
@@ -54,7 +55,6 @@ export function usePushRegistration(): void {
   const sessionGeneration = useAuthStore((state) => state.sessionGeneration);
 
   useEffect(() => {
-    const startedAccessToken = useAuthStore.getState().accessToken;
     const sessionEnded = () => useAuthStore.getState().sessionGeneration !== sessionGeneration;
 
     void (async () => {
@@ -64,13 +64,15 @@ export function usePushRegistration(): void {
         if (!token || sessionEnded()) return;
         await registerPushToken(token);
         if (sessionEnded()) {
-          if (startedAccessToken) await removePushTokenAs(startedAccessToken, token);
+          await removePushToken(token);
           return;
         }
         await rememberRegisteredToken(token);
       } catch (error) {
         // Android without FCM configuration fails here; push is simply unavailable then.
-        console.warn('Push registration failed', error);
+        // Never log the error object: an axios error carries the request body, which holds the push token.
+        const status = isAxiosError(error) ? error.response?.status : undefined;
+        console.warn('Push registration failed', status ?? '');
       }
     })();
   }, [sessionGeneration]);

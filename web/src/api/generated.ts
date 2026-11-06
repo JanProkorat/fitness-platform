@@ -3911,6 +3911,82 @@ export class ApiClient {
     }
 
     /**
+     * Check whether an invitee's profession slot is taken
+     * @param email Query parameter — the invitee's email address.
+     * @return Per-profession slot occupancy
+     */
+    checkPendingInviteSlotEndpoint(email: string, signal?: AbortSignal): Promise<CheckPendingInviteSlotResponse> {
+        let url_ = this.baseUrl + "/trainer/pending-invites/slot-check?";
+        if (email === undefined || email === null)
+            throw new globalThis.Error("The parameter 'email' must be defined and cannot be null.");
+        else
+            url_ += "email=" + encodeURIComponent("" + email) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processCheckPendingInviteSlotEndpoint(_response);
+        });
+    }
+
+    protected processCheckPendingInviteSlotEndpoint(response: AxiosResponse): Promise<CheckPendingInviteSlotResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<CheckPendingInviteSlotResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Missing, malformed or too long email", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status === 429) {
+            const _responseText = response.data;
+            return throwException("Too many slot checks", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<CheckPendingInviteSlotResponse>(null as any);
+    }
+
+    /**
      * List client plans
      * @param clientId The client's PublicId (Guid), as it appears in the route segment.
      * @return Success
@@ -19527,7 +19603,7 @@ export class ApiClient {
 
     /**
      * Register push token
-     * @return No Content
+     * @return Token registered
      */
     registerPushTokenEndpoint(registerPushTokenRequest: RegisterPushTokenRequest, signal?: AbortSignal): Promise<void> {
         let url_ = this.baseUrl + "/client/push-token";
@@ -19587,21 +19663,20 @@ export class ApiClient {
 
     /**
      * Remove push token
-     * @param token The Expo push token to remove, sent as a query parameter.
      * @return Token removed or not present
      */
-    removePushTokenEndpoint(token: string, signal?: AbortSignal): Promise<void> {
-        let url_ = this.baseUrl + "/client/push-token?";
-        if (token === undefined || token === null)
-            throw new globalThis.Error("The parameter 'token' must be defined and cannot be null.");
-        else
-            url_ += "token=" + encodeURIComponent("" + token) + "&";
+    removePushTokenAnonymousEndpoint(removePushTokenAnonymousRequest: RemovePushTokenAnonymousRequest, signal?: AbortSignal): Promise<void> {
+        let url_ = this.baseUrl + "/client/push-token/remove";
         url_ = url_.replace(/[?&]$/, "");
 
+        const content_ = JSON.stringify(removePushTokenAnonymousRequest);
+
         let options_: AxiosRequestConfig = {
-            method: "DELETE",
+            data: content_,
+            method: "POST",
             url: url_,
             headers: {
+                "Content-Type": "application/json",
             },
             signal
         };
@@ -19613,11 +19688,11 @@ export class ApiClient {
                 throw _error;
             }
         }).then((_response: AxiosResponse) => {
-            return this.processRemovePushTokenEndpoint(_response);
+            return this.processRemovePushTokenAnonymousEndpoint(_response);
         });
     }
 
-    protected processRemovePushTokenEndpoint(response: AxiosResponse): Promise<void> {
+    protected processRemovePushTokenAnonymousEndpoint(response: AxiosResponse): Promise<void> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -19631,13 +19706,16 @@ export class ApiClient {
             const _responseText = response.data;
             return Promise.resolve<void>(null as any);
 
-        } else if (status === 401) {
+        } else if (status === 400) {
             const _responseText = response.data;
-            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Token is empty, too long or not an Expo push token", status, _responseText, _headers, result400);
 
-        } else if (status === 403) {
+        } else if (status === 429) {
             const _responseText = response.data;
-            return throwException("Forbidden", status, _responseText, _headers);
+            return throwException("Rate limit exceeded", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -24026,6 +24104,18 @@ export enum LinkCapabilityScope {
     Both = "Both",
     NutritionOnly = "NutritionOnly",
     TrainingOnly = "TrainingOnly",
+}
+
+/** Which of the caller's professions already have another professional on the invitee. */
+export interface CheckPendingInviteSlotResponse {
+    /** True when the caller holds the Nutritionist role and another professional occupies the invitee's nutrition slot. */
+    nutritionTaken?: boolean;
+    /** True when the caller holds the Trainer role and another professional occupies the invitee's training slot. */
+    trainingTaken?: boolean;
+}
+
+/** Query for the live profession-slot check of an invitee email. */
+export interface CheckPendingInviteSlotRequest {
 }
 
 /** Combined list of a client's nutrition and training plans returned by GET /trainer/clients/{clientId}/plans. */
@@ -30737,8 +30827,10 @@ export interface RegisterPushTokenRequest {
     platform?: string;
 }
 
-/** Request for removing a push token. */
-export interface RemovePushTokenRequest {
+/** Request for removing a push token by value. */
+export interface RemovePushTokenAnonymousRequest {
+    /** The Expo push token to remove, sent in the JSON body. */
+    token: string;
 }
 
 /** Response model containing a client's weekly progress overview. */

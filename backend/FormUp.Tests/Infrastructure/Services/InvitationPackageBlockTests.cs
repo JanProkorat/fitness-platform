@@ -53,6 +53,29 @@ public class InvitationPackageBlockTests
         InvitationPackageBlock.BillingLabel(package, language).Should().Be(expected);
     }
 
+    [Fact]
+    public void Render_WithAssetBaseUrl_AddsTheSquarePackageIconTile()
+    {
+        var package = new InvitationPackageInfo("Package", PackageBillingInterval.Monthly, null);
+
+        var html = InvitationPackageBlock.Render(package, "en", "https://api.example.com");
+
+        html.Should().Contain("src=\"https://api.example.com/email/icons/package-light.png\"")
+            .And.Contain("src=\"https://api.example.com/email/icons/package-dark.png\"");
+        html.Should().Contain("width=\"36\" height=\"36\"").And.Contain("border-radius:10px").And.Contain("background-color:#F6F4F0")
+            .And.Contain("width=\"18\" height=\"18\" alt=\"\"");
+    }
+
+    [Fact]
+    public void Render_WithoutAssetBaseUrl_HasNoIconTile()
+    {
+        var package = new InvitationPackageInfo("Package", PackageBillingInterval.Monthly, null);
+
+        var html = InvitationPackageBlock.Render(package, "en");
+
+        html.Should().NotContain("<img").And.NotContain("width=\"36\"");
+    }
+
     [Theory]
     [InlineData("cs", "Cenu a podrobnosti najdete v aplikaci Form Up.")]
     [InlineData("de", "Preis und Details sehen Sie in der Form-Up-App.")]
