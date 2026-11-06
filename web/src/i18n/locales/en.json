@@ -4375,6 +4375,7 @@
       "planRemoved": "Plan removed",
       "weightValue": "{{value}} kg",
       "noWeighIn": "No weigh-in near this photo",
+      "loadError": "Couldn't load the data.",
       "range": {
         "1m": "Last month",
         "3m": "Last 3 months",

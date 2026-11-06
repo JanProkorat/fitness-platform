@@ -215,6 +215,10 @@ public sealed class AutomationOccurrenceSender(
         var coachUserId = evaluation.Coach.UserId;
         var linkId = evaluation.Client.PrimaryLinkId;
 
+        // Same lock as CreateRequestEndpoint, so a manual and an automated request cannot both
+        // pass the open-request check.
+        await db.LockProfessionalProfileAsync(evaluation.Rule.OwnerProfessionalProfileId, ct);
+
         var candidates = await db.PhotoDiaryRequests
             .AsNoTracking()
             .Where(r => r.ProfessionalId == coachUserId
