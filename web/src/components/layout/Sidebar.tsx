@@ -9,12 +9,14 @@ import {
   Columns,
   FileText,
   HelpCircle,
+  Layers,
   MessageSquare,
   Package,
+  Tag,
   Users,
   Zap,
 } from 'lucide-react';
-import type { ReactNode } from 'react';
+import type { ComponentType, ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 import AccountMenu from '@/components/layout/AccountMenu';
 import NotificationsPopover from '@/components/notifications/NotificationsPopover';
@@ -30,7 +32,24 @@ import { useActiveRoles } from '@/hooks/useActiveRoles';
  * groups are not rendered at all (#1073 AC 2). Automations is delivered and
  * sits in the Forms section.
  */
-const NAV_SECTIONS = [
+interface NavItem {
+  to: string;
+  labelKey: string;
+  Icon: ComponentType<{ className?: string; 'aria-hidden'?: boolean | 'true' | 'false' }>;
+  /** Rendered as a dimmed, unlinked row until its page exists. */
+  disabled?: boolean;
+}
+
+interface NavSection {
+  headerKey: string;
+  dot: boolean;
+  /** Colour class of the header dot; the nutrition colour when omitted. */
+  dotClass?: string;
+  requiredRole?: string;
+  items: readonly NavItem[];
+}
+
+const NAV_SECTIONS: readonly NavSection[] = [
   {
     headerKey: 'sidebar.clientManagementSection',
     dot: false,
@@ -62,7 +81,18 @@ const NAV_SECTIONS = [
     dot: false,
     items: [{ to: '/packages', labelKey: 'sidebar.packages', Icon: Package }],
   },
-] as const;
+  {
+    headerKey: 'sidebar.adminSection',
+    dot: true,
+    dotClass: 'bg-marker',
+    requiredRole: 'Admin',
+    items: [
+      { to: '/admin/plans', labelKey: 'sidebar.adminPlans', Icon: Layers },
+      { to: '/admin/promotions', labelKey: 'sidebar.adminPromotions', Icon: Tag, disabled: true },
+      { to: '/admin/coaches', labelKey: 'sidebar.adminCoaches', Icon: Users, disabled: true },
+    ],
+  },
+];
 
 interface Props {
   /** Fired when a nav link is activated — used to close the mobile off-canvas drawer. */
@@ -116,7 +146,7 @@ export default function Sidebar({ onNavigate, collapsed = false, onToggleCollaps
   const { hasRole, isLoading, isError } = useActiveRoles();
   // Role-gated sections stay hidden while the active roles load and when the lookup fails.
   const visibleSections = NAV_SECTIONS.filter(
-    (section) => !('requiredRole' in section) || (!isLoading && !isError && hasRole(section.requiredRole)),
+    (section) => !section.requiredRole || (!isLoading && !isError && hasRole(section.requiredRole)),
   );
   const toggleLabel = t(collapsed ? 'shell.expandNavigation' : 'shell.collapseNavigation');
   const ToggleIcon = collapsed ? ChevronsRight : ChevronsLeft;
@@ -185,7 +215,9 @@ export default function Sidebar({ onNavigate, collapsed = false, onToggleCollaps
               <Fold open={!collapsed}>
                 <div className="flex h-3 items-center justify-between px-2 box-content pb-1">
                   <span className="flex items-center gap-1.5 text-label font-semibold tracking-label whitespace-nowrap text-sidebar-muted uppercase">
-                    {section.dot && <span className="size-1.5 rounded-full bg-nutrition" aria-hidden="true" />}
+                    {section.dot && (
+                      <span className={cn('size-1.5 rounded-full', section.dotClass ?? 'bg-nutrition')} aria-hidden="true" />
+                    )}
                     {t(section.headerKey)}
                   </span>
                   {/* Static decorative glyph — not a collapse control. Two
@@ -198,7 +230,20 @@ export default function Sidebar({ onNavigate, collapsed = false, onToggleCollaps
                 </div>
               </Fold>
               <div className="flex flex-col gap-1">
-                {section.items.map(({ to, labelKey, Icon }) => (
+                {section.items.map(({ to, labelKey, Icon, disabled }) =>
+                  disabled ? (
+                    <button
+                      key={to}
+                      type="button"
+                      disabled
+                      title={collapsed ? t(labelKey) : t('shell.comingSoon')}
+                      aria-label={collapsed ? t(labelKey) : undefined}
+                      className={cn(ROW, 'font-medium text-sidebar-muted disabled:cursor-not-allowed')}
+                    >
+                      <Icon className="size-4 shrink-0" aria-hidden="true" />
+                      <RowLabel collapsed={collapsed}>{t(labelKey)}</RowLabel>
+                    </button>
+                  ) : (
                   <NavLink
                     key={to}
                     to={to}
@@ -232,7 +277,8 @@ export default function Sidebar({ onNavigate, collapsed = false, onToggleCollaps
                       </span>
                     )}
                   </NavLink>
-                ))}
+                  ),
+                )}
               </div>
             </div>
           ))}

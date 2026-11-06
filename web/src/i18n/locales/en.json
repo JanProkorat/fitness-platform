@@ -190,6 +190,10 @@
     "navigationTitle": "Navigation"
   },
   "sidebar": {
+    "adminSection": "Form Up admin",
+    "adminPlans": "Plans",
+    "adminPromotions": "Promotions",
+    "adminCoaches": "Coaches",
     "automations": "Automations",
     "dashboard": "Dashboard",
     "profile": "Profile",
@@ -3179,6 +3183,10 @@
     }
   },
   "apiErrors": {
+    "FREE_PLAN_LOCKED": "The Free plan cannot be changed this way: its price stays at 0 and it is always offered.",
+    "SUBSCRIPTION_PLAN_CODE_ALREADY_EXISTS": "A plan with this code already exists.",
+    "SUBSCRIPTION_PLAN_NOT_FOUND": "This plan no longer exists.",
+    "SECOND_ROLE_OPTION_INVALID": "Choose either a paid second-role add-on or the second role included in the price.",
     "PAYMENTS_NOT_ENTITLED": "Payments aren't part of your plan.",
     "BANK_ACCOUNT_NOT_SET": "Add your bank account in Settings before you request a payment.",
     "PAYMENT_ALREADY_PAID": "This payment was already marked as paid.",
@@ -6304,6 +6312,118 @@
         "note": "Note",
         "notePlaceholder": "For example, knee injury"
       }
+    }
+  },
+  "adminPlans": {
+    "title": "Plans",
+    "subtitle": "What coaches can buy. Changing a price creates a new one in Stripe; coaches already paying keep theirs.",
+    "newPlan": "New plan",
+    "note": "Every coach starts on Free. Promotions lower these prices for a while; they never change them.",
+    "loadError": "Could not load the plans.",
+    "retry": "Try again",
+    "empty": "No plans yet.",
+    "unlimited": "Unlimited",
+    "saveSuccess": "Plan saved.",
+    "saveError": "Could not save the plan.",
+    "stopSuccess": "The plan is no longer offered.",
+    "stopError": "Could not stop offering the plan.",
+    "table": {
+      "plan": "Plan",
+      "perMonth": "Per month",
+      "secondRole": "Second role",
+      "clients": "Clients",
+      "features": "Features",
+      "coaches": "Coaches",
+      "status": "Status",
+      "actions": "Actions",
+      "code": "code: {{code}}",
+      "included": "Included"
+    },
+    "status": {
+      "active": "Active",
+      "stopped": "Not offered"
+    },
+    "rowMenu": {
+      "open": "Open menu for plan {{name}}",
+      "edit": "Edit",
+      "stopOffering": "Stop offering"
+    },
+    "features": {
+      "plans": "Training and nutrition plans",
+      "chat": "Chat, progress photos, measurements",
+      "forms": "Forms",
+      "formsHint": "Questionnaires and onboarding forms",
+      "checkIns": "Weekly check-ins",
+      "perClientCheckIns": "Per-client check-in settings",
+      "perClientCheckInsHint": "Needs weekly check-ins",
+      "chip": {
+        "plans": "Plans",
+        "chat": "Chat",
+        "forms": "Forms",
+        "checkIns": "Check-ins",
+        "perClientCheckIns": "Custom check-ins",
+        "everything": "Everything"
+      }
+    },
+    "drawer": {
+      "titleNew": "New plan",
+      "titleEdit": "Edit plan · {{name}}",
+      "descriptionNew": "What coaches will be able to buy.",
+      "coaches_one": "{{count}} coach on this plan",
+      "coaches_other": "{{count}} coaches on this plan",
+      "sectionPlan": "Plan",
+      "nameCs": "Name · Czech",
+      "nameEn": "Name · English",
+      "nameDe": "Name · German",
+      "code": "Code",
+      "codeHint": "Used by the app and Stripe. Can’t change after the plan is created.",
+      "sectionPrice": "Price",
+      "perMonth": "Per month",
+      "freePriceHint": "Free always costs 0.",
+      "billing": "Billing",
+      "billingMonthly": "Monthly",
+      "billingAnnualLater": "Annual billing comes later.",
+      "secondRole": "Second role",
+      "secondRoleAddOn": "Paid add-on",
+      "secondRoleIncluded": "Included in the price",
+      "addOnPrice": "Second role per month",
+      "sectionClients": "Clients",
+      "activeClients": "Active clients",
+      "activeClientsHint": "A client in both roles counts once.",
+      "sectionFeatures": "Features",
+      "sectionPreview": "How coaches see it",
+      "offer": "Offer to coaches",
+      "offerHint": "Off hides it from the plan picker. Coaches already on it keep it.",
+      "offerFreeHint": "The Free plan is always offered.",
+      "stopOffering": "Stop offering",
+      "saving": "Saving…",
+      "save": "Save plan"
+    },
+    "preview": {
+      "price": "{{price}} / month",
+      "secondRole": "second role +{{price}}",
+      "secondRoleIncluded": "second role included",
+      "clients_one": "up to {{count}} client",
+      "clients_other": "up to {{count}} clients",
+      "unlimitedClients": "unlimited clients",
+      "offered": "Offered",
+      "notOffered": "Not offered"
+    },
+    "priceChange": {
+      "title": "Price changes from {{from}} to {{to}}",
+      "body_one": "Saving creates a new price in Stripe. New coaches pay {{to}}. The {{count}} coach already on {{name}} keeps {{from}}.",
+      "body_other": "Saving creates a new price in Stripe. New coaches pay {{to}}. The {{count}} coaches already on {{name}} keep {{from}}.",
+      "move": "Move them to {{price}} at their next renewal",
+      "moveHint": "We email each coach before the change."
+    },
+    "validation": {
+      "nameRequired": "Enter a name.",
+      "nameTooLong": "The name can be at most 200 characters.",
+      "codeInvalid": "The code may only contain lowercase letters, digits and hyphens (up to 50 characters).",
+      "codeTaken": "A plan with this code already exists.",
+      "priceInvalid": "Enter a price from 0 to 1,000,000.",
+      "addOnInvalid": "Enter a second-role price above 0, or choose Included in the price.",
+      "clientsInvalid": "Enter a number of clients from 1, or tick Unlimited."
     }
   }
 }

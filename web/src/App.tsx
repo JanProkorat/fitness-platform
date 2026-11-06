@@ -29,6 +29,7 @@ import InboxPage from '@/pages/InboxPage';
 import FormsPage from '@/pages/FormsPage';
 import AutomationsPage from '@/pages/AutomationsPage';
 import PackagesPage from '@/pages/PackagesPage';
+import AdminPlansPage from '@/pages/AdminPlansPage';
 import FormBuilderPage from '@/pages/FormBuilderPage';
 import IngredientsPage from '@/pages/IngredientsPage';
 import RecipesPage from '@/pages/RecipesPage';
@@ -100,6 +101,9 @@ const router = createBrowserRouter(
             <Route path="/ingredients" element={<IngredientsPage />} />
             <Route path="/recipes" element={<RecipesPage />} />
             <Route path="/plan-templates" element={<PlanTemplatesPage />} />
+          </Route>
+          <Route element={<RoleGuard allowedRoles={['Admin']} />}>
+            <Route path="/admin/plans" element={<AdminPlansPage />} />
           </Route>
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/settings" element={<SettingsPage />} />

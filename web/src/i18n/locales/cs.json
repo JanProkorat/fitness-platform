@@ -190,6 +190,10 @@
     "navigationTitle": "Navigace"
   },
   "sidebar": {
+    "adminSection": "Správa Form Up",
+    "adminPlans": "Plány",
+    "adminPromotions": "Akce",
+    "adminCoaches": "Trenéři",
     "automations": "Automatizace",
     "dashboard": "Dashboard",
     "profile": "Profil",
@@ -3291,6 +3295,10 @@
     }
   },
   "apiErrors": {
+    "FREE_PLAN_LOCKED": "Plán Free nejde takto změnit: jeho cena zůstává 0 a vždy se nabízí.",
+    "SUBSCRIPTION_PLAN_CODE_ALREADY_EXISTS": "Plán s tímto kódem už existuje.",
+    "SUBSCRIPTION_PLAN_NOT_FOUND": "Tento plán už neexistuje.",
+    "SECOND_ROLE_OPTION_INVALID": "Zvolte buď placený doplněk druhé role, nebo druhou roli v ceně.",
     "PAYMENTS_NOT_ENTITLED": "Platby nejsou součástí vašeho tarifu.",
     "BANK_ACCOUNT_NOT_SET": "Než vyžádáte platbu, doplňte v Nastavení bankovní účet.",
     "PAYMENT_ALREADY_PAID": "Tato platba už byla označena jako zaplacená.",
@@ -6519,6 +6527,124 @@
         "note": "Poznámka",
         "notePlaceholder": "Například zranění kolene"
       }
+    }
+  },
+  "adminPlans": {
+    "title": "Plány",
+    "subtitle": "Co si mohou trenéři koupit. Změna ceny vytvoří ve Stripe novou cenu; trenéři, kteří už platí, si ponechají tu svou.",
+    "newPlan": "Nový plán",
+    "note": "Každý trenér začíná na plánu Free. Akce ceny na určitou dobu snižují, nikdy je nemění.",
+    "loadError": "Plány se nepodařilo načíst.",
+    "retry": "Zkusit znovu",
+    "empty": "Zatím žádné plány.",
+    "unlimited": "Neomezeně",
+    "saveSuccess": "Plán byl uložen.",
+    "saveError": "Plán se nepodařilo uložit.",
+    "stopSuccess": "Plán se už nenabízí.",
+    "stopError": "Nabídku plánu se nepodařilo ukončit.",
+    "table": {
+      "plan": "Plán",
+      "perMonth": "Za měsíc",
+      "secondRole": "Druhá role",
+      "clients": "Klienti",
+      "features": "Funkce",
+      "coaches": "Trenéři",
+      "status": "Stav",
+      "actions": "Akce",
+      "code": "kód: {{code}}",
+      "included": "V ceně"
+    },
+    "status": {
+      "active": "Aktivní",
+      "stopped": "Nenabízí se"
+    },
+    "rowMenu": {
+      "open": "Otevřít nabídku plánu {{name}}",
+      "edit": "Upravit",
+      "stopOffering": "Přestat nabízet"
+    },
+    "features": {
+      "plans": "Tréninkové a výživové plány",
+      "chat": "Chat, fotky pokroku, měření",
+      "forms": "Formuláře",
+      "formsHint": "Dotazníky a vstupní formuláře",
+      "checkIns": "Týdenní check-iny",
+      "perClientCheckIns": "Nastavení check-inů pro každého klienta",
+      "perClientCheckInsHint": "Vyžaduje týdenní check-iny",
+      "chip": {
+        "plans": "Plány",
+        "chat": "Chat",
+        "forms": "Formuláře",
+        "checkIns": "Check-iny",
+        "perClientCheckIns": "Check-iny na míru",
+        "everything": "Vše"
+      }
+    },
+    "drawer": {
+      "titleNew": "Nový plán",
+      "titleEdit": "Upravit plán · {{name}}",
+      "descriptionNew": "Co si budou moci trenéři koupit.",
+      "coaches_one": "{{count}} trenér na tomto plánu",
+      "coaches_few": "{{count}} trenéři na tomto plánu",
+      "coaches_many": "{{count}} trenéra na tomto plánu",
+      "coaches_other": "{{count}} trenérů na tomto plánu",
+      "sectionPlan": "Plán",
+      "nameCs": "Název · česky",
+      "nameEn": "Název · anglicky",
+      "nameDe": "Název · německy",
+      "code": "Kód",
+      "codeHint": "Používá ho aplikace a Stripe. Po vytvoření plánu už nejde změnit.",
+      "sectionPrice": "Cena",
+      "perMonth": "Za měsíc",
+      "freePriceHint": "Free vždy stojí 0.",
+      "billing": "Fakturace",
+      "billingMonthly": "Měsíčně",
+      "billingAnnualLater": "Roční fakturace přijde později.",
+      "secondRole": "Druhá role",
+      "secondRoleAddOn": "Placený doplněk",
+      "secondRoleIncluded": "V ceně",
+      "addOnPrice": "Druhá role za měsíc",
+      "sectionClients": "Klienti",
+      "activeClients": "Aktivní klienti",
+      "activeClientsHint": "Klient v obou rolích se počítá jednou.",
+      "sectionFeatures": "Funkce",
+      "sectionPreview": "Jak to uvidí trenéři",
+      "offer": "Nabízet trenérům",
+      "offerHint": "Vypnuto = plán zmizí z výběru plánů. Trenéři, kteří ho už mají, si ho ponechají.",
+      "offerFreeHint": "Plán Free se nabízí vždy.",
+      "stopOffering": "Přestat nabízet",
+      "saving": "Ukládání…",
+      "save": "Uložit plán"
+    },
+    "preview": {
+      "price": "{{price}} / měsíc",
+      "secondRole": "druhá role +{{price}}",
+      "secondRoleIncluded": "druhá role v ceně",
+      "clients_one": "až {{count}} klienta",
+      "clients_few": "až {{count}} klientů",
+      "clients_many": "až {{count}} klienta",
+      "clients_other": "až {{count}} klientů",
+      "unlimitedClients": "neomezeně klientů",
+      "offered": "Nabízí se",
+      "notOffered": "Nenabízí se"
+    },
+    "priceChange": {
+      "title": "Cena se mění z {{from}} na {{to}}",
+      "body_one": "Uložením vznikne ve Stripe nová cena. Noví trenéři budou platit {{to}}. {{count}} trenér, který už je na plánu {{name}}, zůstane na {{from}}.",
+      "body_few": "Uložením vznikne ve Stripe nová cena. Noví trenéři budou platit {{to}}. {{count}} trenéři, kteří už jsou na plánu {{name}}, zůstanou na {{from}}.",
+      "body_many": "Uložením vznikne ve Stripe nová cena. Noví trenéři budou platit {{to}}. {{count}} trenéra, kteří už jsou na plánu {{name}}, zůstanou na {{from}}.",
+      "body_other": "Uložením vznikne ve Stripe nová cena. Noví trenéři budou platit {{to}}. {{count}} trenérů, kteří už jsou na plánu {{name}}, zůstane na {{from}}.",
+      "move": "Přesunout je na {{price}} při další obnově",
+      "moveHint": "Každému trenérovi před změnou pošleme e-mail."
+    },
+    "validation": {
+      "nameRequired": "Zadejte název.",
+      "nameTooLong": "Název může mít nejvýše 200 znaků.",
+      "codeInvalid": "Kód smí obsahovat jen malá písmena bez diakritiky, číslice a pomlčky (nejvýše 50 znaků).",
+      "codeTaken": "Plán s tímto kódem už existuje.",
+      "priceInvalid": "Zadejte cenu od 0 do 1 000 000.",
+      "addOnInvalid": "Zadejte cenu druhé role vyšší než 0, nebo zvolte „V ceně“.",
+      "clientsInvalid": "Zadejte počet klientů od 1, nebo zvolte Neomezeně."
     }
   }
 }
