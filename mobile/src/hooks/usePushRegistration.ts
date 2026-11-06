@@ -6,7 +6,7 @@ import { useEffect } from 'react';
 import { Platform } from 'react-native';
 
 import { getPushRequestId, isNutritionPlanPayload } from '@/api/notifications';
-import { registerPushToken, rememberRegisteredToken, removePushTokenAs } from '@/api/pushToken';
+import { registerPushToken, rememberRegisteredToken, removePushToken } from '@/api/pushToken';
 import { isPaymentRequestedType } from '@/api/payments';
 import { usePaymentsEnabled } from '@/hooks/usePaymentsEnabled';
 import i18n from '@/i18n';
@@ -54,7 +54,6 @@ export function usePushRegistration(): void {
   const sessionGeneration = useAuthStore((state) => state.sessionGeneration);
 
   useEffect(() => {
-    const startedAccessToken = useAuthStore.getState().accessToken;
     const sessionEnded = () => useAuthStore.getState().sessionGeneration !== sessionGeneration;
 
     void (async () => {
@@ -64,7 +63,7 @@ export function usePushRegistration(): void {
         if (!token || sessionEnded()) return;
         await registerPushToken(token);
         if (sessionEnded()) {
-          if (startedAccessToken) await removePushTokenAs(startedAccessToken, token);
+          await removePushToken(token);
           return;
         }
         await rememberRegisteredToken(token);

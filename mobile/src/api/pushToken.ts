@@ -10,9 +10,24 @@ const PUSH_TOKEN_KEY = 'pushToken';
 /** The Expo token this install last registered; mirrors SecureStore so logout can read it. */
 let registeredToken: string | null = null;
 
+/** Removal still in flight; a registration waits for it so a late removal cannot delete the next user's row. */
+let pendingRemoval: Promise<void> | null = null;
+
+/** Resolves when `promise` settles or after `ms`, whichever comes first. Never rejects. */
+function settleWithin(promise: Promise<void>, ms: number): Promise<void> {
+  return new Promise<void>((resolve) => {
+    const timer = setTimeout(resolve, ms);
+    void promise.then(() => {
+      clearTimeout(timer);
+      resolve();
+    });
+  });
+}
+
 /** Registers the device's Expo push token for the signed-in user (POST /client/push-token). */
-export function registerPushToken(token: string): Promise<void> {
-  return api.registerPushTokenEndpoint({ token, platform: Platform.OS });
+export async function registerPushToken(token: string): Promise<void> {
+  if (pendingRemoval) await settleWithin(pendingRemoval, API_TIMEOUT_MS);
+  await api.registerPushTokenEndpoint({ token, platform: Platform.OS });
 }
 
 /** Remembers the registered token; a failed write only costs the logout clean-up after a restart. */
@@ -34,26 +49,35 @@ async function readRegisteredToken(): Promise<string | null> {
   }
 }
 
-/**
- * Removes a token from the server with an explicit bearer token.
- * Plain axios on purpose: the shared client would swap in the current session's token
- * and its 401 handler would try to refresh a session that has already ended.
- * Never throws; a rejected or expired call just leaves the server copy to age out.
- */
-export async function removePushTokenAs(accessToken: string, token: string): Promise<void> {
+async function postRemoval(token: string): Promise<void> {
   try {
-    await axios.delete(`${API_BASE_URL}/client/push-token`, {
-      params: { token },
-      headers: { Authorization: `Bearer ${accessToken}` },
-      timeout: API_TIMEOUT_MS,
-    });
+    // Anonymous on purpose: after a failed refresh there is no valid access token, and the shared
+    // client would swap in the current session's token and try to refresh a session that has ended.
+    await axios.post(
+      `${API_BASE_URL}/client/push-token/remove`,
+      { token },
+      { headers: { 'Content-Type': 'application/json' }, timeout: API_TIMEOUT_MS },
+    );
   } catch {
-    // Idempotent and best effort: logout never depends on it.
+    // Best effort: logout never depends on it. No token value in the log.
+    if (__DEV__) console.warn('Push token removal failed');
   }
 }
 
+/**
+ * Asks the server to forget a push token, without any credentials. Never throws.
+ * The call is tracked so a following registration waits for it.
+ */
+export function removePushToken(token: string): Promise<void> {
+  const removal: Promise<void> = postRemoval(token).finally(() => {
+    if (pendingRemoval === removal) pendingRemoval = null;
+  });
+  pendingRemoval = removal;
+  return removal;
+}
+
 /** Logout clean-up: drops the stored token and asks the server to forget it. */
-export async function unregisterPushToken(accessToken: string | null): Promise<void> {
+export async function unregisterPushToken(): Promise<void> {
   const token = await readRegisteredToken();
   registeredToken = null;
   try {
@@ -61,7 +85,5 @@ export async function unregisterPushToken(accessToken: string | null): Promise<v
   } catch {
     // Nothing to clean up.
   }
-  if (token && accessToken) {
-    await removePushTokenAs(accessToken, token);
-  }
+  if (token) await removePushToken(token);
 }
