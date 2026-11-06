@@ -19499,7 +19499,7 @@ export class ApiClient {
 
     /**
      * Register push token
-     * @return No Content
+     * @return Token registered
      */
     registerPushTokenEndpoint(registerPushTokenRequest: RegisterPushTokenRequest, signal?: AbortSignal): Promise<void> {
         let url_ = this.baseUrl + "/client/push-token";
@@ -19559,21 +19559,20 @@ export class ApiClient {
 
     /**
      * Remove push token
-     * @param token The Expo push token to remove, sent as a query parameter.
      * @return Token removed or not present
      */
-    removePushTokenEndpoint(token: string, signal?: AbortSignal): Promise<void> {
-        let url_ = this.baseUrl + "/client/push-token?";
-        if (token === undefined || token === null)
-            throw new globalThis.Error("The parameter 'token' must be defined and cannot be null.");
-        else
-            url_ += "token=" + encodeURIComponent("" + token) + "&";
+    removePushTokenAnonymousEndpoint(removePushTokenAnonymousRequest: RemovePushTokenAnonymousRequest, signal?: AbortSignal): Promise<void> {
+        let url_ = this.baseUrl + "/client/push-token/remove";
         url_ = url_.replace(/[?&]$/, "");
 
+        const content_ = JSON.stringify(removePushTokenAnonymousRequest);
+
         let options_: AxiosRequestConfig = {
-            method: "DELETE",
+            data: content_,
+            method: "POST",
             url: url_,
             headers: {
+                "Content-Type": "application/json",
             },
             signal
         };
@@ -19585,11 +19584,11 @@ export class ApiClient {
                 throw _error;
             }
         }).then((_response: AxiosResponse) => {
-            return this.processRemovePushTokenEndpoint(_response);
+            return this.processRemovePushTokenAnonymousEndpoint(_response);
         });
     }
 
-    protected processRemovePushTokenEndpoint(response: AxiosResponse): Promise<void> {
+    protected processRemovePushTokenAnonymousEndpoint(response: AxiosResponse): Promise<void> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -19603,13 +19602,16 @@ export class ApiClient {
             const _responseText = response.data;
             return Promise.resolve<void>(null as any);
 
-        } else if (status === 401) {
+        } else if (status === 400) {
             const _responseText = response.data;
-            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Token is empty, too long or not an Expo push token", status, _responseText, _headers, result400);
 
-        } else if (status === 403) {
+        } else if (status === 429) {
             const _responseText = response.data;
-            return throwException("Forbidden", status, _responseText, _headers);
+            return throwException("Rate limit exceeded", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -22519,27 +22521,20 @@ export interface CreateWorkoutTemplateSetRequest {
     restSeconds?: number | undefined;
 }
 
-/** RFC7807 compatible problem details/ error response class. this can be used by configuring startup like so: app.UseFastEndpoints(c => c.Errors.UseProblemDetails()) */
 export interface ProblemDetails {
     type?: string;
     title?: string;
     status?: number;
     instance?: string;
     traceId?: string;
-    /** the details of the error */
     detail?: string | undefined;
     errors?: ProblemDetails_Error[];
 }
 
-/** the error details object */
 export interface ProblemDetails_Error {
-    /** the name of the error or property of the dto that caused the error */
     name?: string;
-    /** the reason for the error */
     reason?: string;
-    /** the code of the error */
     code?: string | undefined;
-    /** the severity of the error */
     severity?: string | undefined;
 }
 
@@ -30704,8 +30699,10 @@ export interface RegisterPushTokenRequest {
     platform?: string;
 }
 
-/** Request for removing a push token. */
-export interface RemovePushTokenRequest {
+/** Request for removing a push token by value. */
+export interface RemovePushTokenAnonymousRequest {
+    /** The Expo push token to remove, sent in the JSON body. */
+    token: string;
 }
 
 /** Response model containing a client's weekly progress overview. */
