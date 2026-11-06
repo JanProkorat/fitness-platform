@@ -28,7 +28,7 @@ public class ResetPasswordEndpoint(
             s.Summary = "Reset password";
             s.Description = "Completes a password reset using the token received via email. On success every refresh token of the user is revoked, signing them out of all devices.";
             s.Response(StatusCodes.Status200OK, "Password reset; all sessions revoked");
-            s.Response(StatusCodes.Status400BadRequest, "Invalid input, or invalid/expired reset request");
+            s.Response<ProblemDetails>(StatusCodes.Status400BadRequest,"Invalid input, or invalid/expired reset request");
             s.Response(StatusCodes.Status429TooManyRequests, "Rate limit exceeded");
         });
     }

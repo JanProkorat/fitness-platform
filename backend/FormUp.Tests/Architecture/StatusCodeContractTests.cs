@@ -29,11 +29,18 @@ public class StatusCodeContractTests(FitnessApiFactory factory)
         document.RootElement.GetProperty("paths").TryGetProperty(route, out var pathItem)
             .Should().BeTrue("the spec must contain {0}", route);
 
-        var codes = pathItem.GetProperty(method).GetProperty("responses").EnumerateObject()
+        var responses = pathItem.GetProperty(method).GetProperty("responses");
+        var codes = responses.EnumerateObject()
             .Select(response => response.Name)
             .Order(StringComparer.Ordinal)
             .ToList();
 
         codes.Should().Equal(expected.Split(','), "the generated client throws on an undeclared status");
+
+        var badRequest = responses.GetProperty("400");
+        badRequest.TryGetProperty("content", out var content).Should().BeTrue("a 400 must keep its ProblemDetails body");
+        content.EnumerateObject().Should().NotBeEmpty();
+        content.EnumerateObject().All(media => media.Value.TryGetProperty("schema", out _))
+            .Should().BeTrue("a 400 body without a schema makes the generated client parse it by hand");
     }
 }
