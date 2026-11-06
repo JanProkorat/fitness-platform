@@ -64,7 +64,12 @@ export default function PhotoViewerDialog({
   const { t } = useTranslation();
   const photo = findPhoto(photos, photoId);
   const index = photos.findIndex((candidate) => candidate.id === photoId);
-  const { measurement, isPending: weighInPending } = useNearestWeighIn(clientId, photo?.takenAt);
+  const {
+    measurement,
+    isPending: weighInPending,
+    isError: weighInFailed,
+    refetch: retryWeighIn,
+  } = useNearestWeighIn(clientId, photo?.takenAt);
 
   // The photo can leave the live data (range change, refetch); nothing left to show then.
   useEffect(() => {
@@ -220,6 +225,13 @@ export default function PhotoViewerDialog({
                   </strong>
                   {weighInParts.map((part) => ` · ${part}`).join('')}
                 </p>
+              </div>
+            ) : weighInFailed ? (
+              <div role="alert" className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+                <p className="text-body text-muted-foreground">{t('common.dataLoadError')}</p>
+                <Button type="button" variant="outline" size="sm" onClick={retryWeighIn}>
+                  {t('clients.retry')}
+                </Button>
               </div>
             ) : (
               !weighInPending && <p className="text-body text-muted-foreground">{t('clientDetail.photos.noWeighIn')}</p>

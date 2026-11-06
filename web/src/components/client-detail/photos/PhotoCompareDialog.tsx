@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { X } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 import type { ClientPlanItem } from '@/api/client-plans';
 import type { ClientPhotoResponse, MeasurementDto } from '@/api/generated';
@@ -46,6 +47,8 @@ function Badge({ value, className }: { value: number; className?: string }) {
 interface SlotProps {
   photo: ClientPhotoResponse | undefined;
   measurement: MeasurementDto | undefined;
+  /** The weigh-in lookup is loading or failed, so the missing weight says nothing. */
+  weighInUnknown: boolean;
   badge: number;
   plans: ClientPlanItem[] | undefined;
   capabilities: PlanCapabilities;
@@ -54,7 +57,7 @@ interface SlotProps {
 }
 
 /** One side of the comparison: the photo, its date and "weight · plan". */
-function CompareSlot({ photo, measurement, badge, plans, capabilities, locale, onExpired }: SlotProps) {
+function CompareSlot({ photo, measurement, weighInUnknown, badge, plans, capabilities, locale, onExpired }: SlotProps) {
   const { t } = useTranslation();
 
   if (!photo) {
@@ -70,7 +73,9 @@ function CompareSlot({ photo, measurement, badge, plans, capabilities, locale, o
   const weight =
     measurement?.weightKg != null
       ? t('clientDetail.photos.weightValue', { value: formatDecimal(measurement.weightKg, locale) })
-      : t('clientDetail.photos.compare.noWeighInShort');
+      : weighInUnknown
+        ? undefined
+        : t('clientDetail.photos.compare.noWeighInShort');
   const planText = plan ? (plan.name ?? t('clientDetail.photos.planRemoved')) : t('clientDetail.photos.compare.noPlan');
 
   return (
@@ -87,7 +92,7 @@ function CompareSlot({ photo, measurement, badge, plans, capabilities, locale, o
       </div>
       <figcaption className="flex flex-col gap-0.5">
         <span className="text-card-title font-bold text-ink">{date}</span>
-        <span className="text-body text-muted-foreground">{`${weight} · ${planText}`}</span>
+        <span className="text-body text-muted-foreground">{weight === undefined ? planText : `${weight} · ${planText}`}</span>
       </figcaption>
     </figure>
   );
@@ -126,8 +131,20 @@ export default function PhotoCompareDialog({
   const older = selected[0];
   const newer = selected[1];
 
-  const olderWeighIn = useNearestWeighIn(clientId, older?.takenAt).measurement;
-  const newerWeighIn = useNearestWeighIn(clientId, newer?.takenAt).measurement;
+  const olderLookup = useNearestWeighIn(clientId, older?.takenAt);
+  const newerLookup = useNearestWeighIn(clientId, newer?.takenAt);
+  const olderWeighIn = olderLookup.measurement;
+  const newerWeighIn = newerLookup.measurement;
+  const weighInFailed = olderLookup.isError || newerLookup.isError;
+  const weighInPending = olderLookup.isPending || newerLookup.isPending;
+  const retryWeighIns = () => {
+    if (olderLookup.isError) {
+      olderLookup.refetch();
+    }
+    if (newerLookup.isError) {
+      newerLookup.refetch();
+    }
+  };
 
   function toggle(id: string | undefined) {
     if (!id) {
@@ -152,7 +169,7 @@ export default function PhotoCompareDialog({
       ? newerWeighIn.bodyFatPercentage - olderWeighIn.bodyFatPercentage
       : undefined;
   const bothSelected = older !== undefined && newer !== undefined;
-  const missingWeighIn = bothSelected && weightDelta === undefined;
+  const missingWeighIn = bothSelected && weightDelta === undefined && !weighInFailed && !weighInPending;
 
   const slotProps = { plans, capabilities, locale, onExpired };
 
@@ -176,7 +193,7 @@ export default function PhotoCompareDialog({
         </div>
 
         <div className="grid grid-cols-1 items-start justify-items-center gap-6 md:grid-cols-[1fr_auto_1fr]">
-          <CompareSlot photo={older} measurement={olderWeighIn} badge={1} {...slotProps} />
+          <CompareSlot photo={older} measurement={olderWeighIn} weighInUnknown={olderLookup.isError || olderLookup.isPending} badge={1} {...slotProps} />
           <div className="flex min-w-32 flex-col items-center justify-center gap-5 self-center text-center">
             {bothSelected && days !== undefined && (
               <div className="flex flex-col items-center gap-0.5">
@@ -202,13 +219,21 @@ export default function PhotoCompareDialog({
                 locale={locale}
               />
             )}
+            {weighInFailed && (
+              <div role="alert" className="flex max-w-40 flex-col items-center gap-2">
+                <p className="text-caption text-muted-foreground">{t('common.dataLoadError')}</p>
+                <Button type="button" variant="outline" size="sm" onClick={retryWeighIns}>
+                  {t('clients.retry')}
+                </Button>
+              </div>
+            )}
             {missingWeighIn && (
               <p role="status" className="max-w-40 text-caption text-muted-foreground">
                 {t('clientDetail.photos.compare.noWeighIn')}
               </p>
             )}
           </div>
-          <CompareSlot photo={newer} measurement={newerWeighIn} badge={2} {...slotProps} />
+          <CompareSlot photo={newer} measurement={newerWeighIn} weighInUnknown={newerLookup.isError || newerLookup.isPending} badge={2} {...slotProps} />
         </div>
 
         <div className="flex flex-col gap-3 border-t border-border pt-4">

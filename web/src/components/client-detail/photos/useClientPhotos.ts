@@ -55,5 +55,11 @@ export function useNearestWeighIn(clientId: string, takenAt: string | undefined)
   });
 
   const measurement = useMemo(() => nearestWeighIn(query.data?.items, takenAt), [query.data, takenAt]);
-  return { measurement, isPending: query.isPending && query.fetchStatus !== 'idle' };
+  return {
+    measurement,
+    isPending: query.isPending && query.fetchStatus !== 'idle',
+    /** The lookup failed and nothing is cached, so "no weigh-in" would be a false claim. */
+    isError: query.isError && query.data === undefined,
+    refetch: () => void query.refetch(),
+  };
 }
