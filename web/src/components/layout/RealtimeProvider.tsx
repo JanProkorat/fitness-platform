@@ -4,6 +4,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/stores/auth';
 import { clientOfflineSyncConflictKeys } from '@/hooks/useClientOfflineSyncConflicts';
 import { clientFormsKey } from '@/api/questionnaires';
+import { subscriptionKeys } from '@/api/subscription';
 import { weeklyCheckInKeys } from '@/hooks/useWeeklyCheckIns';
 import { executeRefresh } from '@/lib/refresh';
 import { RealtimeContext, setHubConnection, useSignalR, type RealtimeApi } from '@/hooks/useSignalR';
@@ -231,15 +232,21 @@ function CoachRealtimeSync() {
     [queryClient],
   );
 
+  // An ended collaboration frees a client place, so the plan's client usage is stale.
+  const invalidateSubscription = useCallback(() => {
+    void queryClient.invalidateQueries({ queryKey: subscriptionKeys.mine });
+  }, [queryClient]);
+
   const handlers = useMemo(
     () => ({
       ...Object.fromEntries(COOPERATION_EVENTS.map((event) => [event, invalidateAll])),
+      collaborationended: invalidateSubscription,
       newmessage: invalidateInbox,
       offlinesyncconflict: invalidateConflicts,
       questionnairesubmitted: invalidateForms,
       checkinmissed: invalidateForms,
     }),
-    [invalidateAll, invalidateInbox, invalidateConflicts, invalidateForms],
+    [invalidateAll, invalidateInbox, invalidateConflicts, invalidateForms, invalidateSubscription],
   );
   useSignalR(handlers, invalidateAll);
 
