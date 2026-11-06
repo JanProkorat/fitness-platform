@@ -67,6 +67,8 @@ public class FinalizePlanPhotoEndpoint(
                 + "the request must be owned by the calling client and in Accepted or InProgress "
                 + "status. The first photo upload for an Accepted request transitions it to InProgress.";
             s.Response<PlanPhotoResponse>(StatusCodes.Status201Created, "Plan photo finalized");
+            s.Responses[StatusCodes.Status409Conflict] =
+                "The diary request is not Accepted/InProgress, or its window has expired (PHOTO_DIARY_REQUEST_EXPIRED)";
         });
     }
 
@@ -146,6 +148,14 @@ public class FinalizePlanPhotoEndpoint(
             {
                 await this.SendProblemAsync(409, ErrorCodes.PhotoDiaryRequestInvalidStatus,
                     "Photos can only be uploaded against diary requests in Accepted or InProgress status.", ct);
+                return;
+            }
+
+            // 409 once the request's window has ended, for every mode
+            if (!diaryRequest.IsOpenAt(DateTimeOffset.UtcNow))
+            {
+                await this.SendProblemAsync(409, ErrorCodes.PhotoDiaryRequestExpired,
+                    "This photo diary request has expired and no longer accepts photos.", ct);
                 return;
             }
         }

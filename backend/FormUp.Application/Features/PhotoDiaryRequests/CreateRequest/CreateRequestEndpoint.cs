@@ -133,6 +133,11 @@ public class CreateRequestEndpoint(
 
         var now = timeProvider.GetUtcNow();
 
+        // Serialise on the coach's profile row so two concurrent creates cannot both pass the
+        // open-request check below.
+        await using var transaction = await db.BeginTransactionAsync(ct);
+        await db.LockProfessionalProfileAsync(professionalProfile.Id, ct);
+
         // One open request per coach and link (or pending invite). The end date is computed in
         // memory over the coach's few candidate rows rather than inside the query.
         var openCandidateQuery = db.PhotoDiaryRequests
@@ -179,6 +184,7 @@ public class CreateRequestEndpoint(
 
         db.PhotoDiaryRequests.Add(request);
         await db.SaveChangesAsync(ct);
+        await transaction.CommitAsync(ct);
 
         // ── Emit photoDiaryRequested to the client group (best-effort) ───────────
         // Link-based: client is already known.
